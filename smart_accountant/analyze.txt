@@ -1,0 +1,19 @@
+Analyzing smart_accountant...                                   
+
+   info • The imported package 'sqflite' isn't a dependency of the importing package. Try adding a dependency for 'sqflite' in the 'pubspec.yaml' file • lib/core/database/database_helper.dart:1:8 • depend_on_referenced_packages
+  error • Target of URI doesn't exist: 'package:sqflite/sqflite.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist • lib/core/database/database_helper.dart:1:8 • uri_does_not_exist
+  error • Undefined class 'Database'. Try changing the name to the name of an existing class, or creating a class with the name 'Database' • lib/core/database/database_helper.dart:9:10 • undefined_class
+  error • The name 'Database' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'Database' • lib/core/database/database_helper.dart:12:10 • non_type_as_type_argument
+  error • The name 'Database' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'Database' • lib/core/database/database_helper.dart:18:10 • non_type_as_type_argument
+  error • The method 'getDatabasesPath' isn't defined for the type 'DatabaseHelper'. Try correcting the name to the name of an existing method, or defining a method named 'getDatabasesPath' • lib/core/database/database_helper.dart:19:26 • undefined_method
+  error • The method 'openDatabase' isn't defined for the type 'DatabaseHelper'. Try correcting the name to the name of an existing method, or defining a method named 'openDatabase' • lib/core/database/database_helper.dart:21:18 • undefined_method
+  error • Undefined class 'Database'. Try changing the name to the name of an existing class, or creating a class with the name 'Database' • lib/core/database/database_helper.dart:24:20 • undefined_class
+  error • Undefined name 'ConflictAlgorithm'. Try correcting the name to one that is defined, or defining the name • lib/core/database/database_helper.dart:104:71 • undefined_identifier
+   info • The member 'insertJournalEntry' overrides an inherited member but isn't annotated with '@override'. Try adding the '@override' annotation • lib/core/database/memory_database.dart:77:16 • annotate_overrides
+   info • The member 'getAllJournalEntries' overrides an inherited member but isn't annotated with '@override'. Try adding the '@override' annotation • lib/core/database/memory_database.dart:99:30 • annotate_overrides
+   info • The member 'getAccountBalance' overrides an inherited member but isn't annotated with '@override'. Try adding the '@override' annotation • lib/core/database/memory_database.dart:103:26 • annotate_overrides
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/screens/accounts/accounts_tree_screen.dart:169:29 • use_build_context_synchronously
+   info • The private field _clients could be 'final'. Try making the field 'final' • lib/screens/customers/customers_screen.dart:17:16 • prefer_final_fields
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/screens/customers/customers_screen.dart:53:29 • use_build_context_synchronously
+warning • The dev dependency on flutter_localizations is unnecessary because there is also a normal dependency on that package. Try removing the dev dependency • pubspec.yaml:72:3 • unnecessary_dev_dependency
+
