@@ -34,7 +34,14 @@ void main() {
       (account) => account.accountNumber == '11100',
     );
 
-    expect(cash.nameArabic, 'الصندوق');
-    expect(cash.allowPosting, true);
+    expect(cash.nameArabic, 'النقدية وما في حكمها');
+    expect(cash.allowPosting, false);
+
+    final box = accounts.firstWhere(
+      (account) => account.accountNumber == '11101',
+    );
+
+    expect(box.nameArabic, 'الصندوق');
+    expect(box.allowPosting, true);
   });
 }
