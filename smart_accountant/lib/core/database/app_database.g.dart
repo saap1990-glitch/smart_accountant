@@ -4771,6 +4771,672 @@ class BalancesCompanion extends UpdateCompanion<Balance> {
   }
 }
 
+class $FinancialAccountsTable extends FinancialAccounts
+    with TableInfo<$FinancialAccountsTable, FinancialAccount> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FinancialAccountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
+  @override
+  late final GeneratedColumn<String> code = GeneratedColumn<String>(
+    'code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _nameArabicMeta = const VerificationMeta(
+    'nameArabic',
+  );
+  @override
+  late final GeneratedColumn<String> nameArabic = GeneratedColumn<String>(
+    'name_arabic',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameEnglishMeta = const VerificationMeta(
+    'nameEnglish',
+  );
+  @override
+  late final GeneratedColumn<String> nameEnglish = GeneratedColumn<String>(
+    'name_english',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyIdMeta = const VerificationMeta(
+    'currencyId',
+  );
+  @override
+  late final GeneratedColumn<int> currencyId = GeneratedColumn<int>(
+    'currency_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _externalNumberMeta = const VerificationMeta(
+    'externalNumber',
+  );
+  @override
+  late final GeneratedColumn<String> externalNumber = GeneratedColumn<String>(
+    'external_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _providerNameMeta = const VerificationMeta(
+    'providerName',
+  );
+  @override
+  late final GeneratedColumn<String> providerName = GeneratedColumn<String>(
+    'provider_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _activeMeta = const VerificationMeta('active');
+  @override
+  late final GeneratedColumn<bool> active = GeneratedColumn<bool>(
+    'active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    type,
+    code,
+    nameArabic,
+    nameEnglish,
+    accountId,
+    currencyId,
+    externalNumber,
+    providerName,
+    active,
+    notes,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'financial_accounts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FinancialAccount> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('code')) {
+      context.handle(
+        _codeMeta,
+        code.isAcceptableOrUnknown(data['code']!, _codeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_codeMeta);
+    }
+    if (data.containsKey('name_arabic')) {
+      context.handle(
+        _nameArabicMeta,
+        nameArabic.isAcceptableOrUnknown(data['name_arabic']!, _nameArabicMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameArabicMeta);
+    }
+    if (data.containsKey('name_english')) {
+      context.handle(
+        _nameEnglishMeta,
+        nameEnglish.isAcceptableOrUnknown(
+          data['name_english']!,
+          _nameEnglishMeta,
+        ),
+      );
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('currency_id')) {
+      context.handle(
+        _currencyIdMeta,
+        currencyId.isAcceptableOrUnknown(data['currency_id']!, _currencyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyIdMeta);
+    }
+    if (data.containsKey('external_number')) {
+      context.handle(
+        _externalNumberMeta,
+        externalNumber.isAcceptableOrUnknown(
+          data['external_number']!,
+          _externalNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('provider_name')) {
+      context.handle(
+        _providerNameMeta,
+        providerName.isAcceptableOrUnknown(
+          data['provider_name']!,
+          _providerNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('active')) {
+      context.handle(
+        _activeMeta,
+        active.isAcceptableOrUnknown(data['active']!, _activeMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FinancialAccount map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FinancialAccount(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      code: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}code'],
+      )!,
+      nameArabic: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_arabic'],
+      )!,
+      nameEnglish: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_english'],
+      ),
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      )!,
+      currencyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}currency_id'],
+      )!,
+      externalNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}external_number'],
+      ),
+      providerName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_name'],
+      ),
+      active: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}active'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+    );
+  }
+
+  @override
+  $FinancialAccountsTable createAlias(String alias) {
+    return $FinancialAccountsTable(attachedDatabase, alias);
+  }
+}
+
+class FinancialAccount extends DataClass
+    implements Insertable<FinancialAccount> {
+  final int id;
+  final String type;
+  final String code;
+  final String nameArabic;
+  final String? nameEnglish;
+  final int accountId;
+  final int currencyId;
+  final String? externalNumber;
+  final String? providerName;
+  final bool active;
+  final String? notes;
+  const FinancialAccount({
+    required this.id,
+    required this.type,
+    required this.code,
+    required this.nameArabic,
+    this.nameEnglish,
+    required this.accountId,
+    required this.currencyId,
+    this.externalNumber,
+    this.providerName,
+    required this.active,
+    this.notes,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['type'] = Variable<String>(type);
+    map['code'] = Variable<String>(code);
+    map['name_arabic'] = Variable<String>(nameArabic);
+    if (!nullToAbsent || nameEnglish != null) {
+      map['name_english'] = Variable<String>(nameEnglish);
+    }
+    map['account_id'] = Variable<int>(accountId);
+    map['currency_id'] = Variable<int>(currencyId);
+    if (!nullToAbsent || externalNumber != null) {
+      map['external_number'] = Variable<String>(externalNumber);
+    }
+    if (!nullToAbsent || providerName != null) {
+      map['provider_name'] = Variable<String>(providerName);
+    }
+    map['active'] = Variable<bool>(active);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    return map;
+  }
+
+  FinancialAccountsCompanion toCompanion(bool nullToAbsent) {
+    return FinancialAccountsCompanion(
+      id: Value(id),
+      type: Value(type),
+      code: Value(code),
+      nameArabic: Value(nameArabic),
+      nameEnglish: nameEnglish == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nameEnglish),
+      accountId: Value(accountId),
+      currencyId: Value(currencyId),
+      externalNumber: externalNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(externalNumber),
+      providerName: providerName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(providerName),
+      active: Value(active),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+    );
+  }
+
+  factory FinancialAccount.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FinancialAccount(
+      id: serializer.fromJson<int>(json['id']),
+      type: serializer.fromJson<String>(json['type']),
+      code: serializer.fromJson<String>(json['code']),
+      nameArabic: serializer.fromJson<String>(json['nameArabic']),
+      nameEnglish: serializer.fromJson<String?>(json['nameEnglish']),
+      accountId: serializer.fromJson<int>(json['accountId']),
+      currencyId: serializer.fromJson<int>(json['currencyId']),
+      externalNumber: serializer.fromJson<String?>(json['externalNumber']),
+      providerName: serializer.fromJson<String?>(json['providerName']),
+      active: serializer.fromJson<bool>(json['active']),
+      notes: serializer.fromJson<String?>(json['notes']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'type': serializer.toJson<String>(type),
+      'code': serializer.toJson<String>(code),
+      'nameArabic': serializer.toJson<String>(nameArabic),
+      'nameEnglish': serializer.toJson<String?>(nameEnglish),
+      'accountId': serializer.toJson<int>(accountId),
+      'currencyId': serializer.toJson<int>(currencyId),
+      'externalNumber': serializer.toJson<String?>(externalNumber),
+      'providerName': serializer.toJson<String?>(providerName),
+      'active': serializer.toJson<bool>(active),
+      'notes': serializer.toJson<String?>(notes),
+    };
+  }
+
+  FinancialAccount copyWith({
+    int? id,
+    String? type,
+    String? code,
+    String? nameArabic,
+    Value<String?> nameEnglish = const Value.absent(),
+    int? accountId,
+    int? currencyId,
+    Value<String?> externalNumber = const Value.absent(),
+    Value<String?> providerName = const Value.absent(),
+    bool? active,
+    Value<String?> notes = const Value.absent(),
+  }) => FinancialAccount(
+    id: id ?? this.id,
+    type: type ?? this.type,
+    code: code ?? this.code,
+    nameArabic: nameArabic ?? this.nameArabic,
+    nameEnglish: nameEnglish.present ? nameEnglish.value : this.nameEnglish,
+    accountId: accountId ?? this.accountId,
+    currencyId: currencyId ?? this.currencyId,
+    externalNumber: externalNumber.present
+        ? externalNumber.value
+        : this.externalNumber,
+    providerName: providerName.present ? providerName.value : this.providerName,
+    active: active ?? this.active,
+    notes: notes.present ? notes.value : this.notes,
+  );
+  FinancialAccount copyWithCompanion(FinancialAccountsCompanion data) {
+    return FinancialAccount(
+      id: data.id.present ? data.id.value : this.id,
+      type: data.type.present ? data.type.value : this.type,
+      code: data.code.present ? data.code.value : this.code,
+      nameArabic: data.nameArabic.present
+          ? data.nameArabic.value
+          : this.nameArabic,
+      nameEnglish: data.nameEnglish.present
+          ? data.nameEnglish.value
+          : this.nameEnglish,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      currencyId: data.currencyId.present
+          ? data.currencyId.value
+          : this.currencyId,
+      externalNumber: data.externalNumber.present
+          ? data.externalNumber.value
+          : this.externalNumber,
+      providerName: data.providerName.present
+          ? data.providerName.value
+          : this.providerName,
+      active: data.active.present ? data.active.value : this.active,
+      notes: data.notes.present ? data.notes.value : this.notes,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinancialAccount(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('code: $code, ')
+          ..write('nameArabic: $nameArabic, ')
+          ..write('nameEnglish: $nameEnglish, ')
+          ..write('accountId: $accountId, ')
+          ..write('currencyId: $currencyId, ')
+          ..write('externalNumber: $externalNumber, ')
+          ..write('providerName: $providerName, ')
+          ..write('active: $active, ')
+          ..write('notes: $notes')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    type,
+    code,
+    nameArabic,
+    nameEnglish,
+    accountId,
+    currencyId,
+    externalNumber,
+    providerName,
+    active,
+    notes,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FinancialAccount &&
+          other.id == this.id &&
+          other.type == this.type &&
+          other.code == this.code &&
+          other.nameArabic == this.nameArabic &&
+          other.nameEnglish == this.nameEnglish &&
+          other.accountId == this.accountId &&
+          other.currencyId == this.currencyId &&
+          other.externalNumber == this.externalNumber &&
+          other.providerName == this.providerName &&
+          other.active == this.active &&
+          other.notes == this.notes);
+}
+
+class FinancialAccountsCompanion extends UpdateCompanion<FinancialAccount> {
+  final Value<int> id;
+  final Value<String> type;
+  final Value<String> code;
+  final Value<String> nameArabic;
+  final Value<String?> nameEnglish;
+  final Value<int> accountId;
+  final Value<int> currencyId;
+  final Value<String?> externalNumber;
+  final Value<String?> providerName;
+  final Value<bool> active;
+  final Value<String?> notes;
+  const FinancialAccountsCompanion({
+    this.id = const Value.absent(),
+    this.type = const Value.absent(),
+    this.code = const Value.absent(),
+    this.nameArabic = const Value.absent(),
+    this.nameEnglish = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.currencyId = const Value.absent(),
+    this.externalNumber = const Value.absent(),
+    this.providerName = const Value.absent(),
+    this.active = const Value.absent(),
+    this.notes = const Value.absent(),
+  });
+  FinancialAccountsCompanion.insert({
+    this.id = const Value.absent(),
+    required String type,
+    required String code,
+    required String nameArabic,
+    this.nameEnglish = const Value.absent(),
+    required int accountId,
+    required int currencyId,
+    this.externalNumber = const Value.absent(),
+    this.providerName = const Value.absent(),
+    this.active = const Value.absent(),
+    this.notes = const Value.absent(),
+  }) : type = Value(type),
+       code = Value(code),
+       nameArabic = Value(nameArabic),
+       accountId = Value(accountId),
+       currencyId = Value(currencyId);
+  static Insertable<FinancialAccount> custom({
+    Expression<int>? id,
+    Expression<String>? type,
+    Expression<String>? code,
+    Expression<String>? nameArabic,
+    Expression<String>? nameEnglish,
+    Expression<int>? accountId,
+    Expression<int>? currencyId,
+    Expression<String>? externalNumber,
+    Expression<String>? providerName,
+    Expression<bool>? active,
+    Expression<String>? notes,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (type != null) 'type': type,
+      if (code != null) 'code': code,
+      if (nameArabic != null) 'name_arabic': nameArabic,
+      if (nameEnglish != null) 'name_english': nameEnglish,
+      if (accountId != null) 'account_id': accountId,
+      if (currencyId != null) 'currency_id': currencyId,
+      if (externalNumber != null) 'external_number': externalNumber,
+      if (providerName != null) 'provider_name': providerName,
+      if (active != null) 'active': active,
+      if (notes != null) 'notes': notes,
+    });
+  }
+
+  FinancialAccountsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? type,
+    Value<String>? code,
+    Value<String>? nameArabic,
+    Value<String?>? nameEnglish,
+    Value<int>? accountId,
+    Value<int>? currencyId,
+    Value<String?>? externalNumber,
+    Value<String?>? providerName,
+    Value<bool>? active,
+    Value<String?>? notes,
+  }) {
+    return FinancialAccountsCompanion(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      code: code ?? this.code,
+      nameArabic: nameArabic ?? this.nameArabic,
+      nameEnglish: nameEnglish ?? this.nameEnglish,
+      accountId: accountId ?? this.accountId,
+      currencyId: currencyId ?? this.currencyId,
+      externalNumber: externalNumber ?? this.externalNumber,
+      providerName: providerName ?? this.providerName,
+      active: active ?? this.active,
+      notes: notes ?? this.notes,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
+    }
+    if (nameArabic.present) {
+      map['name_arabic'] = Variable<String>(nameArabic.value);
+    }
+    if (nameEnglish.present) {
+      map['name_english'] = Variable<String>(nameEnglish.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (currencyId.present) {
+      map['currency_id'] = Variable<int>(currencyId.value);
+    }
+    if (externalNumber.present) {
+      map['external_number'] = Variable<String>(externalNumber.value);
+    }
+    if (providerName.present) {
+      map['provider_name'] = Variable<String>(providerName.value);
+    }
+    if (active.present) {
+      map['active'] = Variable<bool>(active.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinancialAccountsCompanion(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('code: $code, ')
+          ..write('nameArabic: $nameArabic, ')
+          ..write('nameEnglish: $nameEnglish, ')
+          ..write('accountId: $accountId, ')
+          ..write('currencyId: $currencyId, ')
+          ..write('externalNumber: $externalNumber, ')
+          ..write('providerName: $providerName, ')
+          ..write('active: $active, ')
+          ..write('notes: $notes')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CashBoxesTable extends CashBoxes
     with TableInfo<$CashBoxesTable, CashBoxe> {
   @override
@@ -10875,6 +11541,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $JournalLinesTable journalLines = $JournalLinesTable(this);
   late final $LedgerTable ledger = $LedgerTable(this);
   late final $BalancesTable balances = $BalancesTable(this);
+  late final $FinancialAccountsTable financialAccounts =
+      $FinancialAccountsTable(this);
   late final $CashBoxesTable cashBoxes = $CashBoxesTable(this);
   late final $BanksTable banks = $BanksTable(this);
   late final $WalletsTable wallets = $WalletsTable(this);
@@ -10909,6 +11577,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     journalLines,
     ledger,
     balances,
+    financialAccounts,
     cashBoxes,
     banks,
     wallets,
@@ -13452,6 +14121,337 @@ typedef $$BalancesTableProcessedTableManager =
       $$BalancesTableUpdateCompanionBuilder,
       (Balance, BaseReferences<_$AppDatabase, $BalancesTable, Balance>),
       Balance,
+      PrefetchHooks Function()
+    >;
+typedef $$FinancialAccountsTableCreateCompanionBuilder =
+    FinancialAccountsCompanion Function({
+      Value<int> id,
+      required String type,
+      required String code,
+      required String nameArabic,
+      Value<String?> nameEnglish,
+      required int accountId,
+      required int currencyId,
+      Value<String?> externalNumber,
+      Value<String?> providerName,
+      Value<bool> active,
+      Value<String?> notes,
+    });
+typedef $$FinancialAccountsTableUpdateCompanionBuilder =
+    FinancialAccountsCompanion Function({
+      Value<int> id,
+      Value<String> type,
+      Value<String> code,
+      Value<String> nameArabic,
+      Value<String?> nameEnglish,
+      Value<int> accountId,
+      Value<int> currencyId,
+      Value<String?> externalNumber,
+      Value<String?> providerName,
+      Value<bool> active,
+      Value<String?> notes,
+    });
+
+class $$FinancialAccountsTableFilterComposer
+    extends Composer<_$AppDatabase, $FinancialAccountsTable> {
+  $$FinancialAccountsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameArabic => $composableBuilder(
+    column: $table.nameArabic,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameEnglish => $composableBuilder(
+    column: $table.nameEnglish,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get externalNumber => $composableBuilder(
+    column: $table.externalNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get providerName => $composableBuilder(
+    column: $table.providerName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get active => $composableBuilder(
+    column: $table.active,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FinancialAccountsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FinancialAccountsTable> {
+  $$FinancialAccountsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameArabic => $composableBuilder(
+    column: $table.nameArabic,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameEnglish => $composableBuilder(
+    column: $table.nameEnglish,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get externalNumber => $composableBuilder(
+    column: $table.externalNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get providerName => $composableBuilder(
+    column: $table.providerName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get active => $composableBuilder(
+    column: $table.active,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FinancialAccountsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FinancialAccountsTable> {
+  $$FinancialAccountsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get code =>
+      $composableBuilder(column: $table.code, builder: (column) => column);
+
+  GeneratedColumn<String> get nameArabic => $composableBuilder(
+    column: $table.nameArabic,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get nameEnglish => $composableBuilder(
+    column: $table.nameEnglish,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<int> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get externalNumber => $composableBuilder(
+    column: $table.externalNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get providerName => $composableBuilder(
+    column: $table.providerName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get active =>
+      $composableBuilder(column: $table.active, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+}
+
+class $$FinancialAccountsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FinancialAccountsTable,
+          FinancialAccount,
+          $$FinancialAccountsTableFilterComposer,
+          $$FinancialAccountsTableOrderingComposer,
+          $$FinancialAccountsTableAnnotationComposer,
+          $$FinancialAccountsTableCreateCompanionBuilder,
+          $$FinancialAccountsTableUpdateCompanionBuilder,
+          (
+            FinancialAccount,
+            BaseReferences<
+              _$AppDatabase,
+              $FinancialAccountsTable,
+              FinancialAccount
+            >,
+          ),
+          FinancialAccount,
+          PrefetchHooks Function()
+        > {
+  $$FinancialAccountsTableTableManager(
+    _$AppDatabase db,
+    $FinancialAccountsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FinancialAccountsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FinancialAccountsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FinancialAccountsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> code = const Value.absent(),
+                Value<String> nameArabic = const Value.absent(),
+                Value<String?> nameEnglish = const Value.absent(),
+                Value<int> accountId = const Value.absent(),
+                Value<int> currencyId = const Value.absent(),
+                Value<String?> externalNumber = const Value.absent(),
+                Value<String?> providerName = const Value.absent(),
+                Value<bool> active = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+              }) => FinancialAccountsCompanion(
+                id: id,
+                type: type,
+                code: code,
+                nameArabic: nameArabic,
+                nameEnglish: nameEnglish,
+                accountId: accountId,
+                currencyId: currencyId,
+                externalNumber: externalNumber,
+                providerName: providerName,
+                active: active,
+                notes: notes,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String type,
+                required String code,
+                required String nameArabic,
+                Value<String?> nameEnglish = const Value.absent(),
+                required int accountId,
+                required int currencyId,
+                Value<String?> externalNumber = const Value.absent(),
+                Value<String?> providerName = const Value.absent(),
+                Value<bool> active = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+              }) => FinancialAccountsCompanion.insert(
+                id: id,
+                type: type,
+                code: code,
+                nameArabic: nameArabic,
+                nameEnglish: nameEnglish,
+                accountId: accountId,
+                currencyId: currencyId,
+                externalNumber: externalNumber,
+                providerName: providerName,
+                active: active,
+                notes: notes,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FinancialAccountsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FinancialAccountsTable,
+      FinancialAccount,
+      $$FinancialAccountsTableFilterComposer,
+      $$FinancialAccountsTableOrderingComposer,
+      $$FinancialAccountsTableAnnotationComposer,
+      $$FinancialAccountsTableCreateCompanionBuilder,
+      $$FinancialAccountsTableUpdateCompanionBuilder,
+      (
+        FinancialAccount,
+        BaseReferences<
+          _$AppDatabase,
+          $FinancialAccountsTable,
+          FinancialAccount
+        >,
+      ),
+      FinancialAccount,
       PrefetchHooks Function()
     >;
 typedef $$CashBoxesTableCreateCompanionBuilder =
@@ -16680,6 +17680,8 @@ class $AppDatabaseManager {
       $$LedgerTableTableManager(_db, _db.ledger);
   $$BalancesTableTableManager get balances =>
       $$BalancesTableTableManager(_db, _db.balances);
+  $$FinancialAccountsTableTableManager get financialAccounts =>
+      $$FinancialAccountsTableTableManager(_db, _db.financialAccounts);
   $$CashBoxesTableTableManager get cashBoxes =>
       $$CashBoxesTableTableManager(_db, _db.cashBoxes);
   $$BanksTableTableManager get banks =>
