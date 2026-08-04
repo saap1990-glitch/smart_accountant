@@ -11,6 +11,12 @@ import 'tables/account_rules_table.dart';
 import 'tables/account_links_table.dart';
 import 'tables/journal_entries_table.dart';
 import 'tables/journal_lines_table.dart';
+import 'tables/ledger_table.dart';
+import 'tables/balances_table.dart';
+import 'seeds/account_seed.dart';
+import 'tables/cash_boxes_table.dart';import 'tables/banks_table.dart';import 'tables/wallets_table.dart';import 'tables/exchange_companies_table.dart';import 'tables/customers_table.dart';import 'tables/suppliers_table.dart';import 'tables/categories_table.dart';import 'tables/units_table.dart';import 'tables/warehouses_table.dart';import 'tables/items_table.dart';import 'tables/inventory_balances_table.dart';import 'tables/inventory_transactions_table.dart';
+import 'tables/documents_table.dart';import 'tables/document_lines_table.dart';
+import 'tables/cash_boxes_table.dart';
 
 part 'app_database.g.dart';
 
@@ -26,6 +32,11 @@ part 'app_database.g.dart';
     AccountLinks,
     JournalEntries,
     JournalLines,
+    Ledger,
+    Balances,
+CashBoxes,    Banks,    Wallets,    ExchangeCompanies,    Customers,    Suppliers,    Categories,    Units,    Warehouses,    Items,    InventoryBalances,    InventoryTransactions,
+Documents,    DocumentLines,
+    CashBoxes,
   ],
 )
 class AppDatabase extends _$AppDatabase {
