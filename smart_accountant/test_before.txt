@@ -1,0 +1,18 @@
+00:00 +0: loading /workspaces/smart_accountant/smart_accountant/test/unit/accounting/value_objects/exchange_rate_test.dart
+00:00 +0: /workspaces/smart_accountant/smart_accountant/test/unit/accounting/value_objects/exchange_rate_test.dart: Exchange rate converts money correctly
+00:00 +1: loading /workspaces/smart_accountant/smart_accountant/test/unit/accounting/value_objects/currency_test.dart
+00:00 +1: /workspaces/smart_accountant/smart_accountant/test/unit/accounting/value_objects/currency_test.dart: Currency equality
+00:00 +2: /workspaces/smart_accountant/smart_accountant/test/unit/accounting/value_objects/currency_test.dart: Currency code
+00:00 +3: loading /workspaces/smart_accountant/smart_accountant/test/unit/accounting/value_objects/money_test.dart
+00:01 +3: /workspaces/smart_accountant/smart_accountant/test/unit/accounting/value_objects/money_test.dart: Money addition
+00:01 +4: /workspaces/smart_accountant/smart_accountant/test/unit/accounting/value_objects/money_test.dart: Money subtraction
+00:01 +5: /workspaces/smart_accountant/smart_accountant/test/unit/accounting/value_objects/money_test.dart: Money zero
+00:01 +6: loading /workspaces/smart_accountant/smart_accountant/test/integration/accounting/accounting_flow_test.dart
+00:02 +6: /workspaces/smart_accountant/smart_accountant/test/integration/accounting/accounting_flow_test.dart: Accounting entry should be balanced
+00:02 +7: loading /workspaces/smart_accountant/smart_accountant/test/integration/accounting/accounting_posting_flow_test.dart
+00:03 +7: /workspaces/smart_accountant/smart_accountant/test/integration/accounting/accounting_posting_flow_test.dart: Complete accounting posting flow
+00:04 +8: loading /workspaces/smart_accountant/smart_accountant/test/integration/accounting/accounts_tree_test.dart
+00:04 +8: /workspaces/smart_accountant/smart_accountant/test/integration/accounting/accounts_tree_test.dart: Account tree seed creates main accounting accounts
+00:04 +9: loading /workspaces/smart_accountant/smart_accountant/test/widget_test.dart
+00:05 +9: /workspaces/smart_accountant/smart_accountant/test/widget_test.dart: Smart Accountant app loads
+00:06 +10: All tests passed!

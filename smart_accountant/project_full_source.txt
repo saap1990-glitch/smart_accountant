@@ -1,0 +1,3634 @@
+import 'package:drift/drift.dart';
+
+class JournalLines extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get journalId => integer()();
+
+  IntColumn get accountId => integer()();
+
+  RealColumn get debit => real().withDefault(const Constant(0))();
+
+  RealColumn get credit => real().withDefault(const Constant(0))();
+
+  TextColumn get description => text()();
+}
+import 'package:drift/drift.dart';
+
+class Suppliers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().unique()();
+
+  TextColumn get name => text()();
+
+  TextColumn get phone => text().nullable()();
+
+  TextColumn get address => text().nullable()();
+
+  IntColumn get accountId => integer()();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+import 'package:drift/drift.dart';
+
+class Banks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().unique()();
+
+  TextColumn get nameArabic => text()();
+
+  IntColumn get currencyId => integer()();
+
+  IntColumn get accountId => integer()();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  TextColumn get notes => text().nullable()();
+}
+import 'package:drift/drift.dart';
+
+class AccountRules extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get entityType => text()();
+
+  IntColumn get parentAccountId => integer()();
+
+  BoolColumn get autoCreate => boolean().withDefault(const Constant(true))();
+
+  BoolColumn get allowPosting => boolean().withDefault(const Constant(true))();
+}
+import 'package:drift/drift.dart';
+
+class Documents extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get number => text().unique()();
+
+  TextColumn get type => text()();
+
+  DateTimeColumn get date =>
+      dateTime().withDefault(currentDateAndTime)();
+
+  IntColumn get accountId => integer()();
+
+  TextColumn get currency => text()();
+
+  RealColumn get exchangeRate =>
+      real().withDefault(const Constant(1))();
+
+  TextColumn get description => text().nullable()();
+
+  TextColumn get status =>
+      text().withDefault(const Constant('draft'))();
+}
+import 'package:drift/drift.dart';
+
+class Settings extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get key => text().unique()();
+
+  TextColumn get value => text().nullable()();
+}
+import 'package:drift/drift.dart';
+
+class Categories extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text()();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+import 'package:drift/drift.dart';
+
+class CashBoxes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().unique()();
+
+  TextColumn get nameArabic => text()();
+
+  IntColumn get currencyId => integer()();
+
+  IntColumn get accountId => integer()();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  TextColumn get notes => text().nullable()();
+}
+import 'package:drift/drift.dart';
+
+class InventoryTransactions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get itemId => integer()();
+
+  IntColumn get warehouseId => integer()();
+
+  TextColumn get type => text()();
+
+  RealColumn get quantity => real()();
+
+  RealColumn get cost => real()();
+
+  DateTimeColumn get date =>
+      dateTime().withDefault(currentDateAndTime)();
+
+  TextColumn get reference => text().nullable()();
+}
+import 'package:drift/drift.dart';
+
+class Currencies extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().unique()();
+
+  TextColumn get nameArabic => text()();
+
+  TextColumn get nameEnglish => text().nullable()();
+
+  BoolColumn get isBase => boolean().withDefault(const Constant(false))();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+import 'package:drift/drift.dart';
+
+class FinancialAccounts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  // CASH / BANK / WALLET / EXCHANGE
+  TextColumn get type => text()();
+
+  // رقم داخلي للحساب المالي
+  TextColumn get code => text().unique()();
+
+  TextColumn get nameArabic => text()();
+
+  TextColumn get nameEnglish => text().nullable()();
+
+  // الربط مع دليل الحسابات
+  IntColumn get accountId => integer()();
+
+  // العملة الأساسية للحساب
+  IntColumn get currencyId => integer()();
+
+  // رقم الحساب البنكي أو المحفظة أو الهاتف
+  TextColumn get externalNumber => text().nullable()();
+
+  // اسم البنك أو شركة الصرافة أو مزود المحفظة
+  TextColumn get providerName => text().nullable()();
+
+  BoolColumn get active =>
+      boolean().withDefault(const Constant(true))();
+
+  TextColumn get notes =>
+      text().nullable()();
+}
+import 'package:drift/drift.dart';
+
+class Accounts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get accountNumber => text().unique()();
+
+  TextColumn get nameArabic => text()();
+
+  TextColumn get nameEnglish => text().nullable()();
+
+  IntColumn get parentId => integer().nullable()();
+
+  IntColumn get level => integer()();
+
+  TextColumn get accountType => text()();
+
+  TextColumn get nature => text()();
+
+  BoolColumn get allowPosting => boolean().withDefault(const Constant(false))();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+import 'package:drift/drift.dart';
+
+class Warehouses extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().unique()();
+
+  TextColumn get name => text()();
+
+  TextColumn get location => text().nullable()();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+import 'package:drift/drift.dart';
+
+class Companies extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get nameArabic => text()();
+
+  TextColumn get nameEnglish => text().nullable()();
+
+  TextColumn get phone => text().nullable()();
+
+  TextColumn get address => text().nullable()();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+import 'package:drift/drift.dart';
+
+class Wallets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().unique()();
+
+  TextColumn get nameArabic => text()();
+
+  TextColumn get provider => text()();
+
+  IntColumn get currencyId => integer()();
+
+  IntColumn get accountId => integer()();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  TextColumn get notes => text().nullable()();
+}
+import 'package:drift/drift.dart';
+
+class InventoryBalances extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get itemId => integer()();
+
+  IntColumn get warehouseId => integer()();
+
+  RealColumn get quantity => real().withDefault(const Constant(0))();
+
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+}
+import 'package:drift/drift.dart';
+
+class ExchangeRates extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get currencyId => integer()();
+
+  RealColumn get rate => real()();
+
+  DateTimeColumn get date => dateTime()();
+}
+import 'package:drift/drift.dart';
+
+class Balances extends Table {
+  IntColumn get accountId => integer()();
+
+  TextColumn get currency => text()();
+
+  RealColumn get debitTotal => real().withDefault(const Constant(0))();
+
+  RealColumn get creditTotal => real().withDefault(const Constant(0))();
+
+  RealColumn get balance => real().withDefault(const Constant(0))();
+
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {accountId, currency};
+}
+import 'package:drift/drift.dart';
+
+class DocumentLines extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get documentId => integer()();
+
+  IntColumn get itemId => integer().nullable()();
+
+  IntColumn get accountId => integer()();
+
+  RealColumn get quantity =>
+      real().withDefault(const Constant(0))();
+
+  RealColumn get price =>
+      real().withDefault(const Constant(0))();
+
+  RealColumn get debit =>
+      real().withDefault(const Constant(0))();
+
+  RealColumn get credit =>
+      real().withDefault(const Constant(0))();
+
+  TextColumn get description => text().nullable()();
+}
+import 'package:drift/drift.dart';
+
+class ExchangeCompanies extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().unique()();
+
+  TextColumn get nameArabic => text()();
+
+  IntColumn get currencyId => integer()();
+
+  IntColumn get accountId => integer()();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  TextColumn get notes => text().nullable()();
+}
+import 'package:drift/drift.dart';
+
+class Units extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text()();
+
+  TextColumn get symbol => text()();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+import 'package:drift/drift.dart';
+
+class Customers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().unique()();
+
+  TextColumn get name => text()();
+
+  TextColumn get phone => text().nullable()();
+
+  TextColumn get address => text().nullable()();
+
+  IntColumn get accountId => integer()();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+import 'package:drift/drift.dart';
+
+class SystemAccounts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get key => text().unique()();
+
+  IntColumn get accountId => integer()();
+
+  TextColumn get description => text().nullable()();
+}
+import 'package:drift/drift.dart';
+
+class JournalEntries extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get reference => text()();
+
+  TextColumn get description => text()();
+
+  DateTimeColumn get date => dateTime()();
+
+  TextColumn get currency => text()();
+
+  RealColumn get exchangeRate => real().withDefault(const Constant(1))();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+import 'package:drift/drift.dart';
+
+class AccountLinks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get module => text()();
+
+  TextColumn get entityType => text()();
+
+  IntColumn get entityId => integer()();
+
+  IntColumn get accountId => integer()();
+}
+import 'package:drift/drift.dart';
+
+class Ledger extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get journalId => integer()();
+
+  IntColumn get accountId => integer()();
+
+  DateTimeColumn get date => dateTime()();
+
+  RealColumn get debit => real().withDefault(const Constant(0))();
+
+  RealColumn get credit => real().withDefault(const Constant(0))();
+
+  RealColumn get balance => real().withDefault(const Constant(0))();
+
+  TextColumn get description => text()();
+}
+import 'package:drift/drift.dart';
+
+class Items extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().unique()();
+
+  TextColumn get name => text()();
+
+  IntColumn get categoryId => integer()();
+
+  IntColumn get unitId => integer()();
+
+  TextColumn get barcode => text().nullable()();
+
+  RealColumn get cost => real().withDefault(const Constant(0))();
+
+  RealColumn get salePrice => real().withDefault(const Constant(0))();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+import '../accounting/document_service.dart';
+import '../inventory/inventory_operation_service.dart';
+
+class PurchaseService {
+
+  final DocumentService documents;
+  final InventoryOperationService inventory;
+
+  PurchaseService(
+    this.documents,
+    this.inventory,
+  );
+
+
+  Future<int> createPurchase({
+    required int supplierAccountId,
+    required int inventoryAccountId,
+    required int itemId,
+    required int warehouseId,
+    required double quantity,
+    required double cost,
+    required String currency,
+  }) async {
+
+    await inventory.stockIn(
+      itemId: itemId,
+      warehouseId: warehouseId,
+      quantity: quantity,
+      cost: cost,
+    );
+
+
+    return documents.createAutoPurchase(
+      accountId: supplierAccountId,
+      currency: currency,
+      amount: quantity * cost,
+    );
+  }
+}
+abstract class BaseService {
+  Future<void> initialize() async {}
+}
+import '../accounting/document_service.dart';
+
+class CashTransactionService {
+
+  final DocumentService documents;
+
+  CashTransactionService(this.documents);
+
+
+  Future<int> receipt({
+    required int accountId,
+    required String currency,
+    required double amount,
+  }) {
+
+    return documents.createAutoReceipt(
+      accountId: accountId,
+      currency: currency,
+      amount: amount,
+    );
+  }
+
+
+  Future<int> payment({
+    required int accountId,
+    required String currency,
+    required double amount,
+  }) {
+
+    return documents.createAutoPayment(
+      accountId: accountId,
+      currency: currency,
+      amount: amount,
+    );
+  }
+}
+import '../../database/app_database.dart';
+
+class InventoryService {
+
+  final AppDatabase db;
+
+  InventoryService(this.db);
+
+
+  Future<int> addTransaction({
+    required int itemId,
+    required int warehouseId,
+    required double quantity,
+    required double cost,
+    required String type,
+  }) {
+
+    return db.into(db.inventoryTransactions).insert(
+      InventoryTransactionsCompanion.insert(
+        itemId: itemId,
+        warehouseId: warehouseId,
+        quantity: quantity,
+        cost: cost,
+        type: type,
+      ),
+    );
+  }
+}
+import 'inventory_service.dart';
+
+class InventoryOperationService {
+
+  final InventoryService inventory;
+
+  InventoryOperationService(this.inventory);
+
+
+  Future<int> stockIn({
+    required int itemId,
+    required int warehouseId,
+    required double quantity,
+    required double cost,
+  }) {
+
+    return inventory.addTransaction(
+      itemId: itemId,
+      warehouseId: warehouseId,
+      quantity: quantity,
+      cost: cost,
+      type: 'STOCK_IN',
+    );
+  }
+
+
+  Future<int> stockOut({
+    required int itemId,
+    required int warehouseId,
+    required double quantity,
+    required double cost,
+  }) {
+
+    return inventory.addTransaction(
+      itemId: itemId,
+      warehouseId: warehouseId,
+      quantity: -quantity,
+      cost: cost,
+      type: 'STOCK_OUT',
+    );
+  }
+
+
+  Future<int> transfer({
+    required int itemId,
+    required int fromWarehouse,
+    required int toWarehouse,
+    required double quantity,
+    required double cost,
+  }) async {
+
+    await stockOut(
+      itemId: itemId,
+      warehouseId: fromWarehouse,
+      quantity: quantity,
+      cost: cost,
+    );
+
+    return stockIn(
+      itemId: itemId,
+      warehouseId: toWarehouse,
+      quantity: quantity,
+      cost: cost,
+    );
+  }
+}
+import '../../database/app_database.dart';
+
+class ExchangeRateService {
+  final AppDatabase db;
+
+  ExchangeRateService(this.db);
+
+  Future<int> createRate({
+    required int currencyId,
+    required double rate,
+  }) {
+
+    return db.into(db.exchangeRates).insert(
+      ExchangeRatesCompanion.insert(
+        currencyId: currencyId,
+        rate: rate,
+        date: DateTime.now(),
+      ),
+    );
+  }
+}
+import '../../database/app_database.dart';
+
+class CashBoxService {
+  final AppDatabase db;
+
+  CashBoxService(this.db);
+
+  Future<int> createCashBox({
+    required String code,
+    required String nameArabic,
+    required int accountId,
+    required int currencyId,
+  }) {
+    return db.into(db.cashBoxes).insert(
+      CashBoxesCompanion.insert(
+        code: code,
+        nameArabic: nameArabic,
+        accountId: accountId,
+        currencyId: currencyId,
+      ),
+    );
+  }
+}
+import '../../database/app_database.dart';
+import '../accounting/accounting_link_service.dart';
+
+class MasterAccountLinkService {
+
+  final AppDatabase db;
+  final AccountingLinkService accountService;
+
+  MasterAccountLinkService(
+    this.db,
+    this.accountService,
+  );
+
+
+  Future<int> createCustomerAccount({
+    required int customerId,
+    required String name,
+  }) {
+    return accountService.createLinkedAccount(
+      module: 'CUSTOMERS',
+      entityType: 'CUSTOMER',
+      entityId: customerId,
+      parentAccountId: 0,
+      parentNumber: '12000',
+      name: name,
+      type: 'ASSET',
+      nature: 'DEBIT',
+    );
+  }
+
+
+  Future<int> createSupplierAccount({
+    required int supplierId,
+    required String name,
+  }) {
+    return accountService.createLinkedAccount(
+      module: 'SUPPLIERS',
+      entityType: 'SUPPLIER',
+      entityId: supplierId,
+      parentAccountId: 0,
+      parentNumber: '21000',
+      name: name,
+      type: 'LIABILITY',
+      nature: 'CREDIT',
+    );
+  }
+}
+import '../../database/app_database.dart';
+import 'package:drift/drift.dart';
+
+class CustomerService {
+  final AppDatabase db;
+
+  CustomerService(this.db);
+
+  Future<int> createCustomer({
+    required String code,
+    required String name,
+    required String phone,
+    required int accountId,
+  }) async {
+
+    return await db.into(db.customers).insert(
+      CustomersCompanion.insert(
+        code: code,
+        name: name,
+        phone: Value(phone),
+        accountId: accountId,
+      ),
+    );
+  }
+}
+import '../../database/app_database.dart';
+import 'package:drift/drift.dart';
+
+class ItemService {
+  final AppDatabase db;
+
+  ItemService(this.db);
+
+  Future<int> createItem({
+    required String code,
+    required String name,
+    required int categoryId,
+    required int unitId,
+  }) async {
+
+    return db.into(db.items).insert(
+      ItemsCompanion.insert(
+        code: code,
+        name: name,
+        categoryId: categoryId,
+        unitId: unitId,
+      ),
+    );
+  }
+}
+import '../../database/app_database.dart';
+
+class UnitService {
+  final AppDatabase db;
+
+  UnitService(this.db);
+
+  Future<int> createUnit({
+    required String name,
+    required String symbol,
+  }) {
+
+    return db.into(db.units).insert(
+      UnitsCompanion.insert(
+        name: name,
+        symbol: symbol,
+      ),
+    );
+  }
+}
+import '../../database/app_database.dart';
+
+class WalletService {
+  final AppDatabase db;
+
+  WalletService(this.db);
+
+  Future<int> createWallet({
+    required String code,
+    required String nameArabic,
+    required String provider,
+    required int accountId,
+    required int currencyId,
+  }) {
+    return db.into(db.wallets).insert(
+      WalletsCompanion.insert(
+        code: code,
+        nameArabic: nameArabic,
+        provider: provider,
+        accountId: accountId,
+        currencyId: currencyId,
+      ),
+    );
+  }
+}
+import '../../database/app_database.dart';
+
+class WarehouseService {
+  final AppDatabase db;
+
+  WarehouseService(this.db);
+
+  Future<int> createWarehouse({
+    required String code,
+    required String name,
+  }) {
+
+    return db.into(db.warehouses).insert(
+      WarehousesCompanion.insert(
+        code: code,
+        name: name,
+      ),
+    );
+  }
+}
+import '../../database/app_database.dart';
+
+class BankService {
+  final AppDatabase db;
+
+  BankService(this.db);
+
+  Future<int> createBank({
+    required String code,
+    required String nameArabic,
+    required int accountId,
+    required int currencyId,
+  }) {
+    return db.into(db.banks).insert(
+      BanksCompanion.insert(
+        code: code,
+        nameArabic: nameArabic,
+        accountId: accountId,
+        currencyId: currencyId,
+      ),
+    );
+  }
+}
+import '../../database/app_database.dart';
+import 'package:drift/drift.dart';
+
+class SupplierService {
+  final AppDatabase db;
+
+  SupplierService(this.db);
+
+  Future<int> createSupplier({
+    required String code,
+    required String name,
+    required String phone,
+    required int accountId,
+  }) async {
+
+    return await db.into(db.suppliers).insert(
+      SuppliersCompanion.insert(
+        code: code,
+        name: name,
+        phone: Value(phone),
+        accountId: accountId,
+      ),
+    );
+  }
+}
+import '../../database/app_database.dart';
+import 'package:drift/drift.dart';
+
+class ExchangeCompanyService {
+  final AppDatabase db;
+
+  ExchangeCompanyService(this.db);
+
+  Future<int> createExchangeCompany({
+    required String code,
+    required String nameArabic,
+    required int currencyId,
+    required int accountId,
+    String? notes,
+  }) {
+
+    return db.into(db.exchangeCompanies).insert(
+      ExchangeCompaniesCompanion.insert(
+        code: code,
+        nameArabic: nameArabic,
+        currencyId: currencyId,
+        accountId: accountId,
+        notes: Value(notes),
+      ),
+    );
+  }
+}
+import '../inventory/inventory_operation_service.dart';
+import '../accounting/accounting_service.dart';
+import '../../accounting/models/accounting_entry.dart';
+import '../../accounting/models/accounting_line.dart';
+
+class InventoryAccountingBridge {
+
+  final InventoryOperationService inventory;
+  final AccountingService accounting;
+
+  InventoryAccountingBridge(
+    this.inventory,
+    this.accounting,
+  );
+
+
+  Future<int> stockReceipt({
+    required int itemId,
+    required int warehouseId,
+    required double quantity,
+    required double cost,
+    required int inventoryAccountId,
+    required int cashOrSupplierAccountId,
+    required String currency,
+  }) async {
+
+    final stockId = await inventory.stockIn(
+      itemId: itemId,
+      warehouseId: warehouseId,
+      quantity: quantity,
+      cost: cost,
+    );
+
+
+    final entry = AccountingEntry(
+      reference: 'STOCK_RECEIPT_$stockId',
+      description: 'Stock Receipt',
+      date: DateTime.now(),
+      lines: [
+        AccountingLine(
+          accountId: inventoryAccountId,
+          debit: quantity * cost,
+          credit: 0,
+          currencyCode: currency,
+          exchangeRate: 1,
+        ),
+        AccountingLine(
+          accountId: cashOrSupplierAccountId,
+          debit: 0,
+          credit: quantity * cost,
+          currencyCode: currency,
+          exchangeRate: 1,
+        ),
+      ],
+    );
+
+
+    await accounting.postEntry(
+      entry: entry,
+      currency: currency,
+      exchangeRate: 1,
+    );
+
+
+    return stockId;
+  }
+}
+import '../accounting/accounting_link_service.dart';
+
+class FinancialAccountLinkerService {
+  final AccountingLinkService linkService;
+
+  FinancialAccountLinkerService(this.linkService);
+
+  Future<int> linkCashBox({
+    required int id,
+    required String name,
+    required int parentId,
+    required String parentNumber,
+  }) {
+    return linkService.createCashBoxAccount(
+      cashBoxId: id,
+      name: name,
+      parentId: parentId,
+      parentNumber: parentNumber,
+    );
+  }
+
+  Future<int> linkBank({
+    required int id,
+    required String name,
+    required int parentId,
+    required String parentNumber,
+  }) {
+    return linkService.createBankAccount(
+      bankId: id,
+      name: name,
+      parentId: parentId,
+      parentNumber: parentNumber,
+    );
+  }
+
+  Future<int> linkWallet({
+    required int id,
+    required String name,
+    required int parentId,
+    required String parentNumber,
+  }) {
+    return linkService.createWalletAccount(
+      walletId: id,
+      name: name,
+      parentId: parentId,
+      parentNumber: parentNumber,
+    );
+  }
+
+  Future<int> linkExchangeCompany({
+    required int id,
+    required String name,
+    required int parentId,
+    required String parentNumber,
+  }) {
+    return linkService.createExchangeCompanyAccount(
+      exchangeId: id,
+      name: name,
+      parentId: parentId,
+      parentNumber: parentNumber,
+    );
+  }
+}
+import 'workflow_manager.dart';
+
+class OperationExecutor {
+
+  final WorkflowManager workflow;
+
+  OperationExecutor(this.workflow);
+
+
+  Future<T> run<T>({
+    required String operation,
+    required Future<T> Function() execute,
+  }) {
+
+    return workflow.execute<T>(
+      operation: operation,
+      action: execute,
+    );
+  }
+}
+class WorkflowManager {
+
+  Future<T> execute<T>({
+    required String operation,
+    required Future<T> Function() action,
+  }) async {
+
+    _validate(operation);
+
+    final result = await action();
+
+    return result;
+  }
+
+
+  void _validate(String operation) {
+    if (operation.trim().isEmpty) {
+      throw Exception('Operation name required');
+    }
+  }
+}
+import '../../database/app_database.dart';
+
+class AccountNumberGenerator {
+  final AppDatabase db;
+
+  AccountNumberGenerator(this.db);
+
+  Future<String> generate(String parentNumber) async {
+    final accounts = await db.select(db.accounts).get();
+
+    final children = accounts
+        .where((a) => a.accountNumber.startsWith(parentNumber))
+        .toList();
+
+    var next = children.length + 1;
+
+    return '$parentNumber'
+        '${next.toString().padLeft(2, '0')}';
+  }
+}
+abstract class NumberGenerator {
+  Future<String> generate(String type);
+}
+
+class DefaultNumberGenerator implements NumberGenerator {
+  final Map<String, int> _counters = {};
+
+  @override
+  Future<String> generate(String type) async {
+    final current = (_counters[type] ?? 0) + 1;
+
+    _counters[type] = current;
+
+    return '$type-${current.toString().padLeft(6, '0')}';
+  }
+}
+import '../../database/app_database.dart';
+
+class OperationNumberService {
+  final AppDatabase db;
+
+  OperationNumberService(this.db);
+
+  Future<String> generate({
+    required String prefix,
+    required String type,
+  }) async {
+    final year = DateTime.now().year;
+
+    final docs = await (db.select(db.documents)
+          ..where((t) => t.type.equals(type)))
+        .get();
+
+    final next = docs.length + 1;
+
+    final serial = next.toString().padLeft(6, '0');
+
+    return '$prefix-$year-$serial';
+  }
+}
+import '../database/database.dart';
+
+abstract class DatabaseService {
+  AppDatabase get database;
+}
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class AccountLinkService {
+  final AppDatabase db;
+
+  AccountLinkService(this.db);
+
+  Future<void> createLink({
+    required String module,
+    required String entityType,
+    required int entityId,
+    required int accountId,
+  }) async {
+    final exists =
+        await (db.select(db.accountLinks)..where(
+              (t) => Expression.and([
+                t.module.equals(module),
+                t.entityType.equals(entityType),
+                t.entityId.equals(entityId),
+              ]),
+            ))
+            .getSingleOrNull();
+
+    if (exists != null) return;
+
+    await db
+        .into(db.accountLinks)
+        .insert(
+          AccountLinksCompanion.insert(
+            module: module,
+            entityType: entityType,
+            entityId: entityId,
+            accountId: accountId,
+          ),
+        );
+  }
+
+  Future<int?> getAccountId({
+    required String module,
+    required String entityType,
+    required int entityId,
+  }) async {
+    final link =
+        await (db.select(db.accountLinks)..where(
+              (t) => Expression.and([
+                t.module.equals(module),
+                t.entityType.equals(entityType),
+                t.entityId.equals(entityId),
+              ]),
+            ))
+            .getSingleOrNull();
+
+    return link?.accountId;
+  }
+
+  Future<void> deleteLink({
+    required String module,
+    required String entityType,
+    required int entityId,
+  }) async {
+    await (db.delete(db.accountLinks)..where(
+          (t) => Expression.and([
+            t.module.equals(module),
+            t.entityType.equals(entityType),
+            t.entityId.equals(entityId),
+          ]),
+        ))
+        .go();
+  }
+}
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class SystemAccountService {
+  final AppDatabase db;
+
+  SystemAccountService(this.db);
+
+  Future<int?> getAccountId(String key) async {
+    final result = await (db.select(
+      db.systemAccounts,
+    )..where((tbl) => tbl.key.equals(key))).getSingleOrNull();
+
+    return result?.accountId;
+  }
+
+  Future<void> saveAccount(
+    String key,
+    int accountId,
+    String description,
+  ) async {
+    await db
+        .into(db.systemAccounts)
+        .insert(
+          SystemAccountsCompanion.insert(
+            key: key,
+            accountId: accountId,
+            description: Value(description),
+          ),
+        );
+  }
+}
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class AccountSeedService {
+  final AppDatabase db;
+
+  AccountSeedService(this.db);
+
+  Future<void> seed() async {
+    final exists = await db.select(db.accounts).get();
+
+    if (exists.isNotEmpty) return;
+
+    final assets = await _add(
+      '10000',
+      'الأصول',
+      1,
+      'ASSET',
+      'DEBIT',
+      null,
+      false,
+    );
+
+    final currentAssets = await _add(
+      '11000',
+      'الأصول المتداولة',
+      2,
+      'ASSET',
+      'DEBIT',
+      assets,
+      false,
+    );
+
+    final cash = await _add(
+      '11100',
+      'النقدية وما في حكمها',
+      3,
+      'ASSET',
+      'DEBIT',
+      currentAssets,
+      false,
+    );
+
+    await _add(
+      '11101',
+      'الصندوق',
+      4,
+      'ASSET',
+      'DEBIT',
+      cash,
+      true,
+    );
+
+    await _add(
+      '11200',
+      'البنوك',
+      3,
+      'ASSET',
+      'DEBIT',
+      currentAssets,
+      true,
+    );
+
+    await _add(
+      '11300',
+      'المحافظ الإلكترونية',
+      3,
+      'ASSET',
+      'DEBIT',
+      currentAssets,
+      true,
+    );
+
+    await _add(
+      '12000',
+      'العملاء',
+      2,
+      'ASSET',
+      'DEBIT',
+      assets,
+      true,
+    );
+
+    await _add(
+      '13000',
+      'المخزون',
+      2,
+      'ASSET',
+      'DEBIT',
+      assets,
+      true,
+    );
+
+    final fixedAssets = await _add(
+      '14000',
+      'الأصول الثابتة',
+      2,
+      'ASSET',
+      'DEBIT',
+      assets,
+      false,
+    );
+
+    await _add(
+      '14001',
+      'الأثاث والتجهيزات',
+      3,
+      'ASSET',
+      'DEBIT',
+      fixedAssets,
+      true,
+    );
+
+    final liabilities = await _add(
+      '20000',
+      'الخصوم',
+      1,
+      'LIABILITY',
+      'CREDIT',
+      null,
+      false,
+    );
+
+    await _add(
+      '21000',
+      'الموردون',
+      2,
+      'LIABILITY',
+      'CREDIT',
+      liabilities,
+      true,
+    );
+
+    final expenses = await _add(
+      '30000',
+      'المصروفات',
+      1,
+      'EXPENSE',
+      'DEBIT',
+      null,
+      false,
+    );
+
+    await _add(
+      '31000',
+      'مصروفات التشغيل',
+      2,
+      'EXPENSE',
+      'DEBIT',
+      expenses,
+      true,
+    );
+
+    final revenues = await _add(
+      '40000',
+      'الإيرادات',
+      1,
+      'REVENUE',
+      'CREDIT',
+      null,
+      false,
+    );
+
+    await _add(
+      '41000',
+      'المبيعات',
+      2,
+      'REVENUE',
+      'CREDIT',
+      revenues,
+      true,
+    );
+  }
+
+  Future<int> _add(
+    String number,
+    String name,
+    int level,
+    String type,
+    String nature,
+    int? parent,
+    bool posting,
+  ) async {
+    return db.into(db.accounts).insert(
+          AccountsCompanion.insert(
+            accountNumber: number,
+            nameArabic: name,
+            level: level,
+            accountType: type,
+            nature: nature,
+            parentId: Value(parent),
+            allowPosting: Value(posting),
+          ),
+        );
+  }
+}
+import '../../repositories/documents/document_repository.dart';
+import '../numbering/operation_number_service.dart';
+import '../workflow/workflow_manager.dart';
+
+class DocumentService {
+  final DocumentRepository repository;
+  final OperationNumberService numberService;
+  final WorkflowManager workflow;
+
+  DocumentService(this.repository, this.numberService, this.workflow);
+
+
+  Future<int> createReceipt({
+    required String number,
+    required int accountId,
+    required String currency,
+    required double amount,
+  }) async {
+    final id = await repository.createDocument(
+      number: number,
+      type: 'RECEIPT',
+      accountId: accountId,
+      currency: currency,
+      exchangeRate: 1,
+    );
+
+    await repository.addLine(
+      documentId: id,
+      accountId: accountId,
+      debit: amount,
+    );
+
+    return id;
+  }
+}
+
+
+extension DocumentOperations on DocumentService {
+
+  Future<int> createPayment({
+    required String number,
+    required int accountId,
+    required String currency,
+    required double amount,
+  }) async {
+    final id = await repository.createDocument(
+      number: number,
+      type: 'PAYMENT',
+      accountId: accountId,
+      currency: currency,
+      exchangeRate: 1,
+    );
+
+    await repository.addLine(
+      documentId: id,
+      accountId: accountId,
+      credit: amount,
+    );
+
+    return id;
+  }
+
+
+  Future<int> createSale({
+    required String number,
+    required int customerAccountId,
+    required int revenueAccountId,
+    required String currency,
+    required double amount,
+  }) async {
+    return workflow.execute<int>(
+      operation: 'SALE',
+      action: () async {
+
+        final id = await repository.createDocument(
+          number: number,
+          type: 'SALE',
+          accountId: customerAccountId,
+          currency: currency,
+          exchangeRate: 1,
+        );
+
+        await repository.addLine(
+          documentId: id,
+          accountId: customerAccountId,
+          debit: amount,
+        );
+
+        await repository.addLine(
+          documentId: id,
+          accountId: revenueAccountId,
+          credit: amount,
+        );
+
+        return id;
+      },
+    );
+  }
+
+
+  Future<int> createPurchase({
+    required String number,
+    required int supplierAccountId,
+    required int inventoryAccountId,
+    required String currency,
+    required double amount,
+  }) async {
+    return workflow.execute<int>(
+      operation: 'PURCHASE',
+      action: () async {
+
+        final id = await repository.createDocument(
+          number: number,
+          type: 'PURCHASE',
+          accountId: supplierAccountId,
+          currency: currency,
+          exchangeRate: 1,
+        );
+
+        await repository.addLine(
+          documentId: id,
+          accountId: inventoryAccountId,
+          debit: amount,
+        );
+
+        await repository.addLine(
+          documentId: id,
+          accountId: supplierAccountId,
+          credit: amount,
+        );
+
+        return id;
+      },
+    );
+  }
+}
+
+
+extension SmartDocumentCreation on DocumentService {
+
+  Future<int> createAutoReceipt({
+    required int accountId,
+    required String currency,
+    required double amount,
+  }) async {
+    final number = await numberService.generate(
+      prefix: 'REC',
+      type: 'RECEIPT',
+    );
+
+    return createReceipt(
+      number: number,
+      accountId: accountId,
+      currency: currency,
+      amount: amount,
+    );
+  }
+
+
+  Future<int> createAutoPayment({
+    required int accountId,
+    required String currency,
+    required double amount,
+  }) async {
+    final number = await numberService.generate(
+      prefix: 'PAY',
+      type: 'PAYMENT',
+    );
+
+    return createPayment(
+      number: number,
+      accountId: accountId,
+      currency: currency,
+      amount: amount,
+    );
+  }
+
+
+  Future<int> createAutoSale({
+    required int accountId,
+    required String currency,
+    required double amount,
+  }) async {
+    final number = await numberService.generate(
+      prefix: 'SAL',
+      type: 'SALE',
+    );
+
+    return createSale(
+      number: number,
+      customerAccountId: accountId,
+      revenueAccountId: accountId,
+      currency: currency,
+      amount: amount,
+    );
+  }
+
+
+  Future<int> createAutoPurchase({
+    required int accountId,
+    required String currency,
+    required double amount,
+  }) async {
+    final number = await numberService.generate(
+      prefix: 'PUR',
+      type: 'PURCHASE',
+    );
+
+    return createPurchase(
+      number: number,
+      supplierAccountId: accountId,
+      inventoryAccountId: accountId,
+      currency: currency,
+      amount: amount,
+    );
+  }
+}
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class LedgerPostingService {
+  final AppDatabase db;
+
+  LedgerPostingService(this.db);
+
+  Future<void> postJournal({
+    required int journalId,
+    required DateTime date,
+    required String currency,
+  }) async {
+    await db.transaction(() async {
+      final lines = await (db.select(
+        db.journalLines,
+      )..where((t) => t.journalId.equals(journalId))).get();
+
+      for (final line in lines) {
+        await db
+            .into(db.ledger)
+            .insert(
+              LedgerCompanion.insert(
+                journalId: line.journalId,
+                accountId: line.accountId,
+                date: date,
+                debit: Value(line.debit),
+                credit: Value(line.credit),
+                balance: Value(line.debit - line.credit),
+                description: line.description,
+              ),
+            );
+
+        await _updateBalance(
+          accountId: line.accountId,
+          currency: currency,
+          debit: line.debit,
+          credit: line.credit,
+        );
+      }
+    });
+  }
+
+  Future<void> _updateBalance({
+    required int accountId,
+    required String currency,
+    required double debit,
+    required double credit,
+  }) async {
+    final existing =
+        await (db.select(db.balances)..where(
+              (t) =>
+                  t.accountId.equals(accountId) & t.currency.equals(currency),
+            ))
+            .getSingleOrNull();
+
+    if (existing == null) {
+      await db
+          .into(db.balances)
+          .insert(
+            BalancesCompanion.insert(
+              accountId: accountId,
+              currency: currency,
+              debitTotal: Value(debit),
+              creditTotal: Value(credit),
+              balance: Value(debit - credit),
+            ),
+          );
+      return;
+    }
+
+    await (db.update(db.balances)..where(
+          (t) => t.accountId.equals(accountId) & t.currency.equals(currency),
+        ))
+        .write(
+          BalancesCompanion(
+            debitTotal: Value(existing.debitTotal + debit),
+            creditTotal: Value(existing.creditTotal + credit),
+            balance: Value(
+              (existing.debitTotal + debit) - (existing.creditTotal + credit),
+            ),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+  }
+}
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class FinancialAccountService {
+  final AppDatabase db;
+
+  FinancialAccountService(this.db);
+
+  Future<List<FinancialAccount>> getAll() async {
+    return await db.select(db.financialAccounts).get();
+  }
+
+  Future<List<FinancialAccount>> getByType(String type) async {
+    return await (db.select(db.financialAccounts)
+          ..where((t) => t.type.equals(type)))
+        .get();
+  }
+
+  Future<FinancialAccount?> findByCode(String code) async {
+    final result = await (db.select(db.financialAccounts)
+          ..where((t) => t.code.equals(code)))
+        .get();
+
+    if (result.isEmpty) return null;
+
+    return result.first;
+  }
+
+
+  Future<int?> findAccountId(String accountNumber) async {
+    final result = await (db.select(db.accounts)
+          ..where((t) => t.accountNumber.equals(accountNumber)))
+        .get();
+
+    if (result.isEmpty) return null;
+
+    return result.first.id;
+  }
+
+  Future<int> add({
+    required String type,
+    required String code,
+    required String nameArabic,
+    required int accountId,
+    required int currencyId,
+    String? externalNumber,
+    String? providerName,
+  }) async {
+    return await db.into(db.financialAccounts).insert(
+          FinancialAccountsCompanion.insert(
+            type: type,
+            code: code,
+            nameArabic: nameArabic,
+            accountId: accountId,
+            currencyId: currencyId,
+            externalNumber:
+                externalNumber == null ? const Value.absent() : Value(externalNumber),
+            providerName:
+                providerName == null ? const Value.absent() : Value(providerName),
+          ),
+        );
+  }
+}
+import '../../accounting/mappers/journal_mapper.dart';
+import '../../accounting/models/accounting_entry.dart';
+import '../../accounting/validators/accounting_validator.dart';
+import '../../database/app_database.dart';
+import '../../repositories/accounting/journal_repository.dart';
+import 'ledger_posting_service.dart';
+
+class AccountingService {
+  final JournalRepository journalRepository;
+  final LedgerPostingService ledgerPostingService;
+  final AccountingValidator validator;
+  final JournalMapper mapper;
+
+  AccountingService(AppDatabase db)
+    : journalRepository = JournalRepository(db),
+      ledgerPostingService = LedgerPostingService(db),
+      validator = const AccountingValidator(),
+      mapper = const JournalMapper();
+
+  Future<int> postEntry({
+    required AccountingEntry entry,
+    required String currency,
+    required double exchangeRate,
+  }) async {
+    validator.validate(entry);
+
+    final lines = mapper.toJournalLines(entry);
+
+    final journalId = await journalRepository.createEntry(
+      reference: entry.reference,
+      description: entry.description,
+      date: entry.date,
+      currency: currency,
+      exchangeRate: exchangeRate,
+      lines: lines,
+    );
+
+    await ledgerPostingService.postJournal(
+      journalId: journalId,
+      date: entry.date,
+      currency: currency,
+    );
+
+    return journalId;
+  }
+}
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class AccountSeedService {
+  final AppDatabase db;
+
+  AccountSeedService(this.db);
+
+  Future<void> seed() async {
+    final exists = await db.select(db.accounts).get();
+
+    if (exists.isNotEmpty) return;
+
+    final assets = await _add(
+      '10000',
+      'الأصول',
+      1,
+      'ASSET',
+      'DEBIT',
+      null,
+      false,
+    );
+
+    final currentAssets = await _add(
+      '11000',
+      'الأصول المتداولة',
+      2,
+      'ASSET',
+      'DEBIT',
+      assets,
+      false,
+    );
+
+    final cash = await _add(
+      '11100',
+      'قودونقد',
+      3,
+      'ASSET',
+      'DEBIT',
+      currentAssets,
+      false,
+    );
+
+    await _add(
+      '11101',
+      'الصندوق',
+      4,
+      'ASSET',
+      'DEBIT',
+      cash,
+      true,
+    );
+
+    await _add(
+      '11200',
+      'البنوك',
+      3,
+      'ASSET',
+      'DEBIT',
+      currentAssets,
+      false,
+    );
+
+    await _add(
+      '11300',
+      'المحافظ الإلكترونية',
+      3,
+      'ASSET',
+      'DEBIT',
+      currentAssets,
+      false,
+    );
+
+    await _add(
+      '12000',
+      'العملاء',
+      2,
+      'ASSET',
+      'DEBIT',
+      assets,
+      true,
+    );
+
+    await _add(
+      '13000',
+      'المخزون',
+      2,
+      'ASSET',
+      'DEBIT',
+      assets,
+      true,
+    );
+
+    final fixed = await _add(
+      '14000',
+      'الأصول الثابتة',
+      2,
+      'ASSET',
+      'DEBIT',
+      assets,
+      false,
+    );
+
+    await _add(
+      '14001',
+      'الأثاث والتجهيزات',
+      3,
+      'ASSET',
+      'DEBIT',
+      fixed,
+      true,
+    );
+
+    final liabilities = await _add(
+      '20000',
+      'الخصوم',
+      1,
+      'LIABILITY',
+      'CREDIT',
+      null,
+      false,
+    );
+
+    await _add(
+      '21000',
+      'الموردون',
+      2,
+      'LIABILITY',
+      'CREDIT',
+      liabilities,
+      true,
+    );
+
+    final expenses = await _add(
+      '30000',
+      'المصروفات',
+      1,
+      'EXPENSE',
+      'DEBIT',
+      null,
+      false,
+    );
+
+    await _add(
+      '31000',
+      'مصروفات تشغيلية',
+      2,
+      'EXPENSE',
+      'DEBIT',
+      expenses,
+      true,
+    );
+
+    final revenues = await _add(
+      '40000',
+      'الإيرادات',
+      1,
+      'REVENUE',
+      'CREDIT',
+      null,
+      false,
+    );
+
+    await _add(
+      '41000',
+      'المبيعات',
+      2,
+      'REVENUE',
+      'CREDIT',
+      revenues,
+      true,
+    );
+  }
+
+  Future<int> _add(
+    String number,
+    String name,
+    int level,
+    String type,
+    String nature,
+    int? parent,
+    bool posting,
+  ) async {
+    return db.into(db.accounts).insert(
+          AccountsCompanion.insert(
+            accountNumber: number,
+            nameArabic: name,
+            level: level,
+            accountType: type,
+            nature: nature,
+            parentId: Value(parent),
+            allowPosting: Value(posting),
+          ),
+        );
+  }
+}
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+import '../numbering/account_number_generator.dart';
+
+class AccountingLinkService {
+  final AppDatabase db;
+  final AccountNumberGenerator generator;
+
+  AccountingLinkService(this.db, this.generator);
+
+  Future<int> createLinkedAccount({
+    required String module,
+    required String entityType,
+    required int entityId,
+    required int parentAccountId,
+    required String parentNumber,
+    required String name,
+    required String type,
+    required String nature,
+  }) async {
+    final number = await generator.generate(parentNumber);
+
+    final accountId = await db.into(db.accounts).insert(
+          AccountsCompanion.insert(
+            accountNumber: number,
+            nameArabic: name,
+            level: 5,
+            accountType: type,
+            nature: nature,
+            parentId: Value(parentAccountId),
+          ),
+        );
+
+    await db.into(db.accountLinks).insert(
+          AccountLinksCompanion.insert(
+            module: module,
+            entityType: entityType,
+            entityId: entityId,
+            accountId: accountId,
+          ),
+        );
+
+    return accountId;
+  }
+
+  Future<int> createCashBoxAccount({
+    required int cashBoxId,
+    required String name,
+    required int parentId,
+    required String parentNumber,
+  }) =>
+      createLinkedAccount(
+        module: 'cash',
+        entityType: 'cash_box',
+        entityId: cashBoxId,
+        parentAccountId: parentId,
+        parentNumber: parentNumber,
+        name: name,
+        type: 'ASSET',
+        nature: 'DEBIT',
+      );
+
+  Future<int> createBankAccount({
+    required int bankId,
+    required String name,
+    required int parentId,
+    required String parentNumber,
+  }) =>
+      createLinkedAccount(
+        module: 'bank',
+        entityType: 'bank',
+        entityId: bankId,
+        parentAccountId: parentId,
+        parentNumber: parentNumber,
+        name: name,
+        type: 'ASSET',
+        nature: 'DEBIT',
+      );
+
+  Future<int> createWalletAccount({
+    required int walletId,
+    required String name,
+    required int parentId,
+    required String parentNumber,
+  }) =>
+      createLinkedAccount(
+        module: 'wallet',
+        entityType: 'wallet',
+        entityId: walletId,
+        parentAccountId: parentId,
+        parentNumber: parentNumber,
+        name: name,
+        type: 'ASSET',
+        nature: 'DEBIT',
+      );
+
+  Future<int> createExchangeCompanyAccount({
+    required int exchangeId,
+    required String name,
+    required int parentId,
+    required String parentNumber,
+  }) =>
+      createLinkedAccount(
+        module: 'exchange',
+        entityType: 'exchange_company',
+        entityId: exchangeId,
+        parentAccountId: parentId,
+        parentNumber: parentNumber,
+        name: name,
+        type: 'ASSET',
+        nature: 'DEBIT',
+      );
+}
+import '../accounting/document_service.dart';
+import '../inventory/inventory_operation_service.dart';
+
+class SalesService {
+
+  final DocumentService documents;
+  final InventoryOperationService inventory;
+
+  SalesService(
+    this.documents,
+    this.inventory,
+  );
+
+
+  Future<int> createSale({
+    required int customerAccountId,
+    required int revenueAccountId,
+    required int itemId,
+    required int warehouseId,
+    required double quantity,
+    required double price,
+    required String currency,
+  }) async {
+
+    await inventory.stockOut(
+      itemId: itemId,
+      warehouseId: warehouseId,
+      quantity: quantity,
+      cost: price,
+    );
+
+    return documents.createAutoSale(
+      accountId: customerAccountId,
+      currency: currency,
+      amount: quantity * price,
+    );
+  }
+}
+import '../../database/app_database.dart';
+
+class GeneralLedgerService {
+
+  final AppDatabase db;
+
+  GeneralLedgerService(this.db);
+
+
+  Future<List<Map<String, dynamic>>> generate({
+    required int accountId,
+  }) async {
+
+    final rows = await db.select(db.ledger).get();
+
+    return rows
+        .where((e) => e.accountId == accountId)
+        .map((e) => {
+              'date': e.date,
+              'journalId': e.journalId,
+              'description': e.description,
+              'debit': e.debit,
+              'credit': e.credit,
+            })
+        .toList();
+  }
+}
+import '../../database/app_database.dart';
+
+class InventoryReportService {
+
+  final AppDatabase db;
+
+  InventoryReportService(this.db);
+
+
+  Future<List<Map<String, dynamic>>> stockBalance() async {
+
+    final items = await db.select(db.items).get();
+    final transactions =
+        await db.select(db.inventoryTransactions).get();
+
+
+    return items.map((item) {
+
+      double quantity = 0;
+      double value = 0;
+
+
+      final rows = transactions.where(
+        (t) => t.itemId == item.id,
+      );
+
+
+      for (final row in rows) {
+        quantity += row.quantity;
+        value += row.quantity * row.cost;
+      }
+
+
+      return {
+        'itemId': item.id,
+        'quantity': quantity,
+        'value': value,
+      };
+
+    }).toList();
+  }
+}
+import '../../database/app_database.dart';
+
+class IncomeStatementService {
+
+  final AppDatabase db;
+
+  IncomeStatementService(this.db);
+
+
+  Future<Map<String, dynamic>> generate() async {
+
+    final accounts = await db.select(db.accounts).get();
+    final ledger = await db.select(db.ledger).get();
+
+
+    double revenues = 0;
+    double expenses = 0;
+
+
+    for (final account in accounts) {
+
+      final entries = ledger.where(
+        (e) => e.accountId == account.id,
+      );
+
+
+      double debit = 0;
+      double credit = 0;
+
+
+      for (final e in entries) {
+        debit += e.debit;
+        credit += e.credit;
+      }
+
+
+      if (account.accountType == 'REVENUE') {
+        revenues += credit - debit;
+      }
+
+
+      if (account.accountType == 'EXPENSE') {
+        expenses += debit - credit;
+      }
+    }
+
+
+    return {
+      'revenues': revenues,
+      'expenses': expenses,
+      'netProfit': revenues - expenses,
+    };
+  }
+}
+import '../../database/app_database.dart';
+
+class TrialBalanceService {
+
+  final AppDatabase db;
+
+  TrialBalanceService(this.db);
+
+
+  Future<List<Map<String, dynamic>>> generate() async {
+
+    final accounts = await db.select(db.accounts).get();
+    final balances = await db.select(db.balances).get();
+
+    return accounts.map((account) {
+
+      final balance = balances.where(
+        (b) => b.accountId == account.id,
+      );
+
+      double debit = 0;
+      double credit = 0;
+
+      for (final item in balance) {
+        debit += item.debitTotal;
+        credit += item.creditTotal;
+      }
+
+      return {
+        'accountId': account.id,
+        'accountNumber': account.accountNumber,
+        'name': account.nameArabic,
+        'debit': debit,
+        'credit': credit,
+        'balance': debit - credit,
+      };
+
+    }).toList();
+  }
+}
+import '../../database/app_database.dart';
+
+class CustomerStatementService {
+
+  final AppDatabase db;
+
+  CustomerStatementService(this.db);
+
+
+  Future<List<Map<String, dynamic>>> generate({
+    required int accountId,
+  }) async {
+
+    final rows = await db.select(db.ledger).get();
+
+
+    return rows
+        .where((e) => e.accountId == accountId)
+        .map((e) => {
+              'date': e.date,
+              'description': e.description,
+              'debit': e.debit,
+              'credit': e.credit,
+              'balance': e.balance,
+            })
+        .toList();
+  }
+}
+import '../../database/app_database.dart';
+
+class CashFlowService {
+
+  final AppDatabase db;
+
+  CashFlowService(this.db);
+
+
+  Future<Map<String, dynamic>> generate() async {
+
+    final ledger = await db.select(db.ledger).get();
+
+    double inflow = 0;
+    double outflow = 0;
+
+
+    for (final entry in ledger) {
+
+      if (entry.debit > 0) {
+        inflow += entry.debit;
+      }
+
+
+      if (entry.credit > 0) {
+        outflow += entry.credit;
+      }
+    }
+
+
+    return {
+      'cashIn': inflow,
+      'cashOut': outflow,
+      'netCashFlow': inflow - outflow,
+    };
+  }
+}
+import '../../database/app_database.dart';
+
+class ItemMovementReportService {
+
+  final AppDatabase db;
+
+  ItemMovementReportService(this.db);
+
+
+  Future<List<Map<String, dynamic>>> generate({
+    required int itemId,
+  }) async {
+
+    final rows = await db.select(db.inventoryTransactions).get();
+
+
+    return rows
+        .where((e) => e.itemId == itemId)
+        .map((e) => {
+              'date': e.date,
+              'warehouseId': e.warehouseId,
+              'type': e.type,
+              'quantity': e.quantity,
+              'cost': e.cost,
+            })
+        .toList();
+  }
+}
+import '../../database/app_database.dart';
+
+class ReportService {
+
+  final AppDatabase db;
+
+  ReportService(this.db);
+
+
+  Future<List<Map<String, dynamic>>> accountStatement({
+    required int accountId,
+  }) async {
+
+    final rows = await db.select(db.ledger).get();
+
+    return rows
+        .where((e) => e.accountId == accountId)
+        .map((e) => {
+              'date': e.date,
+              'debit': e.debit,
+              'credit': e.credit,
+              'description': e.description,
+            })
+        .toList();
+  }
+
+
+  Future<double> accountBalance({
+    required int accountId,
+  }) async {
+
+    final data = await accountStatement(
+      accountId: accountId,
+    );
+
+    double balance = 0;
+
+    for (final row in data) {
+      balance += (row['debit'] ?? 0);
+      balance -= (row['credit'] ?? 0);
+    }
+
+    return balance;
+  }
+}
+import '../../database/app_database.dart';
+
+class SupplierStatementService {
+
+  final AppDatabase db;
+
+  SupplierStatementService(this.db);
+
+
+  Future<List<Map<String, dynamic>>> generate({
+    required int accountId,
+  }) async {
+
+    final rows = await db.select(db.ledger).get();
+
+
+    return rows
+        .where((e) => e.accountId == accountId)
+        .map((e) => {
+              'date': e.date,
+              'description': e.description,
+              'debit': e.debit,
+              'credit': e.credit,
+              'balance': e.balance,
+            })
+        .toList();
+  }
+}
+import '../../database/app_database.dart';
+
+class BalanceSheetService {
+
+  final AppDatabase db;
+
+  BalanceSheetService(this.db);
+
+
+  Future<Map<String, dynamic>> generate() async {
+
+    final accounts = await db.select(db.accounts).get();
+    final ledger = await db.select(db.ledger).get();
+
+
+    double assets = 0;
+    double liabilities = 0;
+    double equity = 0;
+
+
+    for (final account in accounts) {
+
+      final entries = ledger.where(
+        (e) => e.accountId == account.id,
+      );
+
+
+      double debit = 0;
+      double credit = 0;
+
+
+      for (final e in entries) {
+        debit += e.debit;
+        credit += e.credit;
+      }
+
+
+      final balance = debit - credit;
+
+
+      switch(account.accountType) {
+
+        case 'ASSET':
+          assets += balance;
+          break;
+
+        case 'LIABILITY':
+          liabilities += -balance;
+          break;
+
+        case 'EQUITY':
+          equity += -balance;
+          break;
+      }
+    }
+
+
+    return {
+      'assets': assets,
+      'liabilities': liabilities,
+      'equity': equity,
+      'totalLiabilitiesAndEquity':
+          liabilities + equity,
+    };
+  }
+}
+abstract class TransactionManager {
+  Future<T> run<T>(Future<T> Function() action);
+}
+
+class DefaultTransactionManager implements TransactionManager {
+  @override
+  Future<T> run<T>(Future<T> Function() action) async {
+    return await action();
+  }
+}
+import 'package:flutter/material.dart';
+
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final options = [
+      'بيانات الشركة',
+      'العملة والإعدادات المالية',
+      'اللغة والمظهر',
+      'إعدادات الحسابات',
+      'النسخ الاحتياطي والاستعادة',
+      'الأمان',
+      'ترقيم المستندات',
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الإعدادات'),
+      ),
+      body: ListView.builder(
+        itemCount: options.length,
+        itemBuilder: (_, index) {
+          return ListTile(
+            leading: const Icon(Icons.settings),
+            title: Text(options[index]),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () {},
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
+
+class ItemsScreen extends StatelessWidget {
+  final AppDatabase db;
+
+  const ItemsScreen({
+    super.key,
+    required this.db,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الأصناف')),
+      body: FutureBuilder(
+        future: db.select(db.items).get(),
+        builder: (_, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          final rows = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: rows.length,
+            itemBuilder: (_, i) {
+              final item = rows[i];
+
+              return ListTile(
+                leading: const Icon(Icons.inventory),
+                title: Text(item.name),
+                subtitle: Text(item.code),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
+
+class WalletsScreen extends StatelessWidget {
+  final AppDatabase db;
+
+  const WalletsScreen({
+    super.key,
+    required this.db,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('المحافظ الإلكترونية')),
+      body: FutureBuilder(
+        future: db.select(db.wallets).get(),
+        builder: (_, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final rows = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: rows.length,
+            itemBuilder: (_, i) {
+              final wallet = rows[i];
+
+              return ListTile(
+                leading: const Icon(Icons.account_balance_wallet),
+                title: Text(wallet.nameArabic),
+                subtitle: Text(wallet.provider),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
+
+class CashBoxesScreen extends StatelessWidget {
+  final AppDatabase db;
+
+  const CashBoxesScreen({
+    super.key,
+    required this.db,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الصناديق')),
+      body: FutureBuilder(
+        future: db.select(db.cashBoxes).get(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final rows = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: rows.length,
+            itemBuilder: (_, i) {
+              final row = rows[i];
+
+              return ListTile(
+                leading: const Icon(Icons.money),
+                title: Text(row.nameArabic),
+                subtitle: Text(row.code),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
+
+class SuppliersScreen extends StatelessWidget {
+  final AppDatabase db;
+
+  const SuppliersScreen({
+    super.key,
+    required this.db,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الموردون')),
+      body: FutureBuilder(
+        future: db.select(db.suppliers).get(),
+        builder: (_, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final rows = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: rows.length,
+            itemBuilder: (_, i) {
+              final supplier = rows[i];
+
+              return ListTile(
+                leading: const Icon(Icons.local_shipping),
+                title: Text(supplier.name),
+                subtitle: Text(supplier.code),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
+
+class ExchangeCompaniesScreen extends StatelessWidget {
+  final AppDatabase db;
+
+  const ExchangeCompaniesScreen({
+    super.key,
+    required this.db,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('شركات الصرافة')),
+      body: FutureBuilder(
+        future: db.select(db.exchangeCompanies).get(),
+        builder: (_, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final rows = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: rows.length,
+            itemBuilder: (_, i) {
+              final company = rows[i];
+
+              return ListTile(
+                leading: const Icon(Icons.currency_exchange),
+                title: Text(company.nameArabic),
+                subtitle: Text(company.code),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
+
+class WarehousesScreen extends StatelessWidget {
+  final AppDatabase db;
+
+  const WarehousesScreen({
+    super.key,
+    required this.db,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('المخازن')),
+      body: FutureBuilder(
+        future: db.select(db.warehouses).get(),
+        builder: (_, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          final rows = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: rows.length,
+            itemBuilder: (_, i) {
+              final warehouse = rows[i];
+
+              return ListTile(
+                leading: const Icon(Icons.warehouse),
+                title: Text(warehouse.name),
+                subtitle: Text(warehouse.code),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('دفتر المحاسب الذكي'),
+      ),
+      body: GridView.count(
+        padding: const EdgeInsets.all(16),
+        crossAxisCount: 2,
+        children: const [
+          _DashboardCard(
+            title: 'الحسابات',
+            icon: Icons.account_balance,
+          ),
+          _DashboardCard(
+            title: 'الصندوق',
+            icon: Icons.money,
+          ),
+          _DashboardCard(
+            title: 'المبيعات',
+            icon: Icons.shopping_cart,
+          ),
+          _DashboardCard(
+            title: 'التقارير',
+            icon: Icons.analytics,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+
+  const _DashboardCard({
+    required this.title,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        onTap: () {},
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 45),
+            const SizedBox(height: 10),
+            Text(title),
+          ],
+        ),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
+
+class BanksScreen extends StatelessWidget {
+  final AppDatabase db;
+
+  const BanksScreen({
+    super.key,
+    required this.db,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('البنوك')),
+      body: FutureBuilder(
+        future: db.select(db.banks).get(),
+        builder: (_, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final rows = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: rows.length,
+            itemBuilder: (_, i) {
+              return ListTile(
+                leading: const Icon(Icons.account_balance),
+                title: Text(rows[i].nameArabic),
+                subtitle: Text(rows[i].code),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
+
+class CustomersScreen extends StatelessWidget {
+  final AppDatabase db;
+
+  const CustomersScreen({
+    super.key,
+    required this.db,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('العملاء')),
+      body: FutureBuilder(
+        future: db.select(db.customers).get(),
+        builder: (_, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final rows = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: rows.length,
+            itemBuilder: (_, i) {
+              final customer = rows[i];
+
+              return ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(customer.name),
+                subtitle: Text(customer.code),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
+import 'domain/services/account_service.dart';
+import 'domain/tree/account_tree_engine.dart';
+import 'screens/add_account_screen.dart';
+
+class ChartAccountsScreen extends StatelessWidget {
+
+  final AppDatabase db;
+
+  const ChartAccountsScreen({
+    super.key,
+    required this.db,
+  });
+
+
+  @override
+  Widget build(BuildContext context) {
+
+    final service = AccountService(db);
+    final tree = AccountTreeEngine(db);
+
+
+    return Scaffold(
+
+      appBar: AppBar(
+        title: const Text('دليل الحسابات'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AddAccountScreen(
+                    db: db,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+
+
+      body: FutureBuilder(
+
+        future: service.getTree(),
+
+        builder: (context, snapshot) {
+
+
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+
+          final accounts = snapshot.data!;
+
+
+          if (accounts.isEmpty) {
+            return const Center(
+              child: Text('لا توجد حسابات'),
+            );
+          }
+
+
+          return ListView.builder(
+
+            itemCount: accounts.length,
+
+            itemBuilder: (context,index){
+
+              final account = accounts[index];
+
+
+              return ListTile(
+
+                leading: Icon(
+                  account.allowPosting
+                  ? Icons.account_balance
+                  : Icons.folder,
+                ),
+
+
+                title: Text(
+                  account.nameArabic,
+                ),
+
+
+                subtitle: Text(
+                  '${account.accountNumber} - المستوى ${account.level}',
+                ),
+
+
+                trailing: Icon(
+                  account.allowPosting
+                  ? Icons.edit
+                  : Icons.chevron_right,
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../../core/database/app_database.dart';
+import '../domain/wizard/account_creation_request.dart';
+import '../domain/wizard/account_creation_wizard.dart';
+import '../../../core/services/accounting/accounting_link_service.dart';
+import '../../../core/services/accounting/system_account_service.dart';
+import '../../../core/services/numbering/account_number_generator.dart';
+
+
+class AddAccountScreen extends StatefulWidget {
+
+  final AppDatabase db;
+
+  const AddAccountScreen({
+    super.key,
+    required this.db,
+  });
+
+
+  @override
+  State<AddAccountScreen> createState() => _AddAccountScreenState();
+}
+
+
+class _AddAccountScreenState extends State<AddAccountScreen> {
+
+  final nameController = TextEditingController();
+
+  String type = 'CUSTOMER';
+
+
+  Future<void> save() async {
+
+    final wizard = AccountCreationWizard(
+      db: widget.db,
+      linkService: AccountingLinkService(
+        widget.db,
+        AccountNumberGenerator(widget.db),
+      ),
+      systemAccounts: SystemAccountService(widget.db),
+    );
+
+
+    await wizard.create(
+      AccountCreationRequest(
+        entityType: type,
+        name: nameController.text,
+        module: 'ACCOUNTS',
+      ),
+    );
+
+
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('إضافة حساب'),
+      ),
+
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+
+        child: Column(
+          children: [
+
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'اسم الحساب',
+              ),
+            ),
+
+
+            DropdownButton<String>(
+              value: type,
+
+              items: const [
+                DropdownMenuItem(
+                  value: 'CUSTOMER',
+                  child: Text('عميل'),
+                ),
+                DropdownMenuItem(
+                  value: 'SUPPLIER',
+                  child: Text('مورد'),
+                ),
+                DropdownMenuItem(
+                  value: 'BANK',
+                  child: Text('بنك'),
+                ),
+                DropdownMenuItem(
+                  value: 'WALLET',
+                  child: Text('محفظة'),
+                ),
+              ],
+
+              onChanged: (v){
+                setState(() {
+                  type = v!;
+                });
+              },
+            ),
+
+
+            ElevatedButton(
+              onPressed: save,
+              child: const Text('حفظ'),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+import '../../../../core/database/app_database.dart';
+
+import '../../../../core/services/accounting/accounting_link_service.dart';
+
+import '../../../../core/services/accounting/system_account_service.dart';
+
+import 'account_creation_request.dart';
+
+class AccountCreationWizard {
+  final AppDatabase db;
+
+  final AccountingLinkService linkService;
+
+  final SystemAccountService systemAccounts;
+
+  AccountCreationWizard({
+    required this.db,
+
+    required this.linkService,
+
+    required this.systemAccounts,
+  });
+
+  Future<int> create(AccountCreationRequest request) async {
+    final key = _resolveKey(request.entityType);
+
+    final parentId = await systemAccounts.getAccountId(key);
+
+    if (parentId == null) {
+      throw Exception('لم يتم إعداد الحساب الافتراضي $key');
+    }
+
+    final parent = await (db.select(
+      db.accounts,
+    )..where((tbl) => tbl.id.equals(parentId))).getSingle();
+
+    return linkService.createLinkedAccount(
+      module: request.module,
+
+      entityType: request.entityType,
+
+      entityId: 0,
+
+      parentAccountId: parent.id,
+
+      parentNumber: parent.accountNumber,
+
+      name: request.name,
+
+      type: parent.accountType,
+
+      nature: parent.nature,
+    );
+  }
+
+  String _resolveKey(String type) {
+    switch (type) {
+      case 'CUSTOMER':
+        return 'CUSTOMERS';
+
+      case 'SUPPLIER':
+        return 'SUPPLIERS';
+
+      case 'BANK':
+        return 'BANKS';
+
+      case 'WALLET':
+        return 'WALLETS';
+
+      case 'EXCHANGE':
+        return 'EXCHANGE_COMPANIES';
+
+      default:
+        throw Exception('نوع غير معروف');
+    }
+  }
+}
+class AccountCreationRequest {
+  final String entityType;
+
+  final String name;
+
+  final String module;
+
+  const AccountCreationRequest({
+    required this.entityType,
+
+    required this.name,
+
+    required this.module,
+  });
+}
+class AccountEntity {
+  final int id;
+
+  final String number;
+
+  final String nameArabic;
+
+  final String? nameEnglish;
+
+  final int level;
+
+  final String type;
+
+  final String nature;
+
+  final int? parentId;
+
+  final bool active;
+
+  const AccountEntity({
+    required this.id,
+
+    required this.number,
+
+    required this.nameArabic,
+
+    this.nameEnglish,
+
+    required this.level,
+
+    required this.type,
+
+    required this.nature,
+
+    this.parentId,
+
+    required this.active,
+  });
+}
+import '../../../../core/database/app_database.dart';
+
+class AccountService {
+  final AppDatabase db;
+
+  AccountService(this.db);
+
+  Future<List<Account>> getTree() {
+    return db.select(db.accounts).get();
+  }
+
+  Future<Account?> find(String number) {
+    return (db.select(
+      db.accounts,
+    )..where((tbl) => tbl.accountNumber.equals(number))).getSingleOrNull();
+  }
+
+  Future<bool> canDelete(int id) async {
+    final account = await (db.select(
+      db.accounts,
+    )..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+
+    if (account == null) {
+      return false;
+    }
+
+    final children = await (db.select(
+      db.accounts,
+    )..where((tbl) => tbl.parentId.equals(id))).get();
+
+    return children.isEmpty;
+  }
+}
+import '../../../../core/database/app_database.dart';
+
+class AccountTreeNode {
+  final Account account;
+
+  final List<AccountTreeNode> children;
+
+  const AccountTreeNode({required this.account, required this.children});
+
+  bool get isLeaf => children.isEmpty;
+
+  int get childrenCount => children.length;
+}
+import '../../../../core/database/app_database.dart';
+
+import 'account_tree_node.dart';
+
+class AccountTreeEngine {
+  final AppDatabase db;
+
+  AccountTreeEngine(this.db);
+
+  Future<List<AccountTreeNode>> buildTree() async {
+    final accounts = await db.select(db.accounts).get();
+
+    final roots = accounts.where((a) => a.parentId == null).toList();
+
+    return roots.map((root) => _buildNode(root, accounts)).toList();
+  }
+
+  AccountTreeNode _buildNode(Account account, List<Account> all) {
+    final children = all.where((a) => a.parentId == account.id).toList();
+
+    return AccountTreeNode(
+      account: account,
+
+      children: children.map((child) => _buildNode(child, all)).toList(),
+    );
+  }
+}
+import '../../../../core/database/app_database.dart';
+
+class AccountRulesService {
+  final AppDatabase db;
+
+  AccountRulesService(this.db);
+
+  Future<bool> accountNumberExists(String number) async {
+    final result = await (db.select(
+      db.accounts,
+    )..where((tbl) => tbl.accountNumber.equals(number))).getSingleOrNull();
+
+    return result != null;
+  }
+
+  Future<bool> hasChildren(int accountId) async {
+    final result = await (db.select(
+      db.accounts,
+    )..where((tbl) => tbl.parentId.equals(accountId))).get();
+
+    return result.isNotEmpty;
+  }
+
+  Future<bool> canPost(int accountId) async {
+    final children = await hasChildren(accountId);
+
+    return !children;
+  }
+
+  Future<bool> canDelete(int accountId) async {
+    final account = await (db.select(
+      db.accounts,
+    )..where((tbl) => tbl.id.equals(accountId))).getSingleOrNull();
+
+    if (account == null) {
+      return false;
+    }
+
+    // الحسابات الرئيسية لا تحذف
+    if (account.level <= 3) {
+      return false;
+    }
+
+    final children = await hasChildren(accountId);
+
+    return !children;
+  }
+}
+import 'package:flutter/material.dart';
+
+class SalesScreen extends StatelessWidget {
+  const SalesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('المبيعات'),
+      ),
+      body: const Center(
+        child: Text('فاتورة بيع'),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+class ReceiptScreen extends StatelessWidget {
+  const ReceiptScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('سند قبض'),
+      ),
+      body: const Center(
+        child: Text('إنشاء سند قبض'),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+class PurchasesScreen extends StatelessWidget {
+  const PurchasesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('المشتريات'),
+      ),
+      body: const Center(
+        child: Text('فاتورة شراء'),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+class PaymentScreen extends StatelessWidget {
+  const PaymentScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('سند صرف'),
+      ),
+      body: const Center(
+        child: Text('إنشاء سند صرف'),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+class ReportsScreen extends StatelessWidget {
+  const ReportsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final reports = [
+      'كشف الحساب',
+      'دفتر الأستاذ',
+      'ميزان المراجعة',
+      'قائمة الدخل',
+      'الميزانية العمومية',
+      'تقرير المخزون',
+      'تقارير العملات',
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('التقارير'),
+      ),
+      body: ListView.builder(
+        itemCount: reports.length,
+        itemBuilder: (_, index) {
+          return ListTile(
+            leading: const Icon(Icons.analytics),
+            title: Text(reports[index]),
+            onTap: () {},
+          );
+        },
+      ),
+    );
+  }
+}
