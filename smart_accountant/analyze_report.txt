@@ -1,0 +1,14 @@
+Analyzing smart_accountant...                                   
+
+warning • Unused import: 'seeds/financial_account_seed.dart'. Try removing the import directive • lib/core/database/app_database.dart:16:8 • unused_import
+warning • Unused import: 'seeds/account_seed.dart'. Try removing the import directive • lib/core/database/app_database.dart:18:8 • unused_import
+warning • Duplicate import. Try removing all but one import of the library • lib/core/database/app_database.dart:21:8 • duplicate_import
+warning • Unused import: 'package:drift/drift.dart'. Try removing the import directive • lib/core/database/dao/account_dao.dart:1:8 • unused_import
+warning • Unused import: 'package:drift/drift.dart'. Try removing the import directive • lib/core/database/dao/currency_dao.dart:1:8 • unused_import
+warning • Unused import: 'package:drift/drift.dart'. Try removing the import directive • lib/core/database/seeds/financial_account_seed.dart:1:8 • unused_import
+warning • Unused import: 'package:drift/drift.dart'. Try removing the import directive • lib/core/services/master_data/item_service.dart:2:8 • unused_import
+warning • Unused import: '../di/service_locator.dart'. Try removing the import directive • lib/core/startup/startup_manager.dart:1:8 • unused_import
+warning • The value of the local variable 'tree' isn't used. Try removing the variable or using it • lib/features/accounts/chart_accounts_screen.dart:22:11 • unused_local_variable
+warning • The dev dependency on flutter_localizations is unnecessary because there is also a normal dependency on that package. Try removing the dev dependency • pubspec.yaml:72:3 • unnecessary_dev_dependency
+warning • Duplicate import. Try removing all but one import of the library • test/integration/accounting/accounting_posting_flow_test.dart:8:8 • duplicate_import
+

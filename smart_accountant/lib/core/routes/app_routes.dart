@@ -24,7 +24,7 @@ class AppRoutes {
   }) {
     return {
 
-      '/': (_) => const DashboardScreen(),
+      '/': (_) => DashboardScreen(db: db),
 
       '/accounts': (_) => ChartAccountsScreen(db: db),
 
