@@ -1,21 +1,19 @@
-import '../errors/failure.dart';
-
 sealed class Result<T> {
   const Result();
-
-  factory Result.success(T data) = Success<T>;
-
-  factory Result.failure(Failure failure) = ErrorResult<T>;
 }
 
-class Success<T> extends Result<T> {
-  final T data;
+final class Success<T> extends Result<T> {
+  final T value;
 
-  const Success(this.data) : super();
+  const Success(this.value);
 }
 
-class ErrorResult<T> extends Result<T> {
-  final Failure failure;
+final class Error<T> extends Result<T> {
+  final String message;
+  final Object? cause;
 
-  const ErrorResult(this.failure) : super();
+  const Error(
+    this.message, {
+    this.cause,
+  });
 }

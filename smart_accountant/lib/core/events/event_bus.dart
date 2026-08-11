@@ -1,18 +1,20 @@
 import 'dart:async';
 
-import 'app_event.dart';
-
 class EventBus {
-  final StreamController<AppEvent> _controller =
-      StreamController<AppEvent>.broadcast();
+  final StreamController<Object> _controller =
+      StreamController<Object>.broadcast();
 
-  Stream<AppEvent> get stream => _controller.stream;
-
-  void publish(AppEvent event) {
-    _controller.add(event);
+  Stream<T> on<T>() {
+    return _controller.stream.where((event) => event is T).cast<T>();
   }
 
-  void dispose() {
-    _controller.close();
+  void publish(Object event) {
+    if (!_controller.isClosed) {
+      _controller.add(event);
+    }
+  }
+
+  Future<void> dispose() async {
+    await _controller.close();
   }
 }

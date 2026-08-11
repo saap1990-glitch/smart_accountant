@@ -1,40 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/services/master_data/master_data_service.dart';
+import '../shared/master_data_screen.dart';
 
-import '../../core/database/app_database.dart';
+class BanksScreen extends StatefulWidget {
+  const BanksScreen({super.key});
+  @override
+  State<BanksScreen> createState() => _BanksScreenState();
+}
 
-class BanksScreen extends StatelessWidget {
-  final AppDatabase db;
+class _BanksScreenState extends State<BanksScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  List<Map<String, dynamic>> _list = [];
 
-  const BanksScreen({
-    super.key,
-    required this.db,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() async {
+    final data = await _service.getAllBanks();
+    setState(() => _list = data);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('البنوك')),
-      body: FutureBuilder(
-        future: db.select(db.banks).get(),
-        builder: (_, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final rows = snapshot.data!;
-
-          return ListView.builder(
-            itemCount: rows.length,
-            itemBuilder: (_, i) {
-              return ListTile(
-                leading: const Icon(Icons.account_balance),
-                title: Text(rows[i].nameArabic),
-                subtitle: Text(rows[i].code),
-              );
-            },
-          );
-        },
-      ),
+    return MasterDataScreen(
+      title: 'البنوك',
+      data: _list,
+      columnKeys: ['name', 'account_number'],
+      columnTitles: ['الاسم', 'رقم الحساب'],
+      onSave: (data) async {
+        await _service.createBank(name: data['name']!, accountNumber: data['account_number']);
+      },
+      onDelete: (id) async {},
+      getItems: () => _list,
+      refresh: _load,
     );
   }
 }

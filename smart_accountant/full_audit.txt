@@ -1,0 +1,110 @@
+===== PROJECT STRUCTURE (All Files) =====
+lib/core/audit/audit_entry.dart
+lib/core/audit/audit_service.dart
+lib/core/config/app_config.dart
+lib/core/constants/app_constants.dart
+lib/core/database/app_database.dart
+lib/core/database/app_database.g.dart
+lib/core/database/database_provider.dart
+lib/core/database/migrations/database_migration.dart
+lib/core/database/seeds/database_seed.dart
+lib/core/database/tables/account_links_table.dart
+lib/core/database/tables/account_rules_table.dart
+lib/core/database/tables/accounts_table.dart
+lib/core/database/tables/balances_table.dart
+lib/core/database/tables/company_table.dart
+lib/core/database/tables/currencies_table.dart
+lib/core/database/tables/journal_entries_table.dart
+lib/core/database/tables/journal_lines_table.dart
+lib/core/database/tables/ledger_table.dart
+lib/core/database/tables/settings_table.dart
+lib/core/database/tables/system_accounts_table.dart
+lib/core/errors/app_exception.dart
+lib/core/errors/failure.dart
+lib/core/events/event_bus.dart
+lib/core/logging/app_logger.dart
+lib/core/logging/logger.dart
+lib/core/security/security_manager.dart
+lib/core/utils/result.dart
+
+===== PROJECT FOLDERS =====
+lib
+lib/app
+lib/core
+lib/core/accounting
+lib/core/accounting/domain
+lib/core/accounting/domain/entities
+lib/core/accounting/domain/enums
+lib/core/accounting/domain/rules
+lib/core/accounting/domain/value_objects
+lib/core/accounting/engine
+lib/core/accounting/models
+lib/core/accounting/results
+lib/core/accounting/validation
+lib/core/audit
+lib/core/config
+lib/core/constants
+lib/core/database
+lib/core/database/migrations
+lib/core/database/seeds
+lib/core/database/tables
+lib/core/di
+lib/core/errors
+lib/core/events
+lib/core/logging
+lib/core/security
+lib/core/services
+lib/core/services/accounting
+lib/core/services/cash
+lib/core/services/exchange
+lib/core/services/finance
+lib/core/services/integration
+lib/core/services/inventory
+lib/core/services/master_data
+lib/core/services/numbering
+lib/core/services/purchases
+lib/core/services/reports
+lib/core/services/sales
+lib/core/services/workflow
+lib/core/startup
+lib/core/utils
+lib/docs
+lib/features
+lib/features/accounts
+lib/features/ai
+lib/features/auth
+lib/features/banks
+lib/features/cash
+lib/features/customers
+lib/features/dashboard
+lib/features/exchange
+lib/features/items
+lib/features/purchases
+lib/features/reports
+lib/features/sales
+lib/features/settings
+lib/features/suppliers
+lib/features/transactions
+lib/features/wallets
+lib/features/warehouses
+
+===== DUPLICATE FILES (Same Name in Different Folders) =====
+
+===== FLUTTER ANALYZE =====
+Analyzing smart_accountant...                                   
+
+  error • Undefined name 'Accounts'. Try correcting the name to one that is defined, or defining the name • lib/core/database/tables/account_links_table.dart:11:28 • undefined_identifier
+  error • Undefined name 'Accounts'. Try correcting the name to one that is defined, or defining the name • lib/core/database/tables/balances_table.dart:7:28 • undefined_identifier
+  error • Undefined name 'JournalEntries'. Try correcting the name to one that is defined, or defining the name • lib/core/database/tables/journal_lines_table.dart:7:28 • undefined_identifier
+  error • Undefined name 'Accounts'. Try correcting the name to one that is defined, or defining the name • lib/core/database/tables/journal_lines_table.dart:10:28 • undefined_identifier
+  error • Undefined name 'JournalEntries'. Try correcting the name to one that is defined, or defining the name • lib/core/database/tables/ledger_table.dart:7:28 • undefined_identifier
+  error • Undefined name 'JournalLines'. Try correcting the name to one that is defined, or defining the name • lib/core/database/tables/ledger_table.dart:10:28 • undefined_identifier
+  error • Undefined name 'Accounts'. Try correcting the name to one that is defined, or defining the name • lib/core/database/tables/ledger_table.dart:13:28 • undefined_identifier
+  error • Undefined name 'Accounts'. Try correcting the name to one that is defined, or defining the name • lib/core/database/tables/system_accounts_table.dart:9:28 • undefined_identifier
+warning • The dev dependency on flutter_localizations is unnecessary because there is also a normal dependency on that package. Try removing the dev dependency • pubspec.yaml:72:3 • unnecessary_dev_dependency
+
+9 issues found. (ran in 0.3s)
+
+===== PROJECT STATS =====
+Total .dart files: 27
+Total lines of code: 8843

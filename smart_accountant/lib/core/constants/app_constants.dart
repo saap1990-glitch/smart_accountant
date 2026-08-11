@@ -1,5 +1,7 @@
 class AppConstants {
-  static const String appName = 'Smart Accountant';
-  static const String arabicName = 'دفتر المحاسب الذكي';
+  const AppConstants._();
+
+  static const String appName = 'المحاسب الذكي';
   static const String version = '1.0.0';
+  static const String defaultCurrency = 'YER';
 }

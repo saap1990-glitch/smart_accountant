@@ -1,21 +1,100 @@
-class ServiceLocator {
-  static final Map<Type, dynamic> _services = {};
+import 'dart:async';
+import 'package:get_it/get_it.dart';
+import '../event_bus/event_bus.dart';
+import '../audit/audit_entry.dart';
+import '../audit/audit_service.dart';
+import '../services/transaction_manager.dart';
+import '../services/numbering/number_generator.dart';
+import '../engine/accounting/accounting_engine.dart';
+import '../engine/validation/transaction_validator.dart';
+import '../engine/workflow/workflow_engine.dart';
+import '../engine/posting/posting_engine.dart';
+import '../repositories/master_data_repository.dart';
+import '../services/master_data/master_data_service.dart';
+import '../services/operations/operation_service.dart';
+import '../services/reports/report_service.dart';
+import '../services/ai/ai_service.dart';
+import '../services/backup/backup_service.dart';
+import '../services/encryption/encryption_service.dart';
+import '../services/subscription/subscription_service.dart';
+import '../services/inventory/item_movement_service.dart';
+import '../seeds/account_seed_service.dart';
+import '../database/app_database.dart';
 
-  static void register<T>(T service) {
-    _services[T] = service;
+final sl = GetIt.instance;
+
+Future<void> setupServiceLocator() async {
+  // Database
+  final db = AppDatabase();
+  sl.registerSingleton<AppDatabase>(db);
+
+  // Core
+  sl.registerLazySingleton<AppEventBus>(() => AppEventBus());
+  sl.registerLazySingleton<AuditService>(() => _InMemoryAuditService());
+  sl.registerLazySingleton<TransactionManager>(
+    () => TransactionManager(sl<AuditService>(), sl<AppEventBus>()),
+  );
+  sl.registerLazySingleton<NumberGenerator>(() => NumberGenerator());
+  sl.registerLazySingleton<TransactionValidator>(
+    () => DefaultTransactionValidator(),
+  );
+  sl.registerLazySingleton<WorkflowEngine>(() => WorkflowEngine());
+  sl.registerLazySingleton<PostingEngine>(() => PostingEngine());
+
+  sl.registerLazySingleton<AccountingEngine>(
+    () => AccountingEngine(
+      validator: sl<TransactionValidator>(),
+      workflow: sl<WorkflowEngine>(),
+      posting: sl<PostingEngine>(),
+      numberGenerator: sl<NumberGenerator>(),
+      transactionManager: sl<TransactionManager>(),
+      eventBus: sl<AppEventBus>(),
+    ),
+  );
+
+  // Repositories
+  sl.registerLazySingleton<MasterDataRepository>(() => MasterDataRepository(sl<AppDatabase>()));
+
+  // Services
+  sl.registerLazySingleton<MasterDataService>(
+    () => MasterDataService(sl<MasterDataRepository>()),
+  );
+  sl.registerLazySingleton<AccountSeedService>(
+    () => AccountSeedService(sl<MasterDataService>()),
+  );
+  sl.registerLazySingleton<ItemMovementService>(
+    () => ItemMovementService(sl<MasterDataRepository>()),
+  );
+  sl.registerLazySingleton<OperationService>(
+    () => OperationService(
+      sl<AccountingEngine>(),
+      sl<MasterDataService>(),
+      sl<ItemMovementService>(),
+      sl<MasterDataRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<ReportService>(
+    () => ReportService(sl<MasterDataRepository>(), sl<ItemMovementService>()),
+  );
+  sl.registerLazySingleton<AiService>(
+    () => AiService(sl<OperationService>(), sl<ReportService>()),
+  );
+  sl.registerLazySingleton<BackupService>(() => BackupService());
+  sl.registerLazySingleton<EncryptionService>(() => EncryptionService());
+  sl.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
+}
+
+class _InMemoryAuditService extends AuditService {
+  final List<AuditEntry> _entries = [];
+  final _controller = StreamController<AuditEntry>.broadcast();
+
+  @override
+  Future<void> record(AuditEntry entry) async {
+    _entries.add(entry);
+    _controller.add(entry);
   }
-
-  static T get<T>() {
-    final service = _services[T];
-
-    if (service == null) {
-      throw Exception('Service $T not registered');
-    }
-
-    return service as T;
-  }
-
-  static void clear() {
-    _services.clear();
-  }
+  @override
+  Future<List<AuditEntry>> getAll() async => List.unmodifiable(_entries);
+  @override
+  Stream<AuditEntry> watchAll() => _controller.stream;
 }

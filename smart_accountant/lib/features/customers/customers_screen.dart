@@ -1,42 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/services/master_data/master_data_service.dart';
+import '../shared/master_data_screen.dart';
 
-import '../../core/database/app_database.dart';
+class CustomersScreen extends StatefulWidget {
+  const CustomersScreen({super.key});
+  @override
+  State<CustomersScreen> createState() => _CustomersScreenState();
+}
 
-class CustomersScreen extends StatelessWidget {
-  final AppDatabase db;
+class _CustomersScreenState extends State<CustomersScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  List<Map<String, dynamic>> _customers = [];
 
-  const CustomersScreen({
-    super.key,
-    required this.db,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() async {
+    final data = await _service.getAllCustomers();
+    setState(() => _customers = data);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('العملاء')),
-      body: FutureBuilder(
-        future: db.select(db.customers).get(),
-        builder: (_, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final rows = snapshot.data!;
-
-          return ListView.builder(
-            itemCount: rows.length,
-            itemBuilder: (_, i) {
-              final customer = rows[i];
-
-              return ListTile(
-                leading: const Icon(Icons.person),
-                title: Text(customer.name),
-                subtitle: Text(customer.code),
-              );
-            },
-          );
-        },
-      ),
+    return MasterDataScreen(
+      title: 'العملاء',
+      data: _customers,
+      columnKeys: ['name', 'phone', 'address'],
+      columnTitles: ['الاسم', 'الهاتف', 'العنوان'],
+      onSave: (data) async {
+        await _service.createCustomer(name: data['name']!, phone: data['phone'], address: data['address']);
+      },
+      onDelete: (id) async {
+        // TODO: deleteCustomer
+      },
+      getItems: () => _customers,
+      refresh: _load,
     );
   }
 }

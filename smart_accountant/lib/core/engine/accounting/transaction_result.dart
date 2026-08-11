@@ -1,15 +1,25 @@
+enum TransactionStatus { draft, approved, posted, cancelled }
+
 class TransactionResult {
-  final bool success;
+  final String? entryNumber;
+  final TransactionStatus status;
+  final String? message;
 
-  final String message;
+  const TransactionResult({this.entryNumber, required this.status, this.message});
 
-  final int? journalId;
+  factory TransactionResult.success(String entryNumber) => TransactionResult(
+        entryNumber: entryNumber,
+        status: TransactionStatus.posted,
+        message: 'تم ترحيل العملية بنجاح',
+      );
 
-  const TransactionResult({
-    required this.success,
+  factory TransactionResult.draft() => const TransactionResult(
+        status: TransactionStatus.draft,
+        message: 'تم الحفظ كمسودة',
+      );
 
-    required this.message,
-
-    this.journalId,
-  });
+  factory TransactionResult.cancelled() => const TransactionResult(
+        status: TransactionStatus.cancelled,
+        message: 'تم إلغاء العملية',
+      );
 }

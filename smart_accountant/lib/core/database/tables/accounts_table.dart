@@ -3,21 +3,35 @@ import 'package:drift/drift.dart';
 class Accounts extends Table {
   IntColumn get id => integer().autoIncrement()();
 
-  TextColumn get accountNumber => text().unique()();
+  TextColumn get number => text().unique()();
 
-  TextColumn get nameArabic => text()();
+  TextColumn get nameAr => text()();
 
-  TextColumn get nameEnglish => text().nullable()();
+  TextColumn get nameEn => text().nullable()();
 
-  IntColumn get parentId => integer().nullable()();
+  IntColumn get parentId =>
+      integer().nullable().references(Accounts, #id)();
 
   IntColumn get level => integer()();
 
-  TextColumn get accountType => text()();
+  TextColumn get type => text()();
 
   TextColumn get nature => text()();
 
-  BoolColumn get allowPosting => boolean().withDefault(const Constant(false))();
+  BoolColumn get acceptsPosting =>
+      boolean().withDefault(const Constant(false))();
 
-  BoolColumn get active => boolean().withDefault(const Constant(true))();
+  BoolColumn get isSystem =>
+      boolean().withDefault(const Constant(false))();
+
+  BoolColumn get isActive =>
+      boolean().withDefault(const Constant(true))();
+
+  TextColumn get currencyCode =>
+      text().withDefault(const Constant('YER'))();
+
+  TextColumn get notes => text().nullable()();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
 }

@@ -1,0 +1,14 @@
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/current_working_diff.patch
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/deleted_files.txt
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/diff_stat.txt
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/git_status.txt
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/untracked_files.txt
+SPRINT1_SAFETY_BACKUP/current_working_diff.patch
+SPRINT1_SAFETY_BACKUP/git_status.txt
+SPRINT1_SAFETY_BACKUP/smart_accountant_before_repair_20260811_002906.tar.gz
+smart_accountant/lib/core/audit/audit_entry.dart
+smart_accountant/lib/core/security/security_manager.dart
+smart_accountant/lib/core/services/accounting/account_service.dart
+smart_accountant/lib/core/services/seed_service.dart
+smart_accountant/lib/docs/architecture.md
+smart_accountant/lib/features/accounts/accounts_screen.dart

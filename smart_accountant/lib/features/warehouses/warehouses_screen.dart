@@ -1,44 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/services/master_data/master_data_service.dart';
+import '../shared/master_data_screen.dart';
 
-import '../../core/database/app_database.dart';
+class WarehousesScreen extends StatefulWidget {
+  const WarehousesScreen({super.key});
+  @override
+  State<WarehousesScreen> createState() => _WarehousesScreenState();
+}
 
-class WarehousesScreen extends StatelessWidget {
-  final AppDatabase db;
+class _WarehousesScreenState extends State<WarehousesScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  List<Map<String, dynamic>> _list = [];
 
-  const WarehousesScreen({
-    super.key,
-    required this.db,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() async {
+    final data = await _service.getAllWarehouses();
+    setState(() => _list = data);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('المخازن')),
-      body: FutureBuilder(
-        future: db.select(db.warehouses).get(),
-        builder: (_, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          final rows = snapshot.data!;
-
-          return ListView.builder(
-            itemCount: rows.length,
-            itemBuilder: (_, i) {
-              final warehouse = rows[i];
-
-              return ListTile(
-                leading: const Icon(Icons.warehouse),
-                title: Text(warehouse.name),
-                subtitle: Text(warehouse.code),
-              );
-            },
-          );
-        },
-      ),
+    return MasterDataScreen(
+      title: 'المخازن',
+      data: _list,
+      columnKeys: ['name', 'location'],
+      columnTitles: ['الاسم', 'الموقع'],
+      onSave: (data) async {
+        await _service.createWarehouse(name: data['name']!, location: data['location']);
+      },
+      onDelete: (id) async {},
+      getItems: () => _list,
+      refresh: _load,
     );
   }
 }

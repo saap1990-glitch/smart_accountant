@@ -1,0 +1,681 @@
+===== SMART ACCOUNTANT SPRINT 1 FULL AUDIT =====
+DATE: Tue Aug 11 00:41:16 UTC 2026
+
+===== GIT STATUS =====
+ M smart_accountant/lib/app/app.dart
+ D smart_accountant/lib/core/accounting/domain/value_objects/currency.dart
+ D smart_accountant/lib/core/accounting/domain/value_objects/exchange_rate.dart
+ D smart_accountant/lib/core/accounting/domain/value_objects/money.dart
+ D smart_accountant/lib/core/accounting/engine/accounting_engine.dart
+ D smart_accountant/lib/core/accounting/engine/posting_engine.dart
+ D smart_accountant/lib/core/accounting/enums/entry_status.dart
+ D smart_accountant/lib/core/accounting/exceptions/accounting_exception.dart
+ D smart_accountant/lib/core/accounting/mappers/journal_mapper.dart
+ D smart_accountant/lib/core/accounting/models/accounting_entry.dart
+ D smart_accountant/lib/core/accounting/models/accounting_line.dart
+ D smart_accountant/lib/core/accounting/results/accounting_result.dart
+ D smart_accountant/lib/core/accounting/results/posting_result.dart
+ D smart_accountant/lib/core/accounting/services/balance_update_service.dart
+ D smart_accountant/lib/core/accounting/validation/accounting_validator.dart
+ D smart_accountant/lib/core/accounting/validation/validation_result.dart
+ D smart_accountant/lib/core/accounting/validators/accounting_validator.dart
+ M smart_accountant/lib/core/audit/audit_service.dart
+ M smart_accountant/lib/core/database/app_database.dart
+ M smart_accountant/lib/core/database/app_database.g.dart
+ D smart_accountant/lib/core/database/dao/account_dao.dart
+ D smart_accountant/lib/core/database/dao/currency_dao.dart
+ D smart_accountant/lib/core/database/dao/settings_dao.dart
+ D smart_accountant/lib/core/database/database.dart
+ D smart_accountant/lib/core/database/repositories/database_repository.dart
+ D smart_accountant/lib/core/database/seeds/account_seed.dart
+ D smart_accountant/lib/core/database/seeds/currency_seed.dart
+ D smart_accountant/lib/core/database/seeds/database_seed_service.dart
+ D smart_accountant/lib/core/database/seeds/financial_account_seed.dart
+ D smart_accountant/lib/core/database/seeds/system_account_seed.dart
+ M smart_accountant/lib/core/database/tables/accounts_table.dart
+ M smart_accountant/lib/core/database/tables/balances_table.dart
+ M smart_accountant/lib/core/database/tables/journal_entries_table.dart
+ M smart_accountant/lib/core/database/tables/journal_lines_table.dart
+ D smart_accountant/lib/core/di/injection.dart
+ M smart_accountant/lib/core/di/service_locator.dart
+ M smart_accountant/lib/core/engine/accounting/accounting_engine.dart
+ D smart_accountant/lib/core/engine/accounting/journal_builder.dart
+ M smart_accountant/lib/core/engine/accounting/transaction_context.dart
+ M smart_accountant/lib/core/engine/accounting/transaction_result.dart
+ M smart_accountant/lib/core/engine/validation/transaction_validator.dart
+ M smart_accountant/lib/core/engine/validation/validation_result.dart
+ D smart_accountant/lib/core/engine/validation/validator.dart
+ M smart_accountant/lib/core/errors/app_exception.dart
+ M smart_accountant/lib/core/event_bus/event_bus.dart
+ D smart_accountant/lib/core/events/app_event.dart
+ D smart_accountant/lib/core/events/event_bus.dart
+ M smart_accountant/lib/core/logging/app_logger.dart
+ M smart_accountant/lib/core/logging/logger.dart
+ D smart_accountant/lib/core/models/operations/operation_type.dart
+ D smart_accountant/lib/core/repositories/accounting/journal_repository.dart
+ D smart_accountant/lib/core/repositories/base_repository.dart
+ D smart_accountant/lib/core/repositories/documents/document_repository.dart
+ D smart_accountant/lib/core/routes/app_routes.dart
+ D smart_accountant/lib/core/seeds/seed_service.dart
+ D smart_accountant/lib/core/services/accounting/account_link_service.dart
+ D smart_accountant/lib/core/services/accounting/account_seed_service.backup.dart
+ D smart_accountant/lib/core/services/accounting/account_seed_service.dart
+ D smart_accountant/lib/core/services/accounting/accounting_link_service.dart
+ D smart_accountant/lib/core/services/accounting/accounting_service.dart
+ D smart_accountant/lib/core/services/accounting/document_service.dart
+ D smart_accountant/lib/core/services/accounting/financial_account_service.dart
+ D smart_accountant/lib/core/services/accounting/ledger_posting_service.dart
+ D smart_accountant/lib/core/services/accounting/system_account_service.dart
+ D smart_accountant/lib/core/services/base_service.dart
+ D smart_accountant/lib/core/services/cash/cash_transaction_service.dart
+ D smart_accountant/lib/core/services/database_service.dart
+ D smart_accountant/lib/core/services/finance/financial_account_linker_service.dart
+ D smart_accountant/lib/core/services/integration/inventory_accounting_bridge.dart
+ D smart_accountant/lib/core/services/inventory/inventory_operation_service.dart
+ D smart_accountant/lib/core/services/inventory/inventory_service.dart
+ D smart_accountant/lib/core/services/master_data/bank_service.dart
+ D smart_accountant/lib/core/services/master_data/cash_box_service.dart
+ D smart_accountant/lib/core/services/master_data/customer_service.dart
+ D smart_accountant/lib/core/services/master_data/exchange_company_service.dart
+ D smart_accountant/lib/core/services/master_data/exchange_rate_service.dart
+ D smart_accountant/lib/core/services/master_data/item_service.dart
+ D smart_accountant/lib/core/services/master_data/master_account_link_service.dart
+ D smart_accountant/lib/core/services/master_data/supplier_service.dart
+ D smart_accountant/lib/core/services/master_data/unit_service.dart
+ D smart_accountant/lib/core/services/master_data/wallet_service.dart
+ D smart_accountant/lib/core/services/master_data/warehouse_service.dart
+ D smart_accountant/lib/core/services/numbering/account_number_generator.dart
+ M smart_accountant/lib/core/services/numbering/number_generator.dart
+ D smart_accountant/lib/core/services/numbering/operation_number_service.dart
+ D smart_accountant/lib/core/services/purchases/purchase_service.dart
+ D smart_accountant/lib/core/services/reports/balance_sheet_service.dart
+ D smart_accountant/lib/core/services/reports/cash_flow_service.dart
+ D smart_accountant/lib/core/services/reports/customer_statement_service.dart
+ D smart_accountant/lib/core/services/reports/general_ledger_service.dart
+ D smart_accountant/lib/core/services/reports/income_statement_service.dart
+ D smart_accountant/lib/core/services/reports/inventory_report_service.dart
+ D smart_accountant/lib/core/services/reports/item_movement_report_service.dart
+ D smart_accountant/lib/core/services/reports/report_service.dart
+ D smart_accountant/lib/core/services/reports/supplier_statement_service.dart
+ D smart_accountant/lib/core/services/reports/trial_balance_service.dart
+ D smart_accountant/lib/core/services/sales/sales_service.dart
+ M smart_accountant/lib/core/services/transaction_manager.dart
+ D smart_accountant/lib/core/services/workflow/operation_executor.dart
+ D smart_accountant/lib/core/services/workflow/workflow_manager.dart
+ D smart_accountant/lib/core/startup/app_startup.dart
+ M smart_accountant/lib/core/startup/startup_manager.dart
+ D smart_accountant/lib/core/utils/result.dart
+ D smart_accountant/lib/features/accounts/chart_accounts_screen.dart
+ D smart_accountant/lib/features/accounts/domain/entities/account_entity.dart
+ D smart_accountant/lib/features/accounts/domain/rules/account_rules_service.dart
+ D smart_accountant/lib/features/accounts/domain/services/account_service.dart
+ D smart_accountant/lib/features/accounts/domain/tree/account_tree_engine.dart
+ D smart_accountant/lib/features/accounts/domain/tree/account_tree_node.dart
+ D smart_accountant/lib/features/accounts/domain/wizard/account_creation_request.dart
+ D smart_accountant/lib/features/accounts/domain/wizard/account_creation_wizard.dart
+ D smart_accountant/lib/features/accounts/screens/add_account_screen.dart
+ D smart_accountant/lib/features/banks/banks_screen.dart
+ D smart_accountant/lib/features/cash/cash_boxes_screen.dart
+ D smart_accountant/lib/features/customers/customers_screen.dart
+ D smart_accountant/lib/features/dashboard/dashboard_screen.dart
+ D smart_accountant/lib/features/dashboard/dashboard_screen.dart.save
+ D smart_accountant/lib/features/exchange/exchange_companies_screen.dart
+ D smart_accountant/lib/features/items/items_screen.dart
+ D smart_accountant/lib/features/reports/reports_screen.dart
+ D smart_accountant/lib/features/settings/settings_screen.dart
+ D smart_accountant/lib/features/suppliers/suppliers_screen.dart
+ D smart_accountant/lib/features/transactions/payment_screen.dart
+ D smart_accountant/lib/features/transactions/purchases_screen.dart
+ D smart_accountant/lib/features/transactions/receipt_screen.dart
+ D smart_accountant/lib/features/transactions/sales_screen.dart
+ D smart_accountant/lib/features/wallets/wallets_screen.dart
+ D smart_accountant/lib/features/warehouses/warehouses_screen.dart
+ M smart_accountant/lib/main.dart
+ D smart_accountant/test/integration/accounting/accounting_flow_test.dart
+ D smart_accountant/test/integration/accounting/accounting_posting_flow_test.dart
+ D smart_accountant/test/integration/accounting/accounts_tree_test.dart
+ D smart_accountant/test/unit/accounting/value_objects/currency_test.dart
+ D smart_accountant/test/unit/accounting/value_objects/exchange_rate_test.dart
+ D smart_accountant/test/unit/accounting/value_objects/money_test.dart
+ D smart_accountant/test/widget_test.dart
+?? SPRINT1_FULL_AUDIT.txt
+?? SPRINT1_SAFETY_BACKUP/
+?? smart_accountant/lib/core/audit/audit_entry.dart
+?? smart_accountant/lib/core/security/
+?? smart_accountant/lib/core/services/accounting/account_service.dart
+?? smart_accountant/lib/core/services/seed_service.dart
+?? smart_accountant/lib/docs/
+?? smart_accountant/lib/features/accounts/accounts_screen.dart
+
+===== GIT BRANCH =====
+main
+
+===== GIT HEAD =====
+cf13e95
+
+===== FLUTTER VERSION =====
+Flutter 3.44.8 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision 058e0af2c2 (3 weeks ago) • 2026-07-23 10:56:21 -0700
+Engine • hash 13ffd72b2f9a5ca4db2a74ea52d5353ec2e8f939 (revision 0cd610717b) (18 days ago) • 2026-07-23 16:11:34.000Z
+Tools • Dart 3.12.2 • DevTools 2.57.0
+
+===== DART VERSION =====
+Dart SDK version: 3.12.2 (stable) (Tue Jun 9 01:11:39 2026 -0700) on "linux_x64"
+
+===== PUBSPEC =====
+name: smart_accountant
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+  # sqflite: ^2.4.3
+  # path: ^1.9.1
+  provider: ^6.1.5+1
+  fl_chart: ^1.2.0
+  pdf: ^3.12.0
+  printing: ^5.14.3
+  uuid: ^4.6.0
+  google_fonts: ^8.2.1
+  share_plus: ^13.3.0
+  intl: ^0.20.2
+  flutter_riverpod: ^2.6.1
+  get_it: ^9.2.1
+  injectable: ^3.0.0
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
+  sqlite3: ^3.5.0
+  path_provider: ^2.1.6
+  path: ^1.9.1
+  equatable: ^2.1.0
+  logger: ^2.7.0
+  dio: ^5.11.0
+  flutter_secure_storage: ^10.3.1
+  speech_to_text: ^7.4.0
+  flutter_tts: ^4.2.5
+  excel: ^4.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^6.0.0
+  build_runner: ^2.15.1
+  freezed: ^3.2.5
+  json_serializable: ^6.14.1
+  injectable_generator: ^3.0.2
+  drift_dev: ^2.34.0
+  test: ^1.31.0
+  mocktail: ^1.0.5
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  # assets:
+  #   - images/a_dot_burr.jpeg
+  #   - images/a_dot_ham.jpeg
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
+
+===== DELETED FILES =====
+smart_accountant/lib/core/accounting/domain/value_objects/currency.dart
+smart_accountant/lib/core/accounting/domain/value_objects/exchange_rate.dart
+smart_accountant/lib/core/accounting/domain/value_objects/money.dart
+smart_accountant/lib/core/accounting/engine/accounting_engine.dart
+smart_accountant/lib/core/accounting/engine/posting_engine.dart
+smart_accountant/lib/core/accounting/enums/entry_status.dart
+smart_accountant/lib/core/accounting/exceptions/accounting_exception.dart
+smart_accountant/lib/core/accounting/mappers/journal_mapper.dart
+smart_accountant/lib/core/accounting/models/accounting_entry.dart
+smart_accountant/lib/core/accounting/models/accounting_line.dart
+smart_accountant/lib/core/accounting/results/accounting_result.dart
+smart_accountant/lib/core/accounting/results/posting_result.dart
+smart_accountant/lib/core/accounting/services/balance_update_service.dart
+smart_accountant/lib/core/accounting/validation/accounting_validator.dart
+smart_accountant/lib/core/accounting/validation/validation_result.dart
+smart_accountant/lib/core/accounting/validators/accounting_validator.dart
+smart_accountant/lib/core/database/dao/account_dao.dart
+smart_accountant/lib/core/database/dao/currency_dao.dart
+smart_accountant/lib/core/database/dao/settings_dao.dart
+smart_accountant/lib/core/database/database.dart
+smart_accountant/lib/core/database/repositories/database_repository.dart
+smart_accountant/lib/core/database/seeds/account_seed.dart
+smart_accountant/lib/core/database/seeds/currency_seed.dart
+smart_accountant/lib/core/database/seeds/database_seed_service.dart
+smart_accountant/lib/core/database/seeds/financial_account_seed.dart
+smart_accountant/lib/core/database/seeds/system_account_seed.dart
+smart_accountant/lib/core/di/injection.dart
+smart_accountant/lib/core/engine/accounting/journal_builder.dart
+smart_accountant/lib/core/engine/validation/validator.dart
+smart_accountant/lib/core/events/app_event.dart
+smart_accountant/lib/core/events/event_bus.dart
+smart_accountant/lib/core/models/operations/operation_type.dart
+smart_accountant/lib/core/repositories/accounting/journal_repository.dart
+smart_accountant/lib/core/repositories/base_repository.dart
+smart_accountant/lib/core/repositories/documents/document_repository.dart
+smart_accountant/lib/core/routes/app_routes.dart
+smart_accountant/lib/core/seeds/seed_service.dart
+smart_accountant/lib/core/services/accounting/account_link_service.dart
+smart_accountant/lib/core/services/accounting/account_seed_service.backup.dart
+smart_accountant/lib/core/services/accounting/account_seed_service.dart
+smart_accountant/lib/core/services/accounting/accounting_link_service.dart
+smart_accountant/lib/core/services/accounting/accounting_service.dart
+smart_accountant/lib/core/services/accounting/document_service.dart
+smart_accountant/lib/core/services/accounting/financial_account_service.dart
+smart_accountant/lib/core/services/accounting/ledger_posting_service.dart
+smart_accountant/lib/core/services/accounting/system_account_service.dart
+smart_accountant/lib/core/services/base_service.dart
+smart_accountant/lib/core/services/cash/cash_transaction_service.dart
+smart_accountant/lib/core/services/database_service.dart
+smart_accountant/lib/core/services/finance/financial_account_linker_service.dart
+smart_accountant/lib/core/services/integration/inventory_accounting_bridge.dart
+smart_accountant/lib/core/services/inventory/inventory_operation_service.dart
+smart_accountant/lib/core/services/inventory/inventory_service.dart
+smart_accountant/lib/core/services/master_data/bank_service.dart
+smart_accountant/lib/core/services/master_data/cash_box_service.dart
+smart_accountant/lib/core/services/master_data/customer_service.dart
+smart_accountant/lib/core/services/master_data/exchange_company_service.dart
+smart_accountant/lib/core/services/master_data/exchange_rate_service.dart
+smart_accountant/lib/core/services/master_data/item_service.dart
+smart_accountant/lib/core/services/master_data/master_account_link_service.dart
+smart_accountant/lib/core/services/master_data/supplier_service.dart
+smart_accountant/lib/core/services/master_data/unit_service.dart
+smart_accountant/lib/core/services/master_data/wallet_service.dart
+smart_accountant/lib/core/services/master_data/warehouse_service.dart
+smart_accountant/lib/core/services/numbering/account_number_generator.dart
+smart_accountant/lib/core/services/numbering/operation_number_service.dart
+smart_accountant/lib/core/services/purchases/purchase_service.dart
+smart_accountant/lib/core/services/reports/balance_sheet_service.dart
+smart_accountant/lib/core/services/reports/cash_flow_service.dart
+smart_accountant/lib/core/services/reports/customer_statement_service.dart
+smart_accountant/lib/core/services/reports/general_ledger_service.dart
+smart_accountant/lib/core/services/reports/income_statement_service.dart
+smart_accountant/lib/core/services/reports/inventory_report_service.dart
+smart_accountant/lib/core/services/reports/item_movement_report_service.dart
+smart_accountant/lib/core/services/reports/report_service.dart
+smart_accountant/lib/core/services/reports/supplier_statement_service.dart
+smart_accountant/lib/core/services/reports/trial_balance_service.dart
+smart_accountant/lib/core/services/sales/sales_service.dart
+smart_accountant/lib/core/services/workflow/operation_executor.dart
+smart_accountant/lib/core/services/workflow/workflow_manager.dart
+smart_accountant/lib/core/startup/app_startup.dart
+smart_accountant/lib/core/utils/result.dart
+smart_accountant/lib/features/accounts/chart_accounts_screen.dart
+smart_accountant/lib/features/accounts/domain/entities/account_entity.dart
+smart_accountant/lib/features/accounts/domain/rules/account_rules_service.dart
+smart_accountant/lib/features/accounts/domain/services/account_service.dart
+smart_accountant/lib/features/accounts/domain/tree/account_tree_engine.dart
+smart_accountant/lib/features/accounts/domain/tree/account_tree_node.dart
+smart_accountant/lib/features/accounts/domain/wizard/account_creation_request.dart
+smart_accountant/lib/features/accounts/domain/wizard/account_creation_wizard.dart
+smart_accountant/lib/features/accounts/screens/add_account_screen.dart
+smart_accountant/lib/features/banks/banks_screen.dart
+smart_accountant/lib/features/cash/cash_boxes_screen.dart
+smart_accountant/lib/features/customers/customers_screen.dart
+smart_accountant/lib/features/dashboard/dashboard_screen.dart
+smart_accountant/lib/features/dashboard/dashboard_screen.dart.save
+smart_accountant/lib/features/exchange/exchange_companies_screen.dart
+smart_accountant/lib/features/items/items_screen.dart
+smart_accountant/lib/features/reports/reports_screen.dart
+smart_accountant/lib/features/settings/settings_screen.dart
+smart_accountant/lib/features/suppliers/suppliers_screen.dart
+smart_accountant/lib/features/transactions/payment_screen.dart
+smart_accountant/lib/features/transactions/purchases_screen.dart
+smart_accountant/lib/features/transactions/receipt_screen.dart
+smart_accountant/lib/features/transactions/sales_screen.dart
+smart_accountant/lib/features/wallets/wallets_screen.dart
+smart_accountant/lib/features/warehouses/warehouses_screen.dart
+smart_accountant/test/integration/accounting/accounting_flow_test.dart
+smart_accountant/test/integration/accounting/accounting_posting_flow_test.dart
+smart_accountant/test/integration/accounting/accounts_tree_test.dart
+smart_accountant/test/unit/accounting/value_objects/currency_test.dart
+smart_accountant/test/unit/accounting/value_objects/exchange_rate_test.dart
+smart_accountant/test/unit/accounting/value_objects/money_test.dart
+smart_accountant/test/widget_test.dart
+
+===== UNTRACKED FILES =====
+SPRINT1_FULL_AUDIT.txt
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/current_working_diff.patch
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/deleted_files.txt
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/diff_stat.txt
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/git_status.txt
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/pubspec.yaml
+SPRINT1_SAFETY_BACKUP/baseline_20260811_003928/untracked_files.txt
+SPRINT1_SAFETY_BACKUP/current_working_diff.patch
+SPRINT1_SAFETY_BACKUP/git_status.txt
+SPRINT1_SAFETY_BACKUP/smart_accountant_before_repair_20260811_002906.tar.gz
+smart_accountant/lib/core/audit/audit_entry.dart
+smart_accountant/lib/core/security/security_manager.dart
+smart_accountant/lib/core/services/accounting/account_service.dart
+smart_accountant/lib/core/services/seed_service.dart
+smart_accountant/lib/docs/architecture.md
+smart_accountant/lib/features/accounts/accounts_screen.dart
+
+===== MODIFIED FILES =====
+smart_accountant/lib/app/app.dart
+smart_accountant/lib/core/accounting/domain/value_objects/currency.dart
+smart_accountant/lib/core/accounting/domain/value_objects/exchange_rate.dart
+smart_accountant/lib/core/accounting/domain/value_objects/money.dart
+smart_accountant/lib/core/accounting/engine/accounting_engine.dart
+smart_accountant/lib/core/accounting/engine/posting_engine.dart
+smart_accountant/lib/core/accounting/enums/entry_status.dart
+smart_accountant/lib/core/accounting/exceptions/accounting_exception.dart
+smart_accountant/lib/core/accounting/mappers/journal_mapper.dart
+smart_accountant/lib/core/accounting/models/accounting_entry.dart
+smart_accountant/lib/core/accounting/models/accounting_line.dart
+smart_accountant/lib/core/accounting/results/accounting_result.dart
+smart_accountant/lib/core/accounting/results/posting_result.dart
+smart_accountant/lib/core/accounting/services/balance_update_service.dart
+smart_accountant/lib/core/accounting/validation/accounting_validator.dart
+smart_accountant/lib/core/accounting/validation/validation_result.dart
+smart_accountant/lib/core/accounting/validators/accounting_validator.dart
+smart_accountant/lib/core/audit/audit_service.dart
+smart_accountant/lib/core/database/app_database.dart
+smart_accountant/lib/core/database/app_database.g.dart
+smart_accountant/lib/core/database/dao/account_dao.dart
+smart_accountant/lib/core/database/dao/currency_dao.dart
+smart_accountant/lib/core/database/dao/settings_dao.dart
+smart_accountant/lib/core/database/database.dart
+smart_accountant/lib/core/database/repositories/database_repository.dart
+smart_accountant/lib/core/database/seeds/account_seed.dart
+smart_accountant/lib/core/database/seeds/currency_seed.dart
+smart_accountant/lib/core/database/seeds/database_seed_service.dart
+smart_accountant/lib/core/database/seeds/financial_account_seed.dart
+smart_accountant/lib/core/database/seeds/system_account_seed.dart
+smart_accountant/lib/core/database/tables/accounts_table.dart
+smart_accountant/lib/core/database/tables/balances_table.dart
+smart_accountant/lib/core/database/tables/journal_entries_table.dart
+smart_accountant/lib/core/database/tables/journal_lines_table.dart
+smart_accountant/lib/core/di/injection.dart
+smart_accountant/lib/core/di/service_locator.dart
+smart_accountant/lib/core/engine/accounting/accounting_engine.dart
+smart_accountant/lib/core/engine/accounting/journal_builder.dart
+smart_accountant/lib/core/engine/accounting/transaction_context.dart
+smart_accountant/lib/core/engine/accounting/transaction_result.dart
+smart_accountant/lib/core/engine/validation/transaction_validator.dart
+smart_accountant/lib/core/engine/validation/validation_result.dart
+smart_accountant/lib/core/engine/validation/validator.dart
+smart_accountant/lib/core/errors/app_exception.dart
+smart_accountant/lib/core/event_bus/event_bus.dart
+smart_accountant/lib/core/events/app_event.dart
+smart_accountant/lib/core/events/event_bus.dart
+smart_accountant/lib/core/logging/app_logger.dart
+smart_accountant/lib/core/logging/logger.dart
+smart_accountant/lib/core/models/operations/operation_type.dart
+smart_accountant/lib/core/repositories/accounting/journal_repository.dart
+smart_accountant/lib/core/repositories/base_repository.dart
+smart_accountant/lib/core/repositories/documents/document_repository.dart
+smart_accountant/lib/core/routes/app_routes.dart
+smart_accountant/lib/core/seeds/seed_service.dart
+smart_accountant/lib/core/services/accounting/account_link_service.dart
+smart_accountant/lib/core/services/accounting/account_seed_service.backup.dart
+smart_accountant/lib/core/services/accounting/account_seed_service.dart
+smart_accountant/lib/core/services/accounting/accounting_link_service.dart
+smart_accountant/lib/core/services/accounting/accounting_service.dart
+smart_accountant/lib/core/services/accounting/document_service.dart
+smart_accountant/lib/core/services/accounting/financial_account_service.dart
+smart_accountant/lib/core/services/accounting/ledger_posting_service.dart
+smart_accountant/lib/core/services/accounting/system_account_service.dart
+smart_accountant/lib/core/services/base_service.dart
+smart_accountant/lib/core/services/cash/cash_transaction_service.dart
+smart_accountant/lib/core/services/database_service.dart
+smart_accountant/lib/core/services/finance/financial_account_linker_service.dart
+smart_accountant/lib/core/services/integration/inventory_accounting_bridge.dart
+smart_accountant/lib/core/services/inventory/inventory_operation_service.dart
+smart_accountant/lib/core/services/inventory/inventory_service.dart
+smart_accountant/lib/core/services/master_data/bank_service.dart
+smart_accountant/lib/core/services/master_data/cash_box_service.dart
+smart_accountant/lib/core/services/master_data/customer_service.dart
+smart_accountant/lib/core/services/master_data/exchange_company_service.dart
+smart_accountant/lib/core/services/master_data/exchange_rate_service.dart
+smart_accountant/lib/core/services/master_data/item_service.dart
+smart_accountant/lib/core/services/master_data/master_account_link_service.dart
+smart_accountant/lib/core/services/master_data/supplier_service.dart
+smart_accountant/lib/core/services/master_data/unit_service.dart
+smart_accountant/lib/core/services/master_data/wallet_service.dart
+smart_accountant/lib/core/services/master_data/warehouse_service.dart
+smart_accountant/lib/core/services/numbering/account_number_generator.dart
+smart_accountant/lib/core/services/numbering/number_generator.dart
+smart_accountant/lib/core/services/numbering/operation_number_service.dart
+smart_accountant/lib/core/services/purchases/purchase_service.dart
+smart_accountant/lib/core/services/reports/balance_sheet_service.dart
+smart_accountant/lib/core/services/reports/cash_flow_service.dart
+smart_accountant/lib/core/services/reports/customer_statement_service.dart
+smart_accountant/lib/core/services/reports/general_ledger_service.dart
+smart_accountant/lib/core/services/reports/income_statement_service.dart
+smart_accountant/lib/core/services/reports/inventory_report_service.dart
+smart_accountant/lib/core/services/reports/item_movement_report_service.dart
+smart_accountant/lib/core/services/reports/report_service.dart
+smart_accountant/lib/core/services/reports/supplier_statement_service.dart
+smart_accountant/lib/core/services/reports/trial_balance_service.dart
+smart_accountant/lib/core/services/sales/sales_service.dart
+smart_accountant/lib/core/services/transaction_manager.dart
+smart_accountant/lib/core/services/workflow/operation_executor.dart
+smart_accountant/lib/core/services/workflow/workflow_manager.dart
+smart_accountant/lib/core/startup/app_startup.dart
+smart_accountant/lib/core/startup/startup_manager.dart
+smart_accountant/lib/core/utils/result.dart
+smart_accountant/lib/features/accounts/chart_accounts_screen.dart
+smart_accountant/lib/features/accounts/domain/entities/account_entity.dart
+smart_accountant/lib/features/accounts/domain/rules/account_rules_service.dart
+smart_accountant/lib/features/accounts/domain/services/account_service.dart
+smart_accountant/lib/features/accounts/domain/tree/account_tree_engine.dart
+smart_accountant/lib/features/accounts/domain/tree/account_tree_node.dart
+smart_accountant/lib/features/accounts/domain/wizard/account_creation_request.dart
+smart_accountant/lib/features/accounts/domain/wizard/account_creation_wizard.dart
+smart_accountant/lib/features/accounts/screens/add_account_screen.dart
+smart_accountant/lib/features/banks/banks_screen.dart
+smart_accountant/lib/features/cash/cash_boxes_screen.dart
+smart_accountant/lib/features/customers/customers_screen.dart
+smart_accountant/lib/features/dashboard/dashboard_screen.dart
+smart_accountant/lib/features/dashboard/dashboard_screen.dart.save
+smart_accountant/lib/features/exchange/exchange_companies_screen.dart
+smart_accountant/lib/features/items/items_screen.dart
+smart_accountant/lib/features/reports/reports_screen.dart
+smart_accountant/lib/features/settings/settings_screen.dart
+smart_accountant/lib/features/suppliers/suppliers_screen.dart
+smart_accountant/lib/features/transactions/payment_screen.dart
+smart_accountant/lib/features/transactions/purchases_screen.dart
+smart_accountant/lib/features/transactions/receipt_screen.dart
+smart_accountant/lib/features/transactions/sales_screen.dart
+smart_accountant/lib/features/wallets/wallets_screen.dart
+smart_accountant/lib/features/warehouses/warehouses_screen.dart
+smart_accountant/lib/main.dart
+smart_accountant/test/integration/accounting/accounting_flow_test.dart
+smart_accountant/test/integration/accounting/accounting_posting_flow_test.dart
+smart_accountant/test/integration/accounting/accounts_tree_test.dart
+smart_accountant/test/unit/accounting/value_objects/currency_test.dart
+smart_accountant/test/unit/accounting/value_objects/exchange_rate_test.dart
+smart_accountant/test/unit/accounting/value_objects/money_test.dart
+smart_accountant/test/widget_test.dart
+
+===== LIB FILES =====
+smart_accountant/lib/app/app.dart
+smart_accountant/lib/core/audit/audit_entry.dart
+smart_accountant/lib/core/audit/audit_service.dart
+smart_accountant/lib/core/config/app_config.dart
+smart_accountant/lib/core/constants/app_constants.dart
+smart_accountant/lib/core/database/app_database.dart
+smart_accountant/lib/core/database/app_database.g.dart
+smart_accountant/lib/core/database/database_provider.dart
+smart_accountant/lib/core/database/tables/account_links_table.dart
+smart_accountant/lib/core/database/tables/account_rules_table.dart
+smart_accountant/lib/core/database/tables/accounts_table.dart
+smart_accountant/lib/core/database/tables/balances_table.dart
+smart_accountant/lib/core/database/tables/banks_table.dart
+smart_accountant/lib/core/database/tables/cash_boxes_table.dart
+smart_accountant/lib/core/database/tables/categories_table.dart
+smart_accountant/lib/core/database/tables/company_table.dart
+smart_accountant/lib/core/database/tables/currencies_table.dart
+smart_accountant/lib/core/database/tables/customers_table.dart
+smart_accountant/lib/core/database/tables/document_lines_table.dart
+smart_accountant/lib/core/database/tables/documents_table.dart
+smart_accountant/lib/core/database/tables/exchange_companies_table.dart
+smart_accountant/lib/core/database/tables/exchange_rates_table.dart
+smart_accountant/lib/core/database/tables/financial_accounts_table.dart
+smart_accountant/lib/core/database/tables/inventory_balances_table.dart
+smart_accountant/lib/core/database/tables/inventory_transactions_table.dart
+smart_accountant/lib/core/database/tables/items_table.dart
+smart_accountant/lib/core/database/tables/journal_entries_table.dart
+smart_accountant/lib/core/database/tables/journal_lines_table.dart
+smart_accountant/lib/core/database/tables/ledger_table.dart
+smart_accountant/lib/core/database/tables/settings_table.dart
+smart_accountant/lib/core/database/tables/suppliers_table.dart
+smart_accountant/lib/core/database/tables/system_accounts_table.dart
+smart_accountant/lib/core/database/tables/units_table.dart
+smart_accountant/lib/core/database/tables/wallets_table.dart
+smart_accountant/lib/core/database/tables/warehouses_table.dart
+smart_accountant/lib/core/di/service_locator.dart
+smart_accountant/lib/core/engine/accounting/accounting_engine.dart
+smart_accountant/lib/core/engine/accounting/transaction_context.dart
+smart_accountant/lib/core/engine/accounting/transaction_result.dart
+smart_accountant/lib/core/engine/validation/transaction_validator.dart
+smart_accountant/lib/core/engine/validation/validation_result.dart
+smart_accountant/lib/core/errors/app_exception.dart
+smart_accountant/lib/core/errors/failure.dart
+smart_accountant/lib/core/event_bus/event_bus.dart
+smart_accountant/lib/core/logging/app_logger.dart
+smart_accountant/lib/core/logging/logger.dart
+smart_accountant/lib/core/security/security_manager.dart
+smart_accountant/lib/core/services/accounting/account_service.dart
+smart_accountant/lib/core/services/numbering/number_generator.dart
+smart_accountant/lib/core/services/seed_service.dart
+smart_accountant/lib/core/services/transaction_manager.dart
+smart_accountant/lib/core/startup/startup_manager.dart
+smart_accountant/lib/docs/architecture.md
+smart_accountant/lib/features/accounts/accounts_screen.dart
+smart_accountant/lib/main.dart
+
+===== TEST FILES =====
+
+===== DATABASE FILES =====
+smart_accountant/lib/core/database/app_database.dart
+smart_accountant/lib/core/database/app_database.g.dart
+smart_accountant/lib/core/database/database_provider.dart
+smart_accountant/lib/core/database/tables/account_links_table.dart
+smart_accountant/lib/core/database/tables/account_rules_table.dart
+smart_accountant/lib/core/database/tables/accounts_table.dart
+smart_accountant/lib/core/database/tables/balances_table.dart
+smart_accountant/lib/core/database/tables/banks_table.dart
+smart_accountant/lib/core/database/tables/cash_boxes_table.dart
+smart_accountant/lib/core/database/tables/categories_table.dart
+smart_accountant/lib/core/database/tables/company_table.dart
+smart_accountant/lib/core/database/tables/currencies_table.dart
+smart_accountant/lib/core/database/tables/customers_table.dart
+smart_accountant/lib/core/database/tables/document_lines_table.dart
+smart_accountant/lib/core/database/tables/documents_table.dart
+smart_accountant/lib/core/database/tables/exchange_companies_table.dart
+smart_accountant/lib/core/database/tables/exchange_rates_table.dart
+smart_accountant/lib/core/database/tables/financial_accounts_table.dart
+smart_accountant/lib/core/database/tables/inventory_balances_table.dart
+smart_accountant/lib/core/database/tables/inventory_transactions_table.dart
+smart_accountant/lib/core/database/tables/items_table.dart
+smart_accountant/lib/core/database/tables/journal_entries_table.dart
+smart_accountant/lib/core/database/tables/journal_lines_table.dart
+smart_accountant/lib/core/database/tables/ledger_table.dart
+smart_accountant/lib/core/database/tables/settings_table.dart
+smart_accountant/lib/core/database/tables/suppliers_table.dart
+smart_accountant/lib/core/database/tables/system_accounts_table.dart
+smart_accountant/lib/core/database/tables/units_table.dart
+smart_accountant/lib/core/database/tables/wallets_table.dart
+smart_accountant/lib/core/database/tables/warehouses_table.dart
+
+===== ACCOUNTING ENGINE =====
+smart_accountant/lib/core/engine/accounting/accounting_engine.dart
+smart_accountant/lib/core/engine/accounting/transaction_context.dart
+smart_accountant/lib/core/engine/accounting/transaction_result.dart
+smart_accountant/lib/core/engine/validation/transaction_validator.dart
+smart_accountant/lib/core/engine/validation/validation_result.dart
+
+===== SERVICES =====
+smart_accountant/lib/core/services/accounting/account_service.dart
+smart_accountant/lib/core/services/numbering/number_generator.dart
+smart_accountant/lib/core/services/seed_service.dart
+smart_accountant/lib/core/services/transaction_manager.dart
+
+===== FEATURES =====
+smart_accountant/lib/features/accounts/accounts_screen.dart
+
+===== FILE COUNTS =====
+Tracked: 298
+Deleted: 114
+Modified: 136
+Untracked: 16
+
+===== END AUDIT =====

@@ -1,16 +1,37 @@
-abstract class NumberGenerator {
-  Future<String> generate(String type);
-}
-
-class DefaultNumberGenerator implements NumberGenerator {
+/// Unified numbering engine for all transaction types.
+/// Formats: RC-2026-000001, PV-2026-000001, SI-2026-000001, etc.
+class NumberGenerator {
   final Map<String, int> _counters = {};
 
-  @override
+  /// Generate a unique number for a given transaction type.
+  /// type examples: receipt, payment, sale, purchase, journal, transfer, inventory
   Future<String> generate(String type) async {
-    final current = (_counters[type] ?? 0) + 1;
+    final now = DateTime.now();
+    final year = now.year;
+    final prefix = _getPrefix(type);
+    _counters[type] = (_counters[type] ?? 0) + 1;
+    final counter = _counters[type].toString().padLeft(6, '0');
+    return '$prefix-$year-$counter';
+  }
 
-    _counters[type] = current;
-
-    return '$type-${current.toString().padLeft(6, '0')}';
+  String _getPrefix(String type) {
+    switch (type) {
+      case 'receipt':
+        return 'RC';
+      case 'payment':
+        return 'PV';
+      case 'sale':
+        return 'SI';
+      case 'purchase':
+        return 'PI';
+      case 'journal':
+        return 'JV';
+      case 'transfer':
+        return 'TR';
+      case 'inventory':
+        return 'INV';
+      default:
+        return 'TX';
+    }
   }
 }

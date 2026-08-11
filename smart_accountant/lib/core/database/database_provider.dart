@@ -1,7 +1,8 @@
-import 'app_database.dart';
+import 'package:drift/drift.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 
-class DatabaseProvider {
-  static AppDatabase create() {
-    return AppDatabase();
-  }
+QueryExecutor openAppDatabase() {
+  return driftDatabase(
+    name: 'smart_accountant',
+  );
 }

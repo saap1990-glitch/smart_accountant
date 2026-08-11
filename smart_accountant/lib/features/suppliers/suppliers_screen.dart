@@ -1,42 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/services/master_data/master_data_service.dart';
+import '../shared/master_data_screen.dart';
 
-import '../../core/database/app_database.dart';
+class SuppliersScreen extends StatefulWidget {
+  const SuppliersScreen({super.key});
+  @override
+  State<SuppliersScreen> createState() => _SuppliersScreenState();
+}
 
-class SuppliersScreen extends StatelessWidget {
-  final AppDatabase db;
+class _SuppliersScreenState extends State<SuppliersScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  List<Map<String, dynamic>> _list = [];
 
-  const SuppliersScreen({
-    super.key,
-    required this.db,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() async {
+    final data = await _service.getAllSuppliers();
+    setState(() => _list = data);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('الموردون')),
-      body: FutureBuilder(
-        future: db.select(db.suppliers).get(),
-        builder: (_, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final rows = snapshot.data!;
-
-          return ListView.builder(
-            itemCount: rows.length,
-            itemBuilder: (_, i) {
-              final supplier = rows[i];
-
-              return ListTile(
-                leading: const Icon(Icons.local_shipping),
-                title: Text(supplier.name),
-                subtitle: Text(supplier.code),
-              );
-            },
-          );
-        },
-      ),
+    return MasterDataScreen(
+      title: 'الموردين',
+      data: _list,
+      columnKeys: ['name', 'phone', 'address'],
+      columnTitles: ['الاسم', 'الهاتف', 'العنوان'],
+      onSave: (data) async {
+        await _service.createSupplier(name: data['name']!, phone: data['phone'], address: data['address']);
+      },
+      onDelete: (id) async {},
+      getItems: () => _list,
+      refresh: _load,
     );
   }
 }

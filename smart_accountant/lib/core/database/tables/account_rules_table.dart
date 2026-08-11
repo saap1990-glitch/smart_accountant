@@ -3,11 +3,14 @@ import 'package:drift/drift.dart';
 class AccountRules extends Table {
   IntColumn get id => integer().autoIncrement()();
 
-  TextColumn get entityType => text()();
+  TextColumn get ruleCode => text().unique()();
 
-  IntColumn get parentAccountId => integer()();
+  TextColumn get descriptionAr => text()();
 
-  BoolColumn get autoCreate => boolean().withDefault(const Constant(true))();
+  TextColumn get descriptionEn => text().nullable()();
 
-  BoolColumn get allowPosting => boolean().withDefault(const Constant(true))();
+  TextColumn get ruleValue => text().nullable()();
+
+  BoolColumn get isActive =>
+      boolean().withDefault(const Constant(true))();
 }

@@ -1,18 +1,12 @@
 import 'package:drift/drift.dart';
+import 'accounts_table.dart';
 
 class Balances extends Table {
-  IntColumn get accountId => integer()();
-
-  TextColumn get currency => text()();
-
-  RealColumn get debitTotal => real().withDefault(const Constant(0))();
-
-  RealColumn get creditTotal => real().withDefault(const Constant(0))();
-
-  RealColumn get balance => real().withDefault(const Constant(0))();
-
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get accountId => integer().references(Accounts, #id)();
+  TextColumn get currencyCode => text().withDefault(const Constant('YER'))();
+  TextColumn get debitTotal => text().withDefault(const Constant('0'))();
+  TextColumn get creditTotal => text().withDefault(const Constant('0'))();
+  TextColumn get balance => text().withDefault(const Constant('0'))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
-
-  @override
-  Set<Column> get primaryKey => {accountId, currency};
 }
