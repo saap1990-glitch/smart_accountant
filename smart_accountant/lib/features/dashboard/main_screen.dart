@@ -27,6 +27,7 @@ import '../accounts/accounts_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../ai/ai_assistant_screen.dart';
+import '../admin/admin_panel_screen.dart';
 import '../targets/targets_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -70,6 +71,11 @@ class _MainScreenState extends State<MainScreen> {
               child: Text('المحاسب الذكي', style: TextStyle(color: Colors.white, fontSize: 24)),
             ),
             ListTile(title: const Text('المساعد الذكي'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiAssistantScreen()))),
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings, color: Colors.purple),
+              title: const Text('لوحة تحكم المالك'),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPanelScreen())),
+            ),
             ListTile(leading: const Icon(Icons.track_changes), title: const Text('الأهداف والتارجت'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TargetsScreen()))),
           ],
         ),

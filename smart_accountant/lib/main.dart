@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'core/di/service_locator.dart';
 import 'core/services/accounting/accounting_link_service.dart';
 import 'core/auth/auth_service.dart';
+import 'core/services/subscription/subscription_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/login_screen.dart';
 import 'features/dashboard/main_screen.dart';
@@ -28,8 +29,21 @@ void main() async {
 
   final auth = sl<AuthService>();
   final remembered = await auth.isSessionRemembered();
+  final sub = sl<SubscriptionService>();
+  if (sub.daysUsed == 0) {
+    debugPrint('🎉 تم بدء الفترة التجريبية المجانية (90 يوم)');
+  }
 
   runApp(SmartAccountantApp(showLogin: !remembered));
+
+  // إظهار تنبيه الاشتراك إذا لزم
+  if (sub.shouldWarn) {
+    Future.delayed(const Duration(seconds: 2), () {
+      if (sub.shouldWarn) {
+        debugPrint(sub.warningMessage);
+      }
+    });
+  }
 }
 
 class SmartAccountantApp extends StatelessWidget {

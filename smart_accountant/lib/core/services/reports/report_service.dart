@@ -1,67 +1,100 @@
 import '../../repositories/master_data_repository.dart';
+import '../../repositories/ledger_repository.dart';
 import '../inventory/item_movement_service.dart';
 
 class ReportService {
   final MasterDataRepository _repository;
   final ItemMovementService _movementService;
+  final LedgerRepository _ledgerRepo;
 
-  ReportService(this._repository, this._movementService);
+  ReportService(this._repository, this._movementService, this._ledgerRepo);
 
   Future<List<Map<String, dynamic>>> generalLedger({
     required int accountId,
     required DateTime from,
     required DateTime to,
   }) async {
-    return [
-      {'date': '2026-01-01', 'description': 'رصيد افتتاحي', 'debit': '0', 'credit': '0', 'balance': '10000'},
-      {'date': '2026-08-01', 'description': 'فاتورة بيع #123', 'debit': '5000', 'credit': '0', 'balance': '15000'},
-    ];
+    return _ledgerRepo.getAccountStatement(accountId: accountId, from: from, to: to);
   }
 
   Future<List<Map<String, dynamic>>> trialBalance(DateTime asOf) async {
     final accounts = await _repository.getAllAccounts();
-    return accounts.map((a) => {
-      'account_number': a['number'],
-      'account_name': a['name_ar'] ?? a['name_en'],
-      'debit': '1000',
-      'credit': '500',
-    }).toList();
+    final result = <Map<String, dynamic>>[];
+    for (var acc in accounts) {
+      final balance = await _ledgerRepo.getBalance(acc['id'] as int);
+      result.add({
+        'account_number': acc['number'],
+        'account_name': acc['name_ar'] ?? acc['name_en'],
+        'debit': balance > 0 ? balance.toStringAsFixed(2) : '0',
+        'credit': balance < 0 ? (-balance).toStringAsFixed(2) : '0',
+      });
+    }
+    return result;
   }
 
   Future<Map<String, dynamic>> incomeStatement({required DateTime from, required DateTime to}) async {
-    return {'revenues': 50000.0, 'expenses': 30000.0, 'net_income': 20000.0, 'period': '${from.toIso8601String()} / ${to.toIso8601String()}'};
+    double revenues = 0, expenses = 0;
+    final accounts = await _repository.getAllAccounts();
+    for (var acc in accounts) {
+      final balance = await _ledgerRepo.getBalance(acc['id'] as int);
+      if (acc['type'] == 'revenue') revenues += balance;
+      if (acc['type'] == 'expense') expenses += balance.abs();
+    }
+    return {
+      'revenues': revenues.toStringAsFixed(2),
+      'expenses': expenses.toStringAsFixed(2),
+      'net_income': (revenues - expenses).toStringAsFixed(2),
+      'period': '${from.toIso8601String()} / ${to.toIso8601String()}',
+    };
   }
 
   Future<Map<String, dynamic>> balanceSheet(DateTime asOf) async {
-    return {'assets': 150000.0, 'liabilities': 40000.0, 'equity': 110000.0, 'as_of': asOf.toIso8601String()};
+    double assets = 0, liabilities = 0;
+    final accounts = await _repository.getAllAccounts();
+    for (var acc in accounts) {
+      final balance = await _ledgerRepo.getBalance(acc['id'] as int);
+      if (acc['type'] == 'asset') assets += balance;
+      if (acc['type'] == 'liability') liabilities += balance.abs();
+    }
+    return {
+      'assets': assets.toStringAsFixed(2),
+      'liabilities': liabilities.toStringAsFixed(2),
+      'equity': (assets - liabilities).toStringAsFixed(2),
+      'as_of': asOf.toIso8601String(),
+    };
   }
 
   Future<Map<String, dynamic>> cashFlow({required DateTime from, required DateTime to}) async {
-    return {'operating': 25000.0, 'investing': -5000.0, 'financing': 0.0, 'net_cash_flow': 20000.0};
+    return {
+      'operating': '25000',
+      'investing': '-5000',
+      'financing': '0',
+      'net_cash_flow': '20000',
+    };
   }
 
   Future<List<Map<String, dynamic>>> customerStatement({required int customerId, required DateTime from, required DateTime to}) async {
-    return _sampleStatement('عميل', customerId.toString());
+    return _ledgerRepo.getAccountStatement(accountId: customerId, from: from, to: to);
   }
 
   Future<List<Map<String, dynamic>>> supplierStatement({required int supplierId, required DateTime from, required DateTime to}) async {
-    return _sampleStatement('مورد', supplierId.toString());
+    return _ledgerRepo.getAccountStatement(accountId: supplierId, from: from, to: to);
   }
 
   Future<List<Map<String, dynamic>>> bankStatement({required int bankId, required DateTime from, required DateTime to}) async {
-    return _sampleStatement('بنك', bankId.toString());
+    return _ledgerRepo.getAccountStatement(accountId: bankId, from: from, to: to);
   }
 
   Future<List<Map<String, dynamic>>> cashBoxStatement({required int cashBoxId, required DateTime from, required DateTime to}) async {
-    return _sampleStatement('صندوق', cashBoxId.toString());
+    return _ledgerRepo.getAccountStatement(accountId: cashBoxId, from: from, to: to);
   }
 
   Future<List<Map<String, dynamic>>> walletStatement({required int walletId, required DateTime from, required DateTime to}) async {
-    return _sampleStatement('محفظة', walletId.toString());
+    return _ledgerRepo.getAccountStatement(accountId: walletId, from: from, to: to);
   }
 
   Future<List<Map<String, dynamic>>> exchangeCompanyStatement({required int companyId, required DateTime from, required DateTime to}) async {
-    return _sampleStatement('شركة صرافة', companyId.toString());
+    return _ledgerRepo.getAccountStatement(accountId: companyId, from: from, to: to);
   }
 
   Future<List<Map<String, dynamic>>> inventoryReport() async {
@@ -74,13 +107,13 @@ class ReportService {
   }
 
   Future<Map<String, dynamic>> profitReport({required DateTime from, required DateTime to}) async {
-    return {'total_sales': 100000.0, 'total_purchases': 60000.0, 'gross_profit': 40000.0, 'expenses': 15000.0, 'net_profit': 25000.0};
-  }
-
-  List<Map<String, dynamic>> _sampleStatement(String entity, String id) {
-    return [
-      {'date': '2026-07-01', 'description': 'رصيد سابق', 'debit': '0', 'credit': '0', 'balance': '5000'},
-      {'date': '2026-07-15', 'description': 'عملية $entity #$id', 'debit': '3000', 'credit': '0', 'balance': '8000'},
-    ];
+    final income = await incomeStatement(from: from, to: to);
+    return {
+      'total_sales': income['revenues'],
+      'total_purchases': income['expenses'],
+      'gross_profit': income['net_income'],
+      'expenses': income['expenses'],
+      'net_profit': income['net_income'],
+    };
   }
 }

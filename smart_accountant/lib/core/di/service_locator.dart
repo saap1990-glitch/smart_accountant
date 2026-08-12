@@ -8,8 +8,9 @@ import '../services/numbering/number_generator.dart';
 import '../engine/accounting/accounting_engine.dart';
 import '../engine/validation/transaction_validator.dart';
 import '../engine/workflow/workflow_engine.dart';
-import '../engine/posting/posting_engine.dart';
 import '../repositories/master_data_repository.dart';
+import '../repositories/journal_repository.dart';
+import '../repositories/ledger_repository.dart';
 import '../services/master_data/master_data_service.dart';
 import '../services/operations/operation_service.dart';
 import '../services/reports/report_service.dart';
@@ -17,14 +18,12 @@ import '../services/ai/ai_service.dart';
 import '../services/backup/backup_service.dart';
 import '../services/encryption/encryption_service.dart';
 import '../services/subscription/subscription_service.dart';
+import '../services/subscription/anti_tamper_service.dart';
 import '../services/inventory/item_movement_service.dart';
 import '../services/accounting/accounting_link_service.dart';
 import '../services/templates/activity_templates.dart';
-import '../database/app_database.dart';
 import '../auth/auth_service.dart';
-import '../services/notifications/notification_service.dart';
-import '../services/targets/target_service.dart';
-import '../services/pdf/pdf_service.dart';
+import '../database/app_database.dart';
 
 final sl = GetIt.instance;
 
@@ -32,35 +31,42 @@ Future<void> setupServiceLocator() async {
   final db = AppDatabase();
   sl.registerSingleton<AppDatabase>(db);
 
+  // Core
   sl.registerLazySingleton<AppEventBus>(() => AppEventBus());
   sl.registerLazySingleton<AuditService>(() => _InMemoryAuditService());
   sl.registerLazySingleton<TransactionManager>(() => TransactionManager(sl<AuditService>(), sl<AppEventBus>()));
   sl.registerLazySingleton<NumberGenerator>(() => NumberGenerator());
   sl.registerLazySingleton<TransactionValidator>(() => DefaultTransactionValidator());
   sl.registerLazySingleton<WorkflowEngine>(() => WorkflowEngine());
-  sl.registerLazySingleton<PostingEngine>(() => PostingEngine());
+
+  // Repositories
+  sl.registerLazySingleton<MasterDataRepository>(() => MasterDataRepository(sl<AppDatabase>()));
+  sl.registerLazySingleton<JournalRepository>(() => JournalRepository(sl<AppDatabase>()));
+  sl.registerLazySingleton<LedgerRepository>(() => LedgerRepository(sl<AppDatabase>()));
+
+  // Accounting Engine
   sl.registerLazySingleton<AccountingEngine>(() => AccountingEngine(
-    validator: sl<TransactionValidator>(), workflow: sl<WorkflowEngine>(),
-    posting: sl<PostingEngine>(), numberGenerator: sl<NumberGenerator>(),
-    transactionManager: sl<TransactionManager>(), eventBus: sl<AppEventBus>(),
+    validator: sl<TransactionValidator>(),
+    workflow: sl<WorkflowEngine>(),
+    numberGenerator: sl<NumberGenerator>(),
+    transactionManager: sl<TransactionManager>(),
+    eventBus: sl<AppEventBus>(),
+    journalRepo: sl<JournalRepository>(),
+    ledgerRepo: sl<LedgerRepository>(),
   ));
 
+  // Services
   sl.registerLazySingleton<AccountingLinkService>(() => AccountingLinkService(sl<AppDatabase>(), sl<NumberGenerator>()));
-  sl.registerLazySingleton<MasterDataRepository>(() => MasterDataRepository(sl<AppDatabase>()));
   sl.registerLazySingleton<MasterDataService>(() => MasterDataService(sl<MasterDataRepository>(), sl<AccountingLinkService>()));
   sl.registerLazySingleton<ItemMovementService>(() => ItemMovementService(sl<MasterDataRepository>()));
-  sl.registerLazySingleton<OperationService>(() => OperationService(
-    sl<AccountingEngine>(), sl<MasterDataService>(), sl<ItemMovementService>(), sl<MasterDataRepository>(),
-  ));
-  sl.registerLazySingleton<ReportService>(() => ReportService(sl<MasterDataRepository>(), sl<ItemMovementService>()));
+  sl.registerLazySingleton<OperationService>(() => OperationService(sl<AccountingEngine>(), sl<MasterDataService>(), sl<ItemMovementService>(), sl<MasterDataRepository>()));
+  sl.registerLazySingleton<ReportService>(() => ReportService(sl<MasterDataRepository>(), sl<ItemMovementService>(), sl<LedgerRepository>()));
   sl.registerLazySingleton<AiService>(() => AiService(sl<OperationService>(), sl<ReportService>()));
   sl.registerLazySingleton<BackupService>(() => BackupService());
   sl.registerLazySingleton<EncryptionService>(() => EncryptionService());
   sl.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
+  sl.registerLazySingleton<AntiTamperService>(() => AntiTamperService());
   sl.registerLazySingleton<AuthService>(() => AuthService());
-  sl.registerLazySingleton<NotificationService>(() => NotificationService());
-  sl.registerLazySingleton<TargetService>(() => TargetService());
-  sl.registerLazySingleton<PdfService>(() => PdfService());
   sl.registerLazySingleton<ActivityTemplates>(() => ActivityTemplates(sl<AccountingLinkService>(), sl<MasterDataService>()));
 }
 

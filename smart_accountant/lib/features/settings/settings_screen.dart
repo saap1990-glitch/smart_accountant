@@ -11,8 +11,6 @@ import 'security_screen.dart';
 import 'print_screen.dart';
 import 'backup_settings_screen.dart';
 import 'advanced_settings_screen.dart';
-import '../targets/targets_screen.dart';
-import '../reports/reports_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -108,9 +106,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.subscriptions, color: Colors.purple),
             title: Text(_sub.isActive ? 'الاشتراك نشط' : 'الاشتراك منتهي'),
             subtitle: Text(_sub.isActive ? 'متبقي ${_sub.daysLeft} يوم' : 'جدد اشتراكك الآن'),
-            trailing: _sub.isActive ? const Icon(Icons.check_circle, color: Colors.green) : const Icon(Icons.warning, color: Colors.red),
+            trailing: _sub.isActive
+                ? const Icon(Icons.check_circle, color: Colors.green)
+                : const Icon(Icons.warning, color: Colors.red),
           ),
-          _tile(Icons.key, Colors.purple, 'شراء النسخة الكاملة', 'أدخل رمز التفعيل', () {}),
+          if (_sub.isActive && _sub.activationCode != null)
+            ListTile(
+              leading: const Icon(Icons.date_range, color: Colors.purple),
+              title: const Text('تاريخ آخر تفعيل'),
+              subtitle: Text(DateTime.now().subtract(Duration(days: _sub.daysUsed)).toLocal().toString().split(' ')[0]),
+            ),
+          ListTile(
+            leading: const Icon(Icons.key, color: Colors.purple),
+            title: const Text('شراء النسخة الكاملة'),
+            subtitle: const Text('أدخل رمز التفعيل'),
+            onTap: () => _showActivationDialog(),
+          ),
 
           _sectionHeader('📂 قوالب الأنشطة'),
           _tile(Icons.account_tree, Colors.teal, 'اختيار قالب النشاط', 'دليل حسابات مناسب لنشاطك', _showTemplateDialog),
@@ -190,6 +201,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء'))],
+      ),
+    );
+  }
+
+  void _showActivationDialog() {
+    final codeCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تفعيل الاشتراك'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('أدخل رمز التفعيل الذي حصلت عليه:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: codeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'رمز التفعيل',
+                hintText: 'XXXX-XXXXXXXX',
+                prefixIcon: Icon(Icons.key),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await _sub.activate(codeCtrl.text.trim());
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(success ? 'تم التفعيل بنجاح! ✅' : 'رمز التفعيل غير صحيح ❌')),
+                );
+                setState(() {});
+              }
+            },
+            child: const Text('تفعيل'),
+          ),
+        ],
       ),
     );
   }
