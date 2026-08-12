@@ -12,7 +12,6 @@ class ReportService {
     required DateTime from,
     required DateTime to,
   }) async {
-    // TODO: استبدال ببيانات حقيقية من العمليات
     return [
       {'date': '2026-01-01', 'description': 'رصيد افتتاحي', 'debit': '0', 'credit': '0', 'balance': '10000'},
       {'date': '2026-08-01', 'description': 'فاتورة بيع #123', 'debit': '5000', 'credit': '0', 'balance': '15000'},
@@ -26,8 +25,6 @@ class ReportService {
       'account_name': a['name_ar'] ?? a['name_en'],
       'debit': '1000',
       'credit': '500',
-      'net_debit': '500',
-      'net_credit': '0',
     }).toList();
   }
 

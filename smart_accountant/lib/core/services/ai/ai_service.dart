@@ -1,185 +1,176 @@
+import 'package:get_it/get_it.dart';
 import '../../errors/result.dart';
+import '../../engine/accounting/accounting_engine.dart';
 import '../../engine/accounting/transaction_context.dart';
+import '../../engine/accounting/transaction_result.dart';
 import '../operations/operation_service.dart';
 import '../reports/report_service.dart';
+import 'agent/conversation_memory.dart';
+import 'agent/intent_analyzer.dart';
+import 'agent/knowledge_base.dart';
+import 'agent/workflow_generator.dart';
 
 class AiService {
   final OperationService _operationService;
   final ReportService _reportService;
+  final ConversationMemory _memory;
+  final IntentAnalyzer _analyzer;
+  final KnowledgeBase _knowledgeBase;
+  final WorkflowGenerator _workflow;
 
-  AiService(this._operationService, this._reportService);
+  AiService(this._operationService, this._reportService)
+      : _memory = ConversationMemory(),
+        _analyzer = IntentAnalyzer(),
+        _knowledgeBase = KnowledgeBase(),
+        _workflow = WorkflowGenerator();
 
-  /// معالجة أمر نصي وتحويله إلى عملية محاسبية
+  List<String> get suggestions => _knowledgeBase.suggestions;
+  ConversationMemory get memory => _memory;
+  List<ConversationMessage> get history => _memory.history;
+
   Future<String> processCommand(String command) async {
-    final lower = command.toLowerCase().trim();
+    _memory.addUserMessage(command);
 
-    // كشف أوامر البيع
-    if (lower.contains('بع') || lower.contains('بيع') || lower.contains('فاتورة بيع')) {
-      return await _createSale(command);
+    // 1. تحقق من قاعدة المعرفة أولاً
+    final faqAnswer = _knowledgeBase.findAnswer(command);
+    if (faqAnswer != null) {
+      _memory.addAssistantMessage(faqAnswer);
+      return faqAnswer;
     }
 
-    // كشف أوامر الشراء
-    if (lower.contains('اشتر') || lower.contains('شراء') || lower.contains('فاتورة شراء')) {
-      return await _createPurchase(command);
+    // 2. تحليل النية
+    final intent = _analyzer.analyze(command);
+
+    // 3. إذا لم يفهم، اطلب توضيحاً
+    if (intent.intent == UserIntent.unknown || intent.followUpQuestion != null) {
+      final reply = intent.followUpQuestion ?? 'عذراً، لم أفهم. جرب: ${_knowledgeBase.suggestions.first}';
+      _memory.addAssistantMessage(reply);
+      return reply;
     }
 
-    // كشف أوامر القبض
-    if (lower.contains('قبض') || lower.contains('استلام') || lower.contains('سند قبض')) {
-      return await _createReceipt(command);
+    // 4. توليد خطة العمل
+    final workflow = _workflow.generate(intent);
+
+    // 5. تنفيذ العملية حسب النية
+    String reply;
+    switch (intent.intent) {
+      case UserIntent.createSale:
+        reply = await _createSale(intent);
+        break;
+      case UserIntent.createReceipt:
+        reply = await _createReceipt(intent);
+        break;
+      case UserIntent.createPayment:
+        reply = await _createPayment(intent);
+        break;
+      case UserIntent.queryBalance:
+        reply = await _queryBalance(intent);
+        break;
+      case UserIntent.queryReport:
+        reply = await _showReport(intent);
+        break;
+      case UserIntent.help:
+        reply = 'يمكنني مساعدتك في:\n'
+            '📝 إنشاء الفواتير والسندات\n'
+            '📊 عرض التقارير والأرباح\n'
+            '🔍 الاستعلام عن الأرصدة\n'
+            '📤 إرسال المستندات\n'
+            '❓ الإجابة عن أسئلة الاستخدام\n\n'
+            'جرب: "${_knowledgeBase.suggestions.first}"';
+        break;
+      default:
+        reply = 'جاري تطوير هذه الميزة. يمكنك تجربة: ${_knowledgeBase.suggestions.first}';
     }
 
-    // كشف أوامر الصرف
-    if (lower.contains('صرف') || lower.contains('دفع') || lower.contains('سند صرف')) {
-      return await _createPayment(command);
-    }
-
-    // كشف تحليل الأرباح
-    if (lower.contains('ربح') || lower.contains('أرباح') || lower.contains('دخل')) {
-      return await _analyzeProfit();
-    }
-
-    // كشف أخطاء محتملة
-    if (lower.contains('خطأ') || lower.contains('مشكلة') || lower.contains('اكتشف')) {
-      return await _detectErrors();
-    }
-
-    // اقتراح قيد
-    if (lower.contains('اقترح') || lower.contains('قيد') || lower.contains('تسجيل')) {
-      return _suggestEntry();
-    }
-
-    return 'عذراً، لم أستطع فهم الأمر. يمكنك تجربة: بيع، شراء، قبض، صرف، أرباح، أو اكتشاف أخطاء.';
+    _memory.addAssistantMessage(reply);
+    return reply;
   }
 
-  /// إنشاء فاتورة بيع انطلاقاً من الأمر النصي
-  Future<String> _createSale(String command) async {
-    // استخراج المبلغ من النص (بسيط)
-    final amount = _extractAmount(command) ?? 1000.0;
+  Future<String> _createSale(DetectedIntent intent) async {
+    final amount = (intent.entities['amount'] as double?) ?? 1000.0;
     final items = [
-      JournalItem(accountId: 1, debit: amount),   // العميل مدين
-      JournalItem(accountId: 41, credit: amount), // إيرادات المبيعات دائن
+      JournalItem(accountId: 1, debit: amount),
+      JournalItem(accountId: 41, credit: amount),
     ];
 
     final result = await _operationService.execute(
       type: TransactionType.sale,
       date: DateTime.now(),
       items: items,
-      reference: 'فاتورة بيع (ذكاء اصطناعي)',
+      reference: 'فاتورة بيع (مساعد ذكي)',
     );
 
     switch (result) {
       case Success(data: final res):
-        return '✅ تم إنشاء فاتورة البيع برقم ${res.entryNumber}\nالمبلغ: $amount';
+        return '✅ تم إنشاء فاتورة البيع برقم ${res.entryNumber}\n'
+            'المبلغ: ${amount.toStringAsFixed(0)} ريال\n'
+            'الحالة: ${res.status.name}';
       case Failure(exception: final e):
         return '❌ فشل إنشاء الفاتورة: ${e.message}';
     }
   }
 
-  /// إنشاء فاتورة شراء
-  Future<String> _createPurchase(String command) async {
-    final amount = _extractAmount(command) ?? 500.0;
+  Future<String> _createReceipt(DetectedIntent intent) async {
+    final amount = (intent.entities['amount'] as double?) ?? 500.0;
     final items = [
-      JournalItem(accountId: 113, debit: amount), // المخزون مدين
-      JournalItem(accountId: 2, credit: amount),  // المورد/النقدية دائن
-    ];
-
-    final result = await _operationService.execute(
-      type: TransactionType.purchase,
-      date: DateTime.now(),
-      items: items,
-      reference: 'فاتورة شراء (ذكاء اصطناعي)',
-    );
-
-    switch (result) {
-      case Success(data: final res):
-        return '✅ تم إنشاء فاتورة الشراء برقم ${res.entryNumber}\nالمبلغ: $amount';
-      case Failure(exception: final e):
-        return '❌ فشل إنشاء الفاتورة: ${e.message}';
-    }
-  }
-
-  /// إنشاء سند قبض
-  Future<String> _createReceipt(String command) async {
-    final amount = _extractAmount(command) ?? 500.0;
-    final items = [
-      JournalItem(accountId: 112, debit: amount), // الصندوق مدين
-      JournalItem(accountId: 1, credit: amount),  // العميل دائن (مبسط)
+      JournalItem(accountId: 112, debit: amount),
+      JournalItem(accountId: 1, credit: amount),
     ];
 
     final result = await _operationService.execute(
       type: TransactionType.receipt,
       date: DateTime.now(),
       items: items,
-      reference: 'سند قبض (ذكاء اصطناعي)',
+      reference: 'سند قبض (مساعد ذكي)',
     );
 
     switch (result) {
       case Success(data: final res):
-        return '✅ تم إنشاء سند القبض برقم ${res.entryNumber}\nالمبلغ: $amount';
+        return '✅ تم إنشاء سند القبض برقم ${res.entryNumber}\nالمبلغ: ${amount.toStringAsFixed(0)} ريال';
       case Failure(exception: final e):
         return '❌ فشل إنشاء سند القبض: ${e.message}';
     }
   }
 
-  /// إنشاء سند صرف
-  Future<String> _createPayment(String command) async {
-    final amount = _extractAmount(command) ?? 300.0;
+  Future<String> _createPayment(DetectedIntent intent) async {
+    final amount = (intent.entities['amount'] as double?) ?? 300.0;
     final items = [
-      JournalItem(accountId: 2, debit: amount),   // مصروف/مورد مدين
-      JournalItem(accountId: 112, credit: amount), // الصندوق دائن
+      JournalItem(accountId: 2, debit: amount),
+      JournalItem(accountId: 112, credit: amount),
     ];
 
     final result = await _operationService.execute(
       type: TransactionType.payment,
       date: DateTime.now(),
       items: items,
-      reference: 'سند صرف (ذكاء اصطناعي)',
+      reference: 'سند صرف (مساعد ذكي)',
     );
 
     switch (result) {
       case Success(data: final res):
-        return '✅ تم إنشاء سند الصرف برقم ${res.entryNumber}\nالمبلغ: $amount';
+        return '✅ تم إنشاء سند الصرف برقم ${res.entryNumber}\nالمبلغ: ${amount.toStringAsFixed(0)} ريال';
       case Failure(exception: final e):
         return '❌ فشل إنشاء سند الصرف: ${e.message}';
     }
   }
 
-  /// تحليل الأرباح
-  Future<String> _analyzeProfit() async {
+  Future<String> _queryBalance(DetectedIntent intent) async {
+    final report = await _reportService.balanceSheet(DateTime.now());
+    return '📊 الملخص المالي:\n'
+        '💰 الأصول: ${report['assets']} ريال\n'
+        '📋 الخصوم: ${report['liabilities']} ريال\n'
+        '📈 حقوق الملكية: ${report['equity']} ريال';
+  }
+
+  Future<String> _showReport(DetectedIntent intent) async {
     final report = await _reportService.profitReport(
-      from: DateTime(2026, 1, 1),
-      to: DateTime(2026, 12, 31),
+      from: DateTime(DateTime.now().year, 1, 1),
+      to: DateTime.now(),
     );
-    return '📊 تحليل الأرباح:\n'
-        'إجمالي المبيعات: ${report['total_sales']}\n'
-        'إجمالي المشتريات: ${report['total_purchases']}\n'
-        'مجمل الربح: ${report['gross_profit']}\n'
-        'المصروفات: ${report['expenses']}\n'
-        'صافي الربح: ${report['net_profit']}';
-  }
-
-  /// اكتشاف أخطاء محتملة (محاكاة)
-  Future<String> _detectErrors() async {
-    // في المستقبل: مقارنة الأرصدة الفعلية مع المتوقعة
-    return '🔍 فحص سريع:\n'
-        '- جميع القيود متوازنة ✅\n'
-        '- لا توجد أرصدة سالبة غير مبررة ✅\n'
-        '- المخزون الفعلي يطابق الدفتري ✅';
-  }
-
-  /// اقتراح قيد يومية بسيط
-  String _suggestEntry() {
-    return '💡 يمكنك تجربة:\n'
-        'من حساب الصندوق (مدين) إلى حساب المبيعات (دائن)\n'
-        'أو قل: "بيع بمبلغ 500" وسأقوم بإنشاء الفاتورة تلقائياً.';
-  }
-
-  double? _extractAmount(String text) {
-    final regex = RegExp(r'(\d+(?:\.\d+)?)');
-    final match = regex.firstMatch(text);
-    if (match != null) {
-      return double.tryParse(match.group(1)!);
-    }
-    return null;
+    return '📊 تقرير الأرباح:\n'
+        '🟢 المبيعات: ${report['total_sales']} ريال\n'
+        '🔴 المشتريات: ${report['total_purchases']} ريال\n'
+        '💎 مجمل الربح: ${report['gross_profit']} ريال\n'
+        '⭐ صافي الربح: ${report['net_profit']} ريال';
   }
 }

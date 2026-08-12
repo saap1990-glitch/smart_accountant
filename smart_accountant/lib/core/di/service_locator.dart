@@ -22,6 +22,9 @@ import '../services/accounting/accounting_link_service.dart';
 import '../services/templates/activity_templates.dart';
 import '../database/app_database.dart';
 import '../auth/auth_service.dart';
+import '../services/notifications/notification_service.dart';
+import '../services/targets/target_service.dart';
+import '../services/pdf/pdf_service.dart';
 
 final sl = GetIt.instance;
 
@@ -55,6 +58,9 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<EncryptionService>(() => EncryptionService());
   sl.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
   sl.registerLazySingleton<AuthService>(() => AuthService());
+  sl.registerLazySingleton<NotificationService>(() => NotificationService());
+  sl.registerLazySingleton<TargetService>(() => TargetService());
+  sl.registerLazySingleton<PdfService>(() => PdfService());
   sl.registerLazySingleton<ActivityTemplates>(() => ActivityTemplates(sl<AccountingLinkService>(), sl<MasterDataService>()));
 }
 
