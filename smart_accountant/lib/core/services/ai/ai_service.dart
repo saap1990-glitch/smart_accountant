@@ -1,8 +1,5 @@
-import 'package:get_it/get_it.dart';
 import '../../errors/result.dart';
-import '../../engine/accounting/accounting_engine.dart';
 import '../../engine/accounting/transaction_context.dart';
-import '../../engine/accounting/transaction_result.dart';
 import '../operations/operation_service.dart';
 import '../reports/report_service.dart';
 

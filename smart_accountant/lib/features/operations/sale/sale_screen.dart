@@ -6,14 +6,17 @@ class SaleScreen extends StatelessWidget {
   const SaleScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    return SmartOperationForm(
-      config: const OperationConfig(
+    return const SmartOperationForm(
+      config: OperationConfig(
         title: 'فاتورة بيع',
         transactionType: TransactionType.sale,
         showPaymentType: true,
         showCustomer: true,
         showItems: true,
         showCashSource: true,
+        showWarehouse: true,
+        showFreeColumn: true,
+        showPriceColumn: true,
       ),
     );
   }

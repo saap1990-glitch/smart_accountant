@@ -6,11 +6,10 @@ class JournalScreen extends StatelessWidget {
   const JournalScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    return SmartOperationForm(
-      config: const OperationConfig(
+    return const SmartOperationForm(
+      config: OperationConfig(
         title: 'قيد يومية',
         transactionType: TransactionType.journal,
-        amountLabel: 'المبلغ',
         showMultiLines: true,
       ),
     );

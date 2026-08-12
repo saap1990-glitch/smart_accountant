@@ -6,13 +6,16 @@ class SaleReturnScreen extends StatelessWidget {
   const SaleReturnScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    return SmartOperationForm(
-      config: const OperationConfig(
+    return const SmartOperationForm(
+      config: OperationConfig(
         title: 'مرتجع بيع',
         transactionType: TransactionType.sale,
         showCustomer: true,
         showItems: true,
+        showWarehouse: true,
         isReturn: true,
+        showFreeColumn: true,
+        showPriceColumn: true,
       ),
     );
   }

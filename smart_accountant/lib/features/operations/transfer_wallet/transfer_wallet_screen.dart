@@ -10,7 +10,6 @@ class TransferWalletScreen extends StatelessWidget {
       config: OperationConfig(
         title: 'تحويل بين المحافظ',
         transactionType: TransactionType.transfer,
-        amountLabel: 'المبلغ المحول',
         showCashSource: true,
         showDestination: true,
       ),

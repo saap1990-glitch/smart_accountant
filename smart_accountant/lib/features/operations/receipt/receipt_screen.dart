@@ -6,11 +6,10 @@ class ReceiptScreen extends StatelessWidget {
   const ReceiptScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    return SmartOperationForm(
-      config: const OperationConfig(
+    return const SmartOperationForm(
+      config: OperationConfig(
         title: 'سند قبض',
         transactionType: TransactionType.receipt,
-        amountLabel: 'المبلغ المقبوض',
         showPaymentType: true,
         showCustomer: true,
         showCashSource: true,

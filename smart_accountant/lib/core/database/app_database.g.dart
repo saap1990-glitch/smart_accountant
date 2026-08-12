@@ -5289,6 +5289,9 @@ class $InventoryTransactionsTable extends InventoryTransactions
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES items (id)',
+    ),
   );
   static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
@@ -6287,6 +6290,818 @@ class CompanyCompanion extends UpdateCompanion<CompanyData> {
   }
 }
 
+class $AccountLinksTable extends AccountLinks
+    with TableInfo<$AccountLinksTable, AccountLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AccountLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _moduleMeta = const VerificationMeta('module');
+  @override
+  late final GeneratedColumn<String> module = GeneratedColumn<String>(
+    'module',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityIdMeta = const VerificationMeta(
+    'entityId',
+  );
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+    'entity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id)',
+    ),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    module,
+    entityType,
+    entityId,
+    accountId,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'account_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AccountLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('module')) {
+      context.handle(
+        _moduleMeta,
+        module.isAcceptableOrUnknown(data['module']!, _moduleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_moduleMeta);
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(
+        _entityIdMeta,
+        entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AccountLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AccountLink(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      module: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}module'],
+      )!,
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      entityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AccountLinksTable createAlias(String alias) {
+    return $AccountLinksTable(attachedDatabase, alias);
+  }
+}
+
+class AccountLink extends DataClass implements Insertable<AccountLink> {
+  final int id;
+  final String module;
+  final String entityType;
+  final String entityId;
+  final int accountId;
+  final DateTime createdAt;
+  const AccountLink({
+    required this.id,
+    required this.module,
+    required this.entityType,
+    required this.entityId,
+    required this.accountId,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['module'] = Variable<String>(module);
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<String>(entityId);
+    map['account_id'] = Variable<int>(accountId);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  AccountLinksCompanion toCompanion(bool nullToAbsent) {
+    return AccountLinksCompanion(
+      id: Value(id),
+      module: Value(module),
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      accountId: Value(accountId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory AccountLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AccountLink(
+      id: serializer.fromJson<int>(json['id']),
+      module: serializer.fromJson<String>(json['module']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      accountId: serializer.fromJson<int>(json['accountId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'module': serializer.toJson<String>(module),
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<String>(entityId),
+      'accountId': serializer.toJson<int>(accountId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  AccountLink copyWith({
+    int? id,
+    String? module,
+    String? entityType,
+    String? entityId,
+    int? accountId,
+    DateTime? createdAt,
+  }) => AccountLink(
+    id: id ?? this.id,
+    module: module ?? this.module,
+    entityType: entityType ?? this.entityType,
+    entityId: entityId ?? this.entityId,
+    accountId: accountId ?? this.accountId,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  AccountLink copyWithCompanion(AccountLinksCompanion data) {
+    return AccountLink(
+      id: data.id.present ? data.id.value : this.id,
+      module: data.module.present ? data.module.value : this.module,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AccountLink(')
+          ..write('id: $id, ')
+          ..write('module: $module, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('accountId: $accountId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, module, entityType, entityId, accountId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AccountLink &&
+          other.id == this.id &&
+          other.module == this.module &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          other.accountId == this.accountId &&
+          other.createdAt == this.createdAt);
+}
+
+class AccountLinksCompanion extends UpdateCompanion<AccountLink> {
+  final Value<int> id;
+  final Value<String> module;
+  final Value<String> entityType;
+  final Value<String> entityId;
+  final Value<int> accountId;
+  final Value<DateTime> createdAt;
+  const AccountLinksCompanion({
+    this.id = const Value.absent(),
+    this.module = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  AccountLinksCompanion.insert({
+    this.id = const Value.absent(),
+    required String module,
+    required String entityType,
+    required String entityId,
+    required int accountId,
+    this.createdAt = const Value.absent(),
+  }) : module = Value(module),
+       entityType = Value(entityType),
+       entityId = Value(entityId),
+       accountId = Value(accountId);
+  static Insertable<AccountLink> custom({
+    Expression<int>? id,
+    Expression<String>? module,
+    Expression<String>? entityType,
+    Expression<String>? entityId,
+    Expression<int>? accountId,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (module != null) 'module': module,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (accountId != null) 'account_id': accountId,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  AccountLinksCompanion copyWith({
+    Value<int>? id,
+    Value<String>? module,
+    Value<String>? entityType,
+    Value<String>? entityId,
+    Value<int>? accountId,
+    Value<DateTime>? createdAt,
+  }) {
+    return AccountLinksCompanion(
+      id: id ?? this.id,
+      module: module ?? this.module,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      accountId: accountId ?? this.accountId,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (module.present) {
+      map['module'] = Variable<String>(module.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AccountLinksCompanion(')
+          ..write('id: $id, ')
+          ..write('module: $module, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('accountId: $accountId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SystemAccountsTable extends SystemAccounts
+    with TableInfo<$SystemAccountsTable, SystemAccount> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SystemAccountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _systemCodeMeta = const VerificationMeta(
+    'systemCode',
+  );
+  @override
+  late final GeneratedColumn<String> systemCode = GeneratedColumn<String>(
+    'system_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id)',
+    ),
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    systemCode,
+    accountId,
+    description,
+    isActive,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'system_accounts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SystemAccount> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('system_code')) {
+      context.handle(
+        _systemCodeMeta,
+        systemCode.isAcceptableOrUnknown(data['system_code']!, _systemCodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_systemCodeMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SystemAccount map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SystemAccount(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      systemCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}system_code'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SystemAccountsTable createAlias(String alias) {
+    return $SystemAccountsTable(attachedDatabase, alias);
+  }
+}
+
+class SystemAccount extends DataClass implements Insertable<SystemAccount> {
+  final int id;
+  final String systemCode;
+  final int accountId;
+  final String? description;
+  final bool isActive;
+  final DateTime createdAt;
+  const SystemAccount({
+    required this.id,
+    required this.systemCode,
+    required this.accountId,
+    this.description,
+    required this.isActive,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['system_code'] = Variable<String>(systemCode);
+    map['account_id'] = Variable<int>(accountId);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['is_active'] = Variable<bool>(isActive);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  SystemAccountsCompanion toCompanion(bool nullToAbsent) {
+    return SystemAccountsCompanion(
+      id: Value(id),
+      systemCode: Value(systemCode),
+      accountId: Value(accountId),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      isActive: Value(isActive),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory SystemAccount.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SystemAccount(
+      id: serializer.fromJson<int>(json['id']),
+      systemCode: serializer.fromJson<String>(json['systemCode']),
+      accountId: serializer.fromJson<int>(json['accountId']),
+      description: serializer.fromJson<String?>(json['description']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'systemCode': serializer.toJson<String>(systemCode),
+      'accountId': serializer.toJson<int>(accountId),
+      'description': serializer.toJson<String?>(description),
+      'isActive': serializer.toJson<bool>(isActive),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  SystemAccount copyWith({
+    int? id,
+    String? systemCode,
+    int? accountId,
+    Value<String?> description = const Value.absent(),
+    bool? isActive,
+    DateTime? createdAt,
+  }) => SystemAccount(
+    id: id ?? this.id,
+    systemCode: systemCode ?? this.systemCode,
+    accountId: accountId ?? this.accountId,
+    description: description.present ? description.value : this.description,
+    isActive: isActive ?? this.isActive,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  SystemAccount copyWithCompanion(SystemAccountsCompanion data) {
+    return SystemAccount(
+      id: data.id.present ? data.id.value : this.id,
+      systemCode: data.systemCode.present
+          ? data.systemCode.value
+          : this.systemCode,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SystemAccount(')
+          ..write('id: $id, ')
+          ..write('systemCode: $systemCode, ')
+          ..write('accountId: $accountId, ')
+          ..write('description: $description, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, systemCode, accountId, description, isActive, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SystemAccount &&
+          other.id == this.id &&
+          other.systemCode == this.systemCode &&
+          other.accountId == this.accountId &&
+          other.description == this.description &&
+          other.isActive == this.isActive &&
+          other.createdAt == this.createdAt);
+}
+
+class SystemAccountsCompanion extends UpdateCompanion<SystemAccount> {
+  final Value<int> id;
+  final Value<String> systemCode;
+  final Value<int> accountId;
+  final Value<String?> description;
+  final Value<bool> isActive;
+  final Value<DateTime> createdAt;
+  const SystemAccountsCompanion({
+    this.id = const Value.absent(),
+    this.systemCode = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.description = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  SystemAccountsCompanion.insert({
+    this.id = const Value.absent(),
+    required String systemCode,
+    required int accountId,
+    this.description = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : systemCode = Value(systemCode),
+       accountId = Value(accountId);
+  static Insertable<SystemAccount> custom({
+    Expression<int>? id,
+    Expression<String>? systemCode,
+    Expression<int>? accountId,
+    Expression<String>? description,
+    Expression<bool>? isActive,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (systemCode != null) 'system_code': systemCode,
+      if (accountId != null) 'account_id': accountId,
+      if (description != null) 'description': description,
+      if (isActive != null) 'is_active': isActive,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  SystemAccountsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? systemCode,
+    Value<int>? accountId,
+    Value<String?>? description,
+    Value<bool>? isActive,
+    Value<DateTime>? createdAt,
+  }) {
+    return SystemAccountsCompanion(
+      id: id ?? this.id,
+      systemCode: systemCode ?? this.systemCode,
+      accountId: accountId ?? this.accountId,
+      description: description ?? this.description,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (systemCode.present) {
+      map['system_code'] = Variable<String>(systemCode.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SystemAccountsCompanion(')
+          ..write('id: $id, ')
+          ..write('systemCode: $systemCode, ')
+          ..write('accountId: $accountId, ')
+          ..write('description: $description, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6309,6 +7124,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $InventoryTransactionsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
   late final $CompanyTable company = $CompanyTable(this);
+  late final $AccountLinksTable accountLinks = $AccountLinksTable(this);
+  late final $SystemAccountsTable systemAccounts = $SystemAccountsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6331,6 +7148,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     inventoryTransactions,
     settings,
     company,
+    accountLinks,
+    systemAccounts,
   ];
 }
 
@@ -6422,6 +7241,42 @@ final class $$AccountsTableReferences
     ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_ledgerRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$AccountLinksTable, List<AccountLink>>
+  _accountLinksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.accountLinks,
+    aliasName: 'accounts__id__account_links__account_id',
+  );
+
+  $$AccountLinksTableProcessedTableManager get accountLinksRefs {
+    final manager = $$AccountLinksTableTableManager(
+      $_db,
+      $_db.accountLinks,
+    ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_accountLinksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$SystemAccountsTable, List<SystemAccount>>
+  _systemAccountsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.systemAccounts,
+    aliasName: 'accounts__id__system_accounts__account_id',
+  );
+
+  $$SystemAccountsTableProcessedTableManager get systemAccountsRefs {
+    final manager = $$SystemAccountsTableTableManager(
+      $_db,
+      $_db.systemAccounts,
+    ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_systemAccountsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -6566,6 +7421,56 @@ class $$AccountsTableFilterComposer
           }) => $$LedgerTableFilterComposer(
             $db: $db,
             $table: $db.ledger,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> accountLinksRefs(
+    Expression<bool> Function($$AccountLinksTableFilterComposer f) f,
+  ) {
+    final $$AccountLinksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.accountLinks,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountLinksTableFilterComposer(
+            $db: $db,
+            $table: $db.accountLinks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> systemAccountsRefs(
+    Expression<bool> Function($$SystemAccountsTableFilterComposer f) f,
+  ) {
+    final $$SystemAccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.systemAccounts,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SystemAccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.systemAccounts,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6798,6 +7703,56 @@ class $$AccountsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> accountLinksRefs<T extends Object>(
+    Expression<T> Function($$AccountLinksTableAnnotationComposer a) f,
+  ) {
+    final $$AccountLinksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.accountLinks,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountLinksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accountLinks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> systemAccountsRefs<T extends Object>(
+    Expression<T> Function($$SystemAccountsTableAnnotationComposer a) f,
+  ) {
+    final $$SystemAccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.systemAccounts,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SystemAccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.systemAccounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AccountsTableTableManager
@@ -6817,6 +7772,8 @@ class $$AccountsTableTableManager
             bool parentId,
             bool journalLinesRefs,
             bool ledgerRefs,
+            bool accountLinksRefs,
+            bool systemAccountsRefs,
           })
         > {
   $$AccountsTableTableManager(_$AppDatabase db, $AccountsTable table)
@@ -6907,12 +7864,16 @@ class $$AccountsTableTableManager
                 parentId = false,
                 journalLinesRefs = false,
                 ledgerRefs = false,
+                accountLinksRefs = false,
+                systemAccountsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (journalLinesRefs) db.journalLines,
                     if (ledgerRefs) db.ledger,
+                    if (accountLinksRefs) db.accountLinks,
+                    if (systemAccountsRefs) db.systemAccounts,
                   ],
                   addJoins:
                       <
@@ -6990,6 +7951,48 @@ class $$AccountsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (accountLinksRefs)
+                        await $_getPrefetchedData<
+                          Account,
+                          $AccountsTable,
+                          AccountLink
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AccountsTableReferences
+                              ._accountLinksRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).accountLinksRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.accountId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (systemAccountsRefs)
+                        await $_getPrefetchedData<
+                          Account,
+                          $AccountsTable,
+                          SystemAccount
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AccountsTableReferences
+                              ._systemAccountsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).systemAccountsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.accountId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -7014,6 +8017,8 @@ typedef $$AccountsTableProcessedTableManager =
         bool parentId,
         bool journalLinesRefs,
         bool ledgerRefs,
+        bool accountLinksRefs,
+        bool systemAccountsRefs,
       })
     >;
 typedef $$CustomersTableCreateCompanionBuilder =
@@ -7371,6 +8376,36 @@ typedef $$ItemsTableUpdateCompanionBuilder =
       Value<String> price,
     });
 
+final class $$ItemsTableReferences
+    extends BaseReferences<_$AppDatabase, $ItemsTable, Item> {
+  $$ItemsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<
+    $InventoryTransactionsTable,
+    List<InventoryTransaction>
+  >
+  _inventoryTransactionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.inventoryTransactions,
+        aliasName: 'items__id__inventory_transactions__item_id',
+      );
+
+  $$InventoryTransactionsTableProcessedTableManager
+  get inventoryTransactionsRefs {
+    final manager = $$InventoryTransactionsTableTableManager(
+      $_db,
+      $_db.inventoryTransactions,
+    ).filter((f) => f.itemId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _inventoryTransactionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$ItemsTableFilterComposer extends Composer<_$AppDatabase, $ItemsTable> {
   $$ItemsTableFilterComposer({
     required super.$db,
@@ -7403,6 +8438,32 @@ class $$ItemsTableFilterComposer extends Composer<_$AppDatabase, $ItemsTable> {
     column: $table.price,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> inventoryTransactionsRefs(
+    Expression<bool> Function($$InventoryTransactionsTableFilterComposer f) f,
+  ) {
+    final $$InventoryTransactionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.inventoryTransactions,
+          getReferencedColumn: (t) => t.itemId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$InventoryTransactionsTableFilterComposer(
+                $db: $db,
+                $table: $db.inventoryTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ItemsTableOrderingComposer
@@ -7463,6 +8524,32 @@ class $$ItemsTableAnnotationComposer
 
   GeneratedColumn<String> get price =>
       $composableBuilder(column: $table.price, builder: (column) => column);
+
+  Expression<T> inventoryTransactionsRefs<T extends Object>(
+    Expression<T> Function($$InventoryTransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$InventoryTransactionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.inventoryTransactions,
+          getReferencedColumn: (t) => t.itemId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$InventoryTransactionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.inventoryTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ItemsTableTableManager
@@ -7476,9 +8563,9 @@ class $$ItemsTableTableManager
           $$ItemsTableAnnotationComposer,
           $$ItemsTableCreateCompanionBuilder,
           $$ItemsTableUpdateCompanionBuilder,
-          (Item, BaseReferences<_$AppDatabase, $ItemsTable, Item>),
+          (Item, $$ItemsTableReferences),
           Item,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool inventoryTransactionsRefs})
         > {
   $$ItemsTableTableManager(_$AppDatabase db, $ItemsTable table)
     : super(
@@ -7520,9 +8607,42 @@ class $$ItemsTableTableManager
                 price: price,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) =>
+                    (e.readTable(table), $$ItemsTableReferences(db, table, e)),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({inventoryTransactionsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (inventoryTransactionsRefs) db.inventoryTransactions,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (inventoryTransactionsRefs)
+                    await $_getPrefetchedData<
+                      Item,
+                      $ItemsTable,
+                      InventoryTransaction
+                    >(
+                      currentTable: table,
+                      referencedTable: $$ItemsTableReferences
+                          ._inventoryTransactionsRefsTable(db),
+                      managerFromTypedResult: (p0) => $$ItemsTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).inventoryTransactionsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.itemId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -7537,9 +8657,9 @@ typedef $$ItemsTableProcessedTableManager =
       $$ItemsTableAnnotationComposer,
       $$ItemsTableCreateCompanionBuilder,
       $$ItemsTableUpdateCompanionBuilder,
-      (Item, BaseReferences<_$AppDatabase, $ItemsTable, Item>),
+      (Item, $$ItemsTableReferences),
       Item,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool inventoryTransactionsRefs})
     >;
 typedef $$UnitsTableCreateCompanionBuilder =
     UnitsCompanion Function({
@@ -10289,6 +11409,37 @@ typedef $$InventoryTransactionsTableUpdateCompanionBuilder =
       Value<DateTime> date,
     });
 
+final class $$InventoryTransactionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $InventoryTransactionsTable,
+          InventoryTransaction
+        > {
+  $$InventoryTransactionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ItemsTable _itemIdTable(_$AppDatabase db) =>
+      db.items.createAlias('inventory_transactions__item_id__items__id');
+
+  $$ItemsTableProcessedTableManager get itemId {
+    final $_column = $_itemColumn<int>('item_id')!;
+
+    final manager = $$ItemsTableTableManager(
+      $_db,
+      $_db.items,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_itemIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
 class $$InventoryTransactionsTableFilterComposer
     extends Composer<_$AppDatabase, $InventoryTransactionsTable> {
   $$InventoryTransactionsTableFilterComposer({
@@ -10300,11 +11451,6 @@ class $$InventoryTransactionsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get itemId => $composableBuilder(
-    column: $table.itemId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10332,6 +11478,29 @@ class $$InventoryTransactionsTableFilterComposer
     column: $table.date,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$ItemsTableFilterComposer get itemId {
+    final $$ItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.itemId,
+      referencedTable: $db.items,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.items,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$InventoryTransactionsTableOrderingComposer
@@ -10345,11 +11514,6 @@ class $$InventoryTransactionsTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
     column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get itemId => $composableBuilder(
-    column: $table.itemId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -10377,6 +11541,29 @@ class $$InventoryTransactionsTableOrderingComposer
     column: $table.date,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$ItemsTableOrderingComposer get itemId {
+    final $$ItemsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.itemId,
+      referencedTable: $db.items,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ItemsTableOrderingComposer(
+            $db: $db,
+            $table: $db.items,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$InventoryTransactionsTableAnnotationComposer
@@ -10390,9 +11577,6 @@ class $$InventoryTransactionsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<int> get itemId =>
-      $composableBuilder(column: $table.itemId, builder: (column) => column);
 
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
@@ -10408,6 +11592,29 @@ class $$InventoryTransactionsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
+
+  $$ItemsTableAnnotationComposer get itemId {
+    final $$ItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.itemId,
+      referencedTable: $db.items,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.items,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$InventoryTransactionsTableTableManager
@@ -10421,16 +11628,9 @@ class $$InventoryTransactionsTableTableManager
           $$InventoryTransactionsTableAnnotationComposer,
           $$InventoryTransactionsTableCreateCompanionBuilder,
           $$InventoryTransactionsTableUpdateCompanionBuilder,
-          (
-            InventoryTransaction,
-            BaseReferences<
-              _$AppDatabase,
-              $InventoryTransactionsTable,
-              InventoryTransaction
-            >,
-          ),
+          (InventoryTransaction, $$InventoryTransactionsTableReferences),
           InventoryTransaction,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool itemId})
         > {
   $$InventoryTransactionsTableTableManager(
     _$AppDatabase db,
@@ -10491,9 +11691,56 @@ class $$InventoryTransactionsTableTableManager
                 date: date,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$InventoryTransactionsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({itemId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (itemId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.itemId,
+                                referencedTable:
+                                    $$InventoryTransactionsTableReferences
+                                        ._itemIdTable(db),
+                                referencedColumn:
+                                    $$InventoryTransactionsTableReferences
+                                        ._itemIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
@@ -10508,16 +11755,9 @@ typedef $$InventoryTransactionsTableProcessedTableManager =
       $$InventoryTransactionsTableAnnotationComposer,
       $$InventoryTransactionsTableCreateCompanionBuilder,
       $$InventoryTransactionsTableUpdateCompanionBuilder,
-      (
-        InventoryTransaction,
-        BaseReferences<
-          _$AppDatabase,
-          $InventoryTransactionsTable,
-          InventoryTransaction
-        >,
-      ),
+      (InventoryTransaction, $$InventoryTransactionsTableReferences),
       InventoryTransaction,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool itemId})
     >;
 typedef $$SettingsTableCreateCompanionBuilder =
     SettingsCompanion Function({
@@ -10852,6 +12092,679 @@ typedef $$CompanyTableProcessedTableManager =
       CompanyData,
       PrefetchHooks Function()
     >;
+typedef $$AccountLinksTableCreateCompanionBuilder =
+    AccountLinksCompanion Function({
+      Value<int> id,
+      required String module,
+      required String entityType,
+      required String entityId,
+      required int accountId,
+      Value<DateTime> createdAt,
+    });
+typedef $$AccountLinksTableUpdateCompanionBuilder =
+    AccountLinksCompanion Function({
+      Value<int> id,
+      Value<String> module,
+      Value<String> entityType,
+      Value<String> entityId,
+      Value<int> accountId,
+      Value<DateTime> createdAt,
+    });
+
+final class $$AccountLinksTableReferences
+    extends BaseReferences<_$AppDatabase, $AccountLinksTable, AccountLink> {
+  $$AccountLinksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $AccountsTable _accountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias('account_links__account_id__accounts__id');
+
+  $$AccountsTableProcessedTableManager get accountId {
+    final $_column = $_itemColumn<int>('account_id')!;
+
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_accountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$AccountLinksTableFilterComposer
+    extends Composer<_$AppDatabase, $AccountLinksTable> {
+  $$AccountLinksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get module => $composableBuilder(
+    column: $table.module,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AccountsTableFilterComposer get accountId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AccountLinksTableOrderingComposer
+    extends Composer<_$AppDatabase, $AccountLinksTable> {
+  $$AccountLinksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get module => $composableBuilder(
+    column: $table.module,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AccountsTableOrderingComposer get accountId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AccountLinksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AccountLinksTable> {
+  $$AccountLinksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get module =>
+      $composableBuilder(column: $table.module, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$AccountsTableAnnotationComposer get accountId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AccountLinksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AccountLinksTable,
+          AccountLink,
+          $$AccountLinksTableFilterComposer,
+          $$AccountLinksTableOrderingComposer,
+          $$AccountLinksTableAnnotationComposer,
+          $$AccountLinksTableCreateCompanionBuilder,
+          $$AccountLinksTableUpdateCompanionBuilder,
+          (AccountLink, $$AccountLinksTableReferences),
+          AccountLink,
+          PrefetchHooks Function({bool accountId})
+        > {
+  $$AccountLinksTableTableManager(_$AppDatabase db, $AccountLinksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AccountLinksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AccountLinksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AccountLinksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> module = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<String> entityId = const Value.absent(),
+                Value<int> accountId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AccountLinksCompanion(
+                id: id,
+                module: module,
+                entityType: entityType,
+                entityId: entityId,
+                accountId: accountId,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String module,
+                required String entityType,
+                required String entityId,
+                required int accountId,
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AccountLinksCompanion.insert(
+                id: id,
+                module: module,
+                entityType: entityType,
+                entityId: entityId,
+                accountId: accountId,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AccountLinksTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({accountId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (accountId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.accountId,
+                                referencedTable: $$AccountLinksTableReferences
+                                    ._accountIdTable(db),
+                                referencedColumn: $$AccountLinksTableReferences
+                                    ._accountIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$AccountLinksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AccountLinksTable,
+      AccountLink,
+      $$AccountLinksTableFilterComposer,
+      $$AccountLinksTableOrderingComposer,
+      $$AccountLinksTableAnnotationComposer,
+      $$AccountLinksTableCreateCompanionBuilder,
+      $$AccountLinksTableUpdateCompanionBuilder,
+      (AccountLink, $$AccountLinksTableReferences),
+      AccountLink,
+      PrefetchHooks Function({bool accountId})
+    >;
+typedef $$SystemAccountsTableCreateCompanionBuilder =
+    SystemAccountsCompanion Function({
+      Value<int> id,
+      required String systemCode,
+      required int accountId,
+      Value<String?> description,
+      Value<bool> isActive,
+      Value<DateTime> createdAt,
+    });
+typedef $$SystemAccountsTableUpdateCompanionBuilder =
+    SystemAccountsCompanion Function({
+      Value<int> id,
+      Value<String> systemCode,
+      Value<int> accountId,
+      Value<String?> description,
+      Value<bool> isActive,
+      Value<DateTime> createdAt,
+    });
+
+final class $$SystemAccountsTableReferences
+    extends BaseReferences<_$AppDatabase, $SystemAccountsTable, SystemAccount> {
+  $$SystemAccountsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AccountsTable _accountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias('system_accounts__account_id__accounts__id');
+
+  $$AccountsTableProcessedTableManager get accountId {
+    final $_column = $_itemColumn<int>('account_id')!;
+
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_accountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SystemAccountsTableFilterComposer
+    extends Composer<_$AppDatabase, $SystemAccountsTable> {
+  $$SystemAccountsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get systemCode => $composableBuilder(
+    column: $table.systemCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AccountsTableFilterComposer get accountId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SystemAccountsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SystemAccountsTable> {
+  $$SystemAccountsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get systemCode => $composableBuilder(
+    column: $table.systemCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AccountsTableOrderingComposer get accountId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SystemAccountsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SystemAccountsTable> {
+  $$SystemAccountsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get systemCode => $composableBuilder(
+    column: $table.systemCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$AccountsTableAnnotationComposer get accountId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SystemAccountsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SystemAccountsTable,
+          SystemAccount,
+          $$SystemAccountsTableFilterComposer,
+          $$SystemAccountsTableOrderingComposer,
+          $$SystemAccountsTableAnnotationComposer,
+          $$SystemAccountsTableCreateCompanionBuilder,
+          $$SystemAccountsTableUpdateCompanionBuilder,
+          (SystemAccount, $$SystemAccountsTableReferences),
+          SystemAccount,
+          PrefetchHooks Function({bool accountId})
+        > {
+  $$SystemAccountsTableTableManager(
+    _$AppDatabase db,
+    $SystemAccountsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SystemAccountsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SystemAccountsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SystemAccountsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> systemCode = const Value.absent(),
+                Value<int> accountId = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => SystemAccountsCompanion(
+                id: id,
+                systemCode: systemCode,
+                accountId: accountId,
+                description: description,
+                isActive: isActive,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String systemCode,
+                required int accountId,
+                Value<String?> description = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => SystemAccountsCompanion.insert(
+                id: id,
+                systemCode: systemCode,
+                accountId: accountId,
+                description: description,
+                isActive: isActive,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SystemAccountsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({accountId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (accountId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.accountId,
+                                referencedTable: $$SystemAccountsTableReferences
+                                    ._accountIdTable(db),
+                                referencedColumn:
+                                    $$SystemAccountsTableReferences
+                                        ._accountIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SystemAccountsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SystemAccountsTable,
+      SystemAccount,
+      $$SystemAccountsTableFilterComposer,
+      $$SystemAccountsTableOrderingComposer,
+      $$SystemAccountsTableAnnotationComposer,
+      $$SystemAccountsTableCreateCompanionBuilder,
+      $$SystemAccountsTableUpdateCompanionBuilder,
+      (SystemAccount, $$SystemAccountsTableReferences),
+      SystemAccount,
+      PrefetchHooks Function({bool accountId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -10890,4 +12803,8 @@ class $AppDatabaseManager {
       $$SettingsTableTableManager(_db, _db.settings);
   $$CompanyTableTableManager get company =>
       $$CompanyTableTableManager(_db, _db.company);
+  $$AccountLinksTableTableManager get accountLinks =>
+      $$AccountLinksTableTableManager(_db, _db.accountLinks);
+  $$SystemAccountsTableTableManager get systemAccounts =>
+      $$SystemAccountsTableTableManager(_db, _db.systemAccounts);
 }

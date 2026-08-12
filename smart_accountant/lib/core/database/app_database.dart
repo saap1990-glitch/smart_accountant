@@ -17,6 +17,8 @@ import 'tables/ledger_table.dart';
 import 'tables/inventory_transactions_table.dart';
 import 'tables/settings_table.dart';
 import 'tables/company_table.dart';
+import 'tables/account_links_table.dart';
+import 'tables/system_accounts_table.dart';
 
 part 'app_database.g.dart';
 
@@ -39,6 +41,8 @@ part 'app_database.g.dart';
     InventoryTransactions,
     Settings,
     Company,
+    AccountLinks,
+    SystemAccounts,
   ],
 )
 class AppDatabase extends _$AppDatabase {

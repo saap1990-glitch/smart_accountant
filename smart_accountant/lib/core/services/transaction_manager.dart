@@ -1,4 +1,3 @@
-import 'package:get_it/get_it.dart';
 import '../errors/result.dart';
 import '../errors/app_exception.dart';
 import '../event_bus/event_bus.dart';

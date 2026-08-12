@@ -18,83 +18,48 @@ import '../services/backup/backup_service.dart';
 import '../services/encryption/encryption_service.dart';
 import '../services/subscription/subscription_service.dart';
 import '../services/inventory/item_movement_service.dart';
-import '../seeds/account_seed_service.dart';
+import '../services/accounting/accounting_link_service.dart';
+import '../services/templates/activity_templates.dart';
 import '../database/app_database.dart';
 
 final sl = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
-  // Database
   final db = AppDatabase();
   sl.registerSingleton<AppDatabase>(db);
 
-  // Core
   sl.registerLazySingleton<AppEventBus>(() => AppEventBus());
   sl.registerLazySingleton<AuditService>(() => _InMemoryAuditService());
-  sl.registerLazySingleton<TransactionManager>(
-    () => TransactionManager(sl<AuditService>(), sl<AppEventBus>()),
-  );
+  sl.registerLazySingleton<TransactionManager>(() => TransactionManager(sl<AuditService>(), sl<AppEventBus>()));
   sl.registerLazySingleton<NumberGenerator>(() => NumberGenerator());
-  sl.registerLazySingleton<TransactionValidator>(
-    () => DefaultTransactionValidator(),
-  );
+  sl.registerLazySingleton<TransactionValidator>(() => DefaultTransactionValidator());
   sl.registerLazySingleton<WorkflowEngine>(() => WorkflowEngine());
   sl.registerLazySingleton<PostingEngine>(() => PostingEngine());
+  sl.registerLazySingleton<AccountingEngine>(() => AccountingEngine(
+    validator: sl<TransactionValidator>(), workflow: sl<WorkflowEngine>(),
+    posting: sl<PostingEngine>(), numberGenerator: sl<NumberGenerator>(),
+    transactionManager: sl<TransactionManager>(), eventBus: sl<AppEventBus>(),
+  ));
 
-  sl.registerLazySingleton<AccountingEngine>(
-    () => AccountingEngine(
-      validator: sl<TransactionValidator>(),
-      workflow: sl<WorkflowEngine>(),
-      posting: sl<PostingEngine>(),
-      numberGenerator: sl<NumberGenerator>(),
-      transactionManager: sl<TransactionManager>(),
-      eventBus: sl<AppEventBus>(),
-    ),
-  );
-
-  // Repositories
+  sl.registerLazySingleton<AccountingLinkService>(() => AccountingLinkService(sl<AppDatabase>(), sl<NumberGenerator>()));
   sl.registerLazySingleton<MasterDataRepository>(() => MasterDataRepository(sl<AppDatabase>()));
-
-  // Services
-  sl.registerLazySingleton<MasterDataService>(
-    () => MasterDataService(sl<MasterDataRepository>()),
-  );
-  sl.registerLazySingleton<AccountSeedService>(
-    () => AccountSeedService(sl<MasterDataService>()),
-  );
-  sl.registerLazySingleton<ItemMovementService>(
-    () => ItemMovementService(sl<MasterDataRepository>()),
-  );
-  sl.registerLazySingleton<OperationService>(
-    () => OperationService(
-      sl<AccountingEngine>(),
-      sl<MasterDataService>(),
-      sl<ItemMovementService>(),
-      sl<MasterDataRepository>(),
-    ),
-  );
-  sl.registerLazySingleton<ReportService>(
-    () => ReportService(sl<MasterDataRepository>(), sl<ItemMovementService>()),
-  );
-  sl.registerLazySingleton<AiService>(
-    () => AiService(sl<OperationService>(), sl<ReportService>()),
-  );
+  sl.registerLazySingleton<MasterDataService>(() => MasterDataService(sl<MasterDataRepository>(), sl<AccountingLinkService>()));
+  sl.registerLazySingleton<ItemMovementService>(() => ItemMovementService(sl<MasterDataRepository>()));
+  sl.registerLazySingleton<OperationService>(() => OperationService(
+    sl<AccountingEngine>(), sl<MasterDataService>(), sl<ItemMovementService>(), sl<MasterDataRepository>(),
+  ));
+  sl.registerLazySingleton<ReportService>(() => ReportService(sl<MasterDataRepository>(), sl<ItemMovementService>()));
+  sl.registerLazySingleton<AiService>(() => AiService(sl<OperationService>(), sl<ReportService>()));
   sl.registerLazySingleton<BackupService>(() => BackupService());
   sl.registerLazySingleton<EncryptionService>(() => EncryptionService());
   sl.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
+  sl.registerLazySingleton<ActivityTemplates>(() => ActivityTemplates(sl<AccountingLinkService>(), sl<MasterDataService>()));
 }
 
 class _InMemoryAuditService extends AuditService {
   final List<AuditEntry> _entries = [];
   final _controller = StreamController<AuditEntry>.broadcast();
-
-  @override
-  Future<void> record(AuditEntry entry) async {
-    _entries.add(entry);
-    _controller.add(entry);
-  }
-  @override
-  Future<List<AuditEntry>> getAll() async => List.unmodifiable(_entries);
-  @override
-  Stream<AuditEntry> watchAll() => _controller.stream;
+  @override Future<void> record(AuditEntry entry) async { _entries.add(entry); _controller.add(entry); }
+  @override Future<List<AuditEntry>> getAll() async => List.unmodifiable(_entries);
+  @override Stream<AuditEntry> watchAll() => _controller.stream;
 }

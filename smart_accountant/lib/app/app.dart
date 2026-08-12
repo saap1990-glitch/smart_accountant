@@ -12,17 +12,14 @@ class SmartAccountantApp extends StatefulWidget {
 }
 
 class _SmartAccountantAppState extends State<SmartAccountantApp> {
-  ThemeMode _themeMode = ThemeMode.light;
-  Locale _locale = const Locale('ar');
+  bool _showSplash = true;
 
-  void toggleTheme() {
-    setState(() {
-      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showSplash = false);
     });
-  }
-
-  void changeLanguage(Locale locale) {
-    setState(() => _locale = locale);
   }
 
   @override
@@ -30,10 +27,10 @@ class _SmartAccountantAppState extends State<SmartAccountantApp> {
     return MaterialApp(
       title: 'المحاسب الذكي',
       debugShowCheckedModeBanner: false,
-      themeMode: _themeMode,
+      themeMode: ThemeMode.light,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      locale: _locale,
+      locale: const Locale('ar'),
       supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [
         AppLocalizationsDelegate(),
@@ -41,7 +38,32 @@ class _SmartAccountantAppState extends State<SmartAccountantApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: MainScreen(),
+      home: _showSplash ? const _SplashContent() : const MainScreen(),
+    );
+  }
+}
+
+class _SplashContent extends StatelessWidget {
+  const _SplashContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFF00796B),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.account_balance, size: 100, color: Colors.white),
+            SizedBox(height: 20),
+            Text('المحاسب الذكي', style: TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold)),
+            SizedBox(height: 10),
+            Text('Enterprise', style: TextStyle(fontSize: 18, color: Colors.white70)),
+            SizedBox(height: 30),
+            CircularProgressIndicator(color: Colors.white),
+          ],
+        ),
+      ),
     );
   }
 }
