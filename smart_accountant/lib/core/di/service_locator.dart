@@ -21,6 +21,7 @@ import '../services/inventory/item_movement_service.dart';
 import '../services/accounting/accounting_link_service.dart';
 import '../services/templates/activity_templates.dart';
 import '../database/app_database.dart';
+import '../auth/auth_service.dart';
 
 final sl = GetIt.instance;
 
@@ -53,6 +54,7 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<BackupService>(() => BackupService());
   sl.registerLazySingleton<EncryptionService>(() => EncryptionService());
   sl.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
+  sl.registerLazySingleton<AuthService>(() => AuthService());
   sl.registerLazySingleton<ActivityTemplates>(() => ActivityTemplates(sl<AccountingLinkService>(), sl<MasterDataService>()));
 }
 
