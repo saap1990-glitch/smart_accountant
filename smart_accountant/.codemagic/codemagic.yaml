@@ -4,6 +4,7 @@ workflows:
     environment:
       flutter: stable
     scripts:
+      - cd smart_accountant
       - flutter pub get
       - flutter build apk --release
     artifacts:
