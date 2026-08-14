@@ -10,13 +10,14 @@ class SaleScreen extends StatelessWidget {
       config: OperationConfig(
         title: 'فاتورة بيع',
         transactionType: TransactionType.sale,
-        showPaymentType: true,
+        showPaymentMode: true,
         showCustomer: true,
-        showItems: true,
         showCashSource: true,
+        showBankSource: true,
         showWarehouse: true,
-        showFreeColumn: true,
-        showPriceColumn: true,
+        showItems: true,
+        showPrice: true,
+        showFreeQty: true,
       ),
     );
   }

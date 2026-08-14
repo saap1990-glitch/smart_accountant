@@ -11,7 +11,7 @@ class TransferBankScreen extends StatelessWidget {
         title: 'تحويل بين البنوك',
         transactionType: TransactionType.transfer,
         showCashSource: true,
-        showDestination: true,
+        showDestinationWarehouse: true,
       ),
     );
   }

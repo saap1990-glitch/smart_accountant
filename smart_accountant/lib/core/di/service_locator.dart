@@ -22,6 +22,12 @@ import '../services/subscription/anti_tamper_service.dart';
 import '../services/inventory/item_movement_service.dart';
 import '../services/accounting/accounting_link_service.dart';
 import '../services/templates/activity_templates.dart';
+import '../services/notifications/notification_service.dart';
+import '../services/targets/target_service.dart';
+import '../services/pdf/pdf_service.dart';
+import '../services/excel/excel_service.dart';
+import '../services/debts/debt_service.dart';
+import '../services/admin/owner_auth_service.dart';
 import '../auth/auth_service.dart';
 import '../database/app_database.dart';
 
@@ -31,7 +37,6 @@ Future<void> setupServiceLocator() async {
   final db = AppDatabase();
   sl.registerSingleton<AppDatabase>(db);
 
-  // Core
   sl.registerLazySingleton<AppEventBus>(() => AppEventBus());
   sl.registerLazySingleton<AuditService>(() => _InMemoryAuditService());
   sl.registerLazySingleton<TransactionManager>(() => TransactionManager(sl<AuditService>(), sl<AppEventBus>()));
@@ -39,12 +44,10 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<TransactionValidator>(() => DefaultTransactionValidator());
   sl.registerLazySingleton<WorkflowEngine>(() => WorkflowEngine());
 
-  // Repositories
   sl.registerLazySingleton<MasterDataRepository>(() => MasterDataRepository(sl<AppDatabase>()));
   sl.registerLazySingleton<JournalRepository>(() => JournalRepository(sl<AppDatabase>()));
   sl.registerLazySingleton<LedgerRepository>(() => LedgerRepository(sl<AppDatabase>()));
 
-  // Accounting Engine
   sl.registerLazySingleton<AccountingEngine>(() => AccountingEngine(
     validator: sl<TransactionValidator>(),
     workflow: sl<WorkflowEngine>(),
@@ -55,11 +58,12 @@ Future<void> setupServiceLocator() async {
     ledgerRepo: sl<LedgerRepository>(),
   ));
 
-  // Services
-  sl.registerLazySingleton<AccountingLinkService>(() => AccountingLinkService(sl<AppDatabase>(), sl<NumberGenerator>()));
+  sl.registerLazySingleton<AccountingLinkService>(() => AccountingLinkService(sl<AppDatabase>()));
   sl.registerLazySingleton<MasterDataService>(() => MasterDataService(sl<MasterDataRepository>(), sl<AccountingLinkService>()));
-  sl.registerLazySingleton<ItemMovementService>(() => ItemMovementService(sl<MasterDataRepository>()));
-  sl.registerLazySingleton<OperationService>(() => OperationService(sl<AccountingEngine>(), sl<MasterDataService>(), sl<ItemMovementService>(), sl<MasterDataRepository>()));
+  sl.registerLazySingleton<ItemMovementService>(() => ItemMovementService());
+  sl.registerLazySingleton<OperationService>(() => OperationService(
+    sl<AccountingEngine>(), sl<MasterDataService>(), sl<ItemMovementService>(), sl<LedgerRepository>(),
+  ));
   sl.registerLazySingleton<ReportService>(() => ReportService(sl<MasterDataRepository>(), sl<ItemMovementService>(), sl<LedgerRepository>()));
   sl.registerLazySingleton<AiService>(() => AiService(sl<OperationService>(), sl<ReportService>()));
   sl.registerLazySingleton<BackupService>(() => BackupService());
@@ -67,7 +71,13 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
   sl.registerLazySingleton<AntiTamperService>(() => AntiTamperService());
   sl.registerLazySingleton<AuthService>(() => AuthService());
-  sl.registerLazySingleton<ActivityTemplates>(() => ActivityTemplates(sl<AccountingLinkService>(), sl<MasterDataService>()));
+  sl.registerLazySingleton<ActivityTemplates>(() => ActivityTemplates());
+  sl.registerLazySingleton<NotificationService>(() => NotificationService());
+  sl.registerLazySingleton<TargetService>(() => TargetService());
+  sl.registerLazySingleton<PdfService>(() => PdfService());
+  sl.registerLazySingleton<ExcelService>(() => ExcelService());
+  sl.registerLazySingleton<DebtService>(() => DebtService());
+  sl.registerLazySingleton<OwnerAuthService>(() => OwnerAuthService());
 }
 
 class _InMemoryAuditService extends AuditService {

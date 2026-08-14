@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 import '../database/app_database.dart';
-import '../database/tables/ledger_table.dart';
 
 class LedgerRepository {
   final AppDatabase _db;

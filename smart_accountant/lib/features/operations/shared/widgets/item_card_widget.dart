@@ -7,6 +7,7 @@ class ItemCardEntry {
   double quantity;
   double price;
   double freeQuantity;
+  double discount;
 
   ItemCardEntry({
     this.itemId,
@@ -15,22 +16,23 @@ class ItemCardEntry {
     this.quantity = 1,
     this.price = 0,
     this.freeQuantity = 0,
+    this.discount = 0,
   });
 }
 
 class ItemCardWidget extends StatefulWidget {
   final List<ItemCardEntry> items;
   final List<Map<String, dynamic>> availableItems;
-  final bool showFreeColumn;
   final bool showPriceColumn;
+  final bool showFreeColumn;
   final ValueChanged<List<ItemCardEntry>> onChanged;
 
   const ItemCardWidget({
     super.key,
     required this.items,
     required this.availableItems,
-    this.showFreeColumn = true,
     this.showPriceColumn = true,
+    this.showFreeColumn = true,
     required this.onChanged,
   });
 
@@ -39,11 +41,12 @@ class ItemCardWidget extends StatefulWidget {
 }
 
 class _ItemCardWidgetState extends State<ItemCardWidget> {
-  final _itemCtrl = TextEditingController();
+  final _searchCtrl = TextEditingController();
   final _qtyCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _freeCtrl = TextEditingController();
-  final _searchCtrl = TextEditingController();
+  final _discountCtrl = TextEditingController();
+  Map<String, dynamic>? _selectedItem;
 
   List<Map<String, dynamic>> _filteredItems = [];
 
@@ -58,9 +61,7 @@ class _ItemCardWidgetState extends State<ItemCardWidget> {
       if (query.isEmpty) {
         _filteredItems = widget.availableItems;
       } else {
-        _filteredItems = widget.availableItems
-            .where((item) => (item['name'] ?? '').toString().toLowerCase().contains(query.toLowerCase()))
-            .toList();
+        _filteredItems = widget.availableItems.where((item) => (item['name'] ?? '').toString().toLowerCase().contains(query.toLowerCase())).toList();
       }
     });
   }
@@ -68,9 +69,38 @@ class _ItemCardWidgetState extends State<ItemCardWidget> {
   double get _total {
     double total = 0;
     for (var item in widget.items) {
-      total += item.quantity * item.price;
+      total += item.quantity * item.price - item.discount;
     }
     return total;
+  }
+
+  void _addItem() {
+    if (_selectedItem == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر صنفاً أولاً')));
+      return;
+    }
+    final qty = double.tryParse(_qtyCtrl.text) ?? 1;
+    final price = double.tryParse(_priceCtrl.text) ?? double.tryParse(_selectedItem!['price']?.toString() ?? '0') ?? 0;
+    final free = double.tryParse(_freeCtrl.text) ?? 0;
+    final discount = double.tryParse(_discountCtrl.text) ?? 0;
+
+    widget.items.add(ItemCardEntry(
+      itemId: _selectedItem!['id']?.toString(),
+      itemName: _selectedItem!['name'] ?? '',
+      unit: _selectedItem!['unit'] ?? '',
+      quantity: qty,
+      price: price,
+      freeQuantity: free,
+      discount: discount,
+    ));
+    widget.onChanged(widget.items);
+    setState(() {
+      _selectedItem = null;
+      _qtyCtrl.clear();
+      _priceCtrl.clear();
+      _freeCtrl.clear();
+      _discountCtrl.clear();
+    });
   }
 
   @override
@@ -78,133 +108,101 @@ class _ItemCardWidgetState extends State<ItemCardWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // جدول الأصناف
         if (widget.items.isNotEmpty) ...[
-          const Text('الأصناف المضافة:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text('الأصناف المضافة:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columnSpacing: 12,
-              columns: [
-                const DataColumn(label: Text('الصنف')),
-                const DataColumn(label: Text('الوحدة')),
-                const DataColumn(label: Text('الكمية')),
-                if (widget.showPriceColumn) const DataColumn(label: Text('السعر')),
-                const DataColumn(label: Text('الإجمالي')),
-                if (widget.showFreeColumn) const DataColumn(label: Text('مجاني')),
-                const DataColumn(label: Text('حذف')),
-              ],
-              rows: widget.items.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final item = entry.value;
-                return DataRow(cells: [
-                  DataCell(Text(item.itemName)),
-                  DataCell(Text(item.unit ?? '-')),
-                  DataCell(Text(item.quantity.toString())),
-                  if (widget.showPriceColumn) DataCell(Text(item.price.toStringAsFixed(2))),
-                  DataCell(Text((item.quantity * item.price).toStringAsFixed(2))),
-                  if (widget.showFreeColumn) DataCell(Text(item.freeQuantity.toString())),
-                  DataCell(IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                    onPressed: () {
-                      widget.items.removeAt(idx);
-                      widget.onChanged(widget.items);
-                      setState(() {});
-                    },
-                  )),
-                ]);
-              }).toList(),
-            ),
-          ),
+          ...widget.items.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final item = entry.value;
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: ListTile(
+                leading: CircleAvatar(backgroundColor: Colors.teal.withOpacity(0.1), child: const Icon(Icons.inventory, color: Colors.teal)),
+                title: Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text('الكمية: ${item.quantity} | السعر: ${item.price} | الإجمالي: ${(item.quantity * item.price - item.discount).toStringAsFixed(2)}'),
+                trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () { widget.items.removeAt(idx); widget.onChanged(widget.items); setState(() {}); }),
+              ),
+            );
+          }),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('الإجمالي: ${_total.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal)),
+            child: Text('الإجمالي: ${_total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal)),
           ),
           const Divider(),
         ],
 
-        // إضافة صنف جديد
+        // قسم إضافة صنف
+        const Text('إضافة صنف جديد:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+
+        // اختيار الصنف
+        Autocomplete<Map<String, dynamic>>(
+          displayStringForOption: (option) => '${option['name']} (${option['unit'] ?? ''})',
+          optionsBuilder: (textEditingValue) {
+            if (textEditingValue.text.isEmpty) return _filteredItems.take(15);
+            return _filteredItems.where((item) => (item['name'] ?? '').toString().toLowerCase().contains(textEditingValue.text.toLowerCase())).take(15);
+          },
+          onSelected: (selected) {
+            setState(() {
+              _selectedItem = selected;
+              _priceCtrl.text = selected['price']?.toString() ?? '0';
+            });
+          },
+          fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: const InputDecoration(labelText: '🔍 ابحث عن الصنف', border: OutlineInputBorder(), prefixIcon: Icon(Icons.search)),
+              onSubmitted: (v) => onSubmitted(),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+
+        // حقول الكمية والسعر
         Row(
           children: [
             Expanded(
-              flex: 3,
-              child: Autocomplete<Map<String, dynamic>>(
-                optionsBuilder: (textEditingValue) {
-                  if (textEditingValue.text.isEmpty) return _filteredItems;
-                  return _filteredItems.where((item) =>
-                      (item['name'] ?? '').toString().toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                },
-                displayStringForOption: (option) => '${option['name']} (${option['unit'] ?? ''})',
-                fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-                  return TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(labelText: 'ابحث عن صنف...', isDense: true),
-                    onSubmitted: (v) => onSubmitted(),
-                  );
-                },
-                onSelected: (selected) {
-                  _itemCtrl.text = selected['name'] ?? '';
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 2,
               child: TextField(
                 controller: _qtyCtrl,
-                decoration: const InputDecoration(labelText: 'الكمية', isDense: true),
+                decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder(), hintText: 'أدخل الكمية'),
                 keyboardType: TextInputType.number,
               ),
             ),
-            if (widget.showPriceColumn) ...[
-              const SizedBox(width: 8),
+            const SizedBox(width: 8),
+            if (widget.showPriceColumn)
               Expanded(
-                flex: 2,
                 child: TextField(
                   controller: _priceCtrl,
-                  decoration: const InputDecoration(labelText: 'السعر', isDense: true),
+                  decoration: const InputDecoration(labelText: 'السعر', border: OutlineInputBorder(), hintText: 'سعر الوحدة'),
                   keyboardType: TextInputType.number,
                 ),
               ),
-            ],
-            if (widget.showFreeColumn) ...[
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: _freeCtrl,
-                  decoration: const InputDecoration(labelText: 'مجاني', isDense: true),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-            ],
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.add_circle, color: Colors.teal, size: 32),
-              onPressed: () {
-                if (_itemCtrl.text.isNotEmpty) {
-                  final qty = double.tryParse(_qtyCtrl.text) ?? 1;
-                  final price = double.tryParse(_priceCtrl.text) ?? 0;
-                  final free = double.tryParse(_freeCtrl.text) ?? 0;
-                  widget.items.add(ItemCardEntry(
-                    itemName: _itemCtrl.text,
-                    quantity: qty,
-                    price: price,
-                    freeQuantity: free,
-                  ));
-                  _itemCtrl.clear();
-                  _qtyCtrl.clear();
-                  _priceCtrl.clear();
-                  _freeCtrl.clear();
-                  widget.onChanged(widget.items);
-                  setState(() {});
-                }
-              },
-            ),
           ],
+        ),
+        const SizedBox(height: 8),
+        if (widget.showFreeColumn)
+          TextField(
+            controller: _freeCtrl,
+            decoration: const InputDecoration(labelText: 'الكمية المجانية', border: OutlineInputBorder(), hintText: '0 = لا يوجد مجاني'),
+            keyboardType: TextInputType.number,
+          ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _discountCtrl,
+          decoration: const InputDecoration(labelText: 'الخصم (مبلغ)', border: OutlineInputBorder(), hintText: '0 = لا يوجد خصم'),
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 12),
+
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.add_shopping_cart),
+            label: const Text('إضافة الصنف'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+            onPressed: _addItem,
+          ),
         ),
       ],
     );

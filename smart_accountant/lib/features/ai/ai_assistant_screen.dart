@@ -41,7 +41,6 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
 
   Future<void> _processCommand(String command) async {
     setState(() => _isProcessing = true);
-    final reply = await _aiService.processCommand(command);
     setState(() => _isProcessing = false);
     _scrollToBottom();
   }

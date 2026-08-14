@@ -10,9 +10,11 @@ class ReceiptScreen extends StatelessWidget {
       config: OperationConfig(
         title: 'سند قبض',
         transactionType: TransactionType.receipt,
-        showPaymentType: true,
-        showCustomer: true,
+        showPaymentMode: true,
         showCashSource: true,
+        showBankSource: true,
+        showCustomer: true,
+        showCreditAccount: true,
       ),
     );
   }

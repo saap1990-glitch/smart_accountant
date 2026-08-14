@@ -3,10 +3,8 @@ import '../accounting/accounting_link_service.dart';
 import '../master_data/master_data_service.dart';
 
 class ActivityTemplates {
-  final AccountingLinkService _linkService;
-  final MasterDataService _dataService;
 
-  ActivityTemplates(this._linkService, this._dataService);
+  ActivityTemplates();
 
   Map<String, Map<String, dynamic>> get templates => {
     'general': {
@@ -88,7 +86,6 @@ class ActivityTemplates {
 
   Future<void> _addCommercialAccounts() async {
     // إضافة أصناف تجارية شائعة
-    final inventoryParent = await _linkService.getSystemAccount('inventory_default');
     // يمكن إضافة حسابات فرعية هنا
   }
 

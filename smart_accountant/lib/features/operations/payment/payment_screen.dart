@@ -10,9 +10,11 @@ class PaymentScreen extends StatelessWidget {
       config: OperationConfig(
         title: 'سند صرف',
         transactionType: TransactionType.payment,
-        showPaymentType: true,
-        showSupplier: true,
+        showPaymentMode: true,
         showCashSource: true,
+        showBankSource: true,
+        showSupplier: true,
+        showDebitAccount: true,
       ),
     );
   }

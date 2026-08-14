@@ -11,7 +11,7 @@ class TransferWalletScreen extends StatelessWidget {
         title: 'تحويل بين المحافظ',
         transactionType: TransactionType.transfer,
         showCashSource: true,
-        showDestination: true,
+        showDestinationWarehouse: true,
       ),
     );
   }

@@ -21,10 +21,9 @@ class ItemMovementRecord {
 }
 
 class ItemMovementService {
-  final MasterDataRepository _repository;
   final List<ItemMovementRecord> _movements = [];
 
-  ItemMovementService(this._repository);
+  ItemMovementService();
 
   void recordMovement({
     required String itemId,

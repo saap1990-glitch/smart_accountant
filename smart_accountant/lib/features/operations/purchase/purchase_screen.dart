@@ -10,13 +10,14 @@ class PurchaseScreen extends StatelessWidget {
       config: OperationConfig(
         title: 'فاتورة شراء',
         transactionType: TransactionType.purchase,
-        showPaymentType: true,
+        showPaymentMode: true,
         showSupplier: true,
-        showItems: true,
         showCashSource: true,
+        showBankSource: true,
         showWarehouse: true,
-        showFreeColumn: true,
-        showPriceColumn: true,
+        showItems: true,
+        showPrice: true,
+        showFreeQty: true,
       ),
     );
   }

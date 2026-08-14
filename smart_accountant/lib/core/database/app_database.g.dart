@@ -3200,8 +3200,41 @@ class $CurrenciesTable extends Currencies
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _exchangeRateMeta = const VerificationMeta(
+    'exchangeRate',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, code, name];
+  late final GeneratedColumn<String> exchangeRate = GeneratedColumn<String>(
+    'exchange_rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('1.0'),
+  );
+  static const VerificationMeta _isDefaultMeta = const VerificationMeta(
+    'isDefault',
+  );
+  @override
+  late final GeneratedColumn<bool> isDefault = GeneratedColumn<bool>(
+    'is_default',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_default" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    code,
+    name,
+    exchangeRate,
+    isDefault,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3233,6 +3266,21 @@ class $CurrenciesTable extends Currencies
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
+    if (data.containsKey('exchange_rate')) {
+      context.handle(
+        _exchangeRateMeta,
+        exchangeRate.isAcceptableOrUnknown(
+          data['exchange_rate']!,
+          _exchangeRateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_default')) {
+      context.handle(
+        _isDefaultMeta,
+        isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta),
+      );
+    }
     return context;
   }
 
@@ -3254,6 +3302,14 @@ class $CurrenciesTable extends Currencies
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      exchangeRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exchange_rate'],
+      )!,
+      isDefault: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_default'],
+      )!,
     );
   }
 
@@ -3267,13 +3323,23 @@ class Currency extends DataClass implements Insertable<Currency> {
   final int id;
   final String code;
   final String name;
-  const Currency({required this.id, required this.code, required this.name});
+  final String exchangeRate;
+  final bool isDefault;
+  const Currency({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.exchangeRate,
+    required this.isDefault,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['code'] = Variable<String>(code);
     map['name'] = Variable<String>(name);
+    map['exchange_rate'] = Variable<String>(exchangeRate);
+    map['is_default'] = Variable<bool>(isDefault);
     return map;
   }
 
@@ -3282,6 +3348,8 @@ class Currency extends DataClass implements Insertable<Currency> {
       id: Value(id),
       code: Value(code),
       name: Value(name),
+      exchangeRate: Value(exchangeRate),
+      isDefault: Value(isDefault),
     );
   }
 
@@ -3294,6 +3362,8 @@ class Currency extends DataClass implements Insertable<Currency> {
       id: serializer.fromJson<int>(json['id']),
       code: serializer.fromJson<String>(json['code']),
       name: serializer.fromJson<String>(json['name']),
+      exchangeRate: serializer.fromJson<String>(json['exchangeRate']),
+      isDefault: serializer.fromJson<bool>(json['isDefault']),
     );
   }
   @override
@@ -3303,19 +3373,33 @@ class Currency extends DataClass implements Insertable<Currency> {
       'id': serializer.toJson<int>(id),
       'code': serializer.toJson<String>(code),
       'name': serializer.toJson<String>(name),
+      'exchangeRate': serializer.toJson<String>(exchangeRate),
+      'isDefault': serializer.toJson<bool>(isDefault),
     };
   }
 
-  Currency copyWith({int? id, String? code, String? name}) => Currency(
+  Currency copyWith({
+    int? id,
+    String? code,
+    String? name,
+    String? exchangeRate,
+    bool? isDefault,
+  }) => Currency(
     id: id ?? this.id,
     code: code ?? this.code,
     name: name ?? this.name,
+    exchangeRate: exchangeRate ?? this.exchangeRate,
+    isDefault: isDefault ?? this.isDefault,
   );
   Currency copyWithCompanion(CurrenciesCompanion data) {
     return Currency(
       id: data.id.present ? data.id.value : this.id,
       code: data.code.present ? data.code.value : this.code,
       name: data.name.present ? data.name.value : this.name,
+      exchangeRate: data.exchangeRate.present
+          ? data.exchangeRate.value
+          : this.exchangeRate,
+      isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
     );
   }
 
@@ -3324,46 +3408,60 @@ class Currency extends DataClass implements Insertable<Currency> {
     return (StringBuffer('Currency(')
           ..write('id: $id, ')
           ..write('code: $code, ')
-          ..write('name: $name')
+          ..write('name: $name, ')
+          ..write('exchangeRate: $exchangeRate, ')
+          ..write('isDefault: $isDefault')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, code, name);
+  int get hashCode => Object.hash(id, code, name, exchangeRate, isDefault);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Currency &&
           other.id == this.id &&
           other.code == this.code &&
-          other.name == this.name);
+          other.name == this.name &&
+          other.exchangeRate == this.exchangeRate &&
+          other.isDefault == this.isDefault);
 }
 
 class CurrenciesCompanion extends UpdateCompanion<Currency> {
   final Value<int> id;
   final Value<String> code;
   final Value<String> name;
+  final Value<String> exchangeRate;
+  final Value<bool> isDefault;
   const CurrenciesCompanion({
     this.id = const Value.absent(),
     this.code = const Value.absent(),
     this.name = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
+    this.isDefault = const Value.absent(),
   });
   CurrenciesCompanion.insert({
     this.id = const Value.absent(),
     required String code,
     required String name,
+    this.exchangeRate = const Value.absent(),
+    this.isDefault = const Value.absent(),
   }) : code = Value(code),
        name = Value(name);
   static Insertable<Currency> custom({
     Expression<int>? id,
     Expression<String>? code,
     Expression<String>? name,
+    Expression<String>? exchangeRate,
+    Expression<bool>? isDefault,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (code != null) 'code': code,
       if (name != null) 'name': name,
+      if (exchangeRate != null) 'exchange_rate': exchangeRate,
+      if (isDefault != null) 'is_default': isDefault,
     });
   }
 
@@ -3371,11 +3469,15 @@ class CurrenciesCompanion extends UpdateCompanion<Currency> {
     Value<int>? id,
     Value<String>? code,
     Value<String>? name,
+    Value<String>? exchangeRate,
+    Value<bool>? isDefault,
   }) {
     return CurrenciesCompanion(
       id: id ?? this.id,
       code: code ?? this.code,
       name: name ?? this.name,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
+      isDefault: isDefault ?? this.isDefault,
     );
   }
 
@@ -3391,6 +3493,12 @@ class CurrenciesCompanion extends UpdateCompanion<Currency> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
+    if (exchangeRate.present) {
+      map['exchange_rate'] = Variable<String>(exchangeRate.value);
+    }
+    if (isDefault.present) {
+      map['is_default'] = Variable<bool>(isDefault.value);
+    }
     return map;
   }
 
@@ -3399,7 +3507,9 @@ class CurrenciesCompanion extends UpdateCompanion<Currency> {
     return (StringBuffer('CurrenciesCompanion(')
           ..write('id: $id, ')
           ..write('code: $code, ')
-          ..write('name: $name')
+          ..write('name: $name, ')
+          ..write('exchangeRate: $exchangeRate, ')
+          ..write('isDefault: $isDefault')
           ..write(')'))
         .toString();
   }
@@ -9542,12 +9652,16 @@ typedef $$CurrenciesTableCreateCompanionBuilder =
       Value<int> id,
       required String code,
       required String name,
+      Value<String> exchangeRate,
+      Value<bool> isDefault,
     });
 typedef $$CurrenciesTableUpdateCompanionBuilder =
     CurrenciesCompanion Function({
       Value<int> id,
       Value<String> code,
       Value<String> name,
+      Value<String> exchangeRate,
+      Value<bool> isDefault,
     });
 
 class $$CurrenciesTableFilterComposer
@@ -9571,6 +9685,16 @@ class $$CurrenciesTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get exchangeRate => $composableBuilder(
+    column: $table.exchangeRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -9598,6 +9722,16 @@ class $$CurrenciesTableOrderingComposer
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get exchangeRate => $composableBuilder(
+    column: $table.exchangeRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CurrenciesTableAnnotationComposer
@@ -9617,6 +9751,14 @@ class $$CurrenciesTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get exchangeRate => $composableBuilder(
+    column: $table.exchangeRate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDefault =>
+      $composableBuilder(column: $table.isDefault, builder: (column) => column);
 }
 
 class $$CurrenciesTableTableManager
@@ -9650,13 +9792,29 @@ class $$CurrenciesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> code = const Value.absent(),
                 Value<String> name = const Value.absent(),
-              }) => CurrenciesCompanion(id: id, code: code, name: name),
+                Value<String> exchangeRate = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
+              }) => CurrenciesCompanion(
+                id: id,
+                code: code,
+                name: name,
+                exchangeRate: exchangeRate,
+                isDefault: isDefault,
+              ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String code,
                 required String name,
-              }) => CurrenciesCompanion.insert(id: id, code: code, name: name),
+                Value<String> exchangeRate = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
+              }) => CurrenciesCompanion.insert(
+                id: id,
+                code: code,
+                name: name,
+                exchangeRate: exchangeRate,
+                isDefault: isDefault,
+              ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),

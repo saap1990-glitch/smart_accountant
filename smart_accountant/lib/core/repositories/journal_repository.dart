@@ -1,7 +1,5 @@
 import 'package:drift/drift.dart';
 import '../database/app_database.dart';
-import '../database/tables/journal_entries_table.dart';
-import '../database/tables/journal_lines_table.dart';
 
 class JournalRepository {
   final AppDatabase _db;

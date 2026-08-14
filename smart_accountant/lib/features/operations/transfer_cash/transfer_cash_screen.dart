@@ -11,7 +11,7 @@ class TransferCashScreen extends StatelessWidget {
         title: 'تحويل بين الصناديق',
         transactionType: TransactionType.transfer,
         showCashSource: true,
-        showDestination: true,
+        showDestinationWarehouse: true,
       ),
     );
   }

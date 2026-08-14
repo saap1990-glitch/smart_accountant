@@ -49,7 +49,6 @@ class AiService {
     }
 
     // 4. توليد خطة العمل
-    final workflow = _workflow.generate(intent);
 
     // 5. تنفيذ العملية حسب النية
     String reply;

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم المالك - المحاسب الذكي</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+        body { background: #f5f7fa; display: flex; }
+        
+        .sidebar { width: 250px; background: #00796B; color: white; min-height: 100vh; padding: 20px; }
+        .sidebar h2 { margin-bottom: 30px; font-size: 22px; }
+        .sidebar a { color: white; text-decoration: none; display: block; padding: 12px; border-radius: 8px; margin-bottom: 8px; }
+        .sidebar a:hover { background: rgba(255,255,255,0.1); }
+        .sidebar a.active { background: rgba(255,255,255,0.2); }
+        
+        .main { flex: 1; padding: 30px; }
+        .header { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .header h1 { font-size: 28px; color: #00796B; }
+        
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-card .number { font-size: 32px; font-weight: bold; color: #00796B; }
+        .stat-card .label { color: #666; margin-top: 4px; }
+        
+        .table-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f0f0f0; padding: 12px; text-align: right; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
+        
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn-green { background: #00796B; color: white; }
+        .btn-orange { background: #F57C00; color: white; }
+        .btn-red { background: #D32F2F; color: white; }
+        
+        .code-box { background: #E8F5E9; border: 2px solid #4CAF50; padding: 16px; border-radius: 8px; margin: 16px 0; text-align: center; font-size: 22px; font-weight: bold; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>🏢 لوحة المالك</h2>
+        <a href="#" class="active">📊 الإحصائيات</a>
+        <a href="#">👥 المشتركون</a>
+        <a href="#">🔑 رموز التفعيل</a>
+        <a href="#">💰 الاشتراكات</a>
+        <a href="#">📱 التحديثات</a>
+    </div>
+    
+    <div class="main">
+        <div class="header">
+            <h1>لوحة تحكم المالك</h1>
+            <p>مرحباً بك، صدام 👋</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card"><div class="number">0</div><div class="label">مشترك نشط</div></div>
+            <div class="stat-card"><div class="number">0</div><div class="label">مشترك منتهي</div></div>
+            <div class="stat-card"><div class="number">0</div><div class="label">إجمالي الإيرادات</div></div>
+            <div class="stat-card"><div class="number">0</div><div class="label">رموز مفعلة</div></div>
+        </div>
+        
+        <div class="table-container">
+            <h3 style="margin-bottom: 16px;">🔑 توليد رمز تفعيل</h3>
+            <button class="btn btn-green" onclick="generateCode('semi')">نصف سنوي (180 يوم)</button>
+            <button class="btn btn-orange" onclick="generateCode('annual')">سنوي (365 يوم)</button>
+            <button class="btn btn-red" onclick="generateCode('life')">مدى الحياة</button>
+            
+            <div id="codeDisplay" class="code-box" style="display:none;"></div>
+        </div>
+        
+        <br>
+        
+        <div class="table-container">
+            <h3 style="margin-bottom: 16px;">👥 المشتركون</h3>
+            <table>
+                <tr><th>الاسم</th><th>نوع الاشتراك</th><th>تاريخ البدء</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr>
+                <tr><td colspan="5" style="text-align:center;">لا يوجد مشتركون بعد</td></tr>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        function generateCode(type) {
+            const prefixes = { semi: 'SEMI', annual: 'ANNUAL', life: 'LIFE' };
+            const random = Math.random().toString(36).substring(2, 10).toUpperCase();
+            const code = prefixes[type] + '-' + random;
+            document.getElementById('codeDisplay').style.display = 'block';
+            document.getElementById('codeDisplay').textContent = code;
+        }
+    </script>
+</body>
+</html>

@@ -10,10 +10,12 @@ class InventoryOutScreen extends StatelessWidget {
       config: OperationConfig(
         title: 'صرف مخزني',
         transactionType: TransactionType.transfer,
-        showItems: true,
         showWarehouse: true,
-        showFreeColumn: false,
-        showPriceColumn: false,
+        showDebitAccount: true,
+        showItems: true,
+        showPrice: false,
+        showFreeQty: false,
+        isInventoryOut: true,
       ),
     );
   }

@@ -10,10 +10,12 @@ class InventoryInScreen extends StatelessWidget {
       config: OperationConfig(
         title: 'توريد مخزني',
         transactionType: TransactionType.transfer,
-        showItems: true,
         showWarehouse: true,
-        showFreeColumn: false,
-        showPriceColumn: false,
+        showCreditAccount: true,
+        showItems: true,
+        showPrice: false,
+        showFreeQty: false,
+        isInventoryIn: true,
       ),
     );
   }

@@ -11,11 +11,10 @@ class PurchaseReturnScreen extends StatelessWidget {
         title: 'مرتجع شراء',
         transactionType: TransactionType.purchase,
         showSupplier: true,
-        showItems: true,
+        showInvoiceNumber: true,
         showWarehouse: true,
+        showItems: true,
         isReturn: true,
-        showFreeColumn: true,
-        showPriceColumn: true,
       ),
     );
   }
