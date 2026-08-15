@@ -117,3 +117,27 @@ class ReportService {
     };
   }
 }
+
+// Extension لدعم حركة الصنف
+extension ReportServiceItemMovement on ReportService {
+  Future<List<Map<String, dynamic>>> itemMovementReport({required int itemId, required DateTime from, required DateTime to}) async {
+    final movements = _movementService.getMovementsForItem(itemId.toString(), from: from, to: to);
+    return movements.map((m) => {
+      'date': m.date,
+      'type': m.operationType,
+      'quantity': m.quantity,
+      'price': m.price,
+      'total': (m.quantity * m.price).toStringAsFixed(2),
+    }).toList();
+  }
+}
+
+// Extension للوصول للبيانات
+extension ReportServiceData on ReportService {
+  Future<List<Map<String, dynamic>>> getAccounts() async => _repository.getAllAccounts();
+  Future<List<Map<String, dynamic>>> getCustomers() async => _repository.getAllCustomers();
+  Future<List<Map<String, dynamic>>> getSuppliers() async => _repository.getAllSuppliers();
+  Future<List<Map<String, dynamic>>> getBanks() async => _repository.getAllBanks();
+  Future<List<Map<String, dynamic>>> getCashBoxes() async => _repository.getAllCashBoxes();
+  Future<List<Map<String, dynamic>>> getItems() async => _repository.getAllItems();
+}

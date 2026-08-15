@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import '../../core/services/master_data/master_data_service.dart';
+import '../../core/repositories/ledger_repository.dart';
 import 'account_detail_screen.dart';
 
 class AccountsScreen extends StatefulWidget {
@@ -12,10 +13,12 @@ class AccountsScreen extends StatefulWidget {
 
 class _AccountsScreenState extends State<AccountsScreen> {
   final _dataService = GetIt.I<MasterDataService>();
+  final _ledgerRepo = GetIt.I<LedgerRepository>();
 
   List<Map<String, dynamic>> _allAccounts = [];
   Map<int?, List<Map<String, dynamic>>> _tree = {};
   Set<int> _expandedNodes = {};
+  Map<int, double> _balances = {};
   String _searchQuery = '';
   String? _filterType;
   bool _loading = true;
@@ -29,8 +32,18 @@ class _AccountsScreenState extends State<AccountsScreen> {
   Future<void> _loadAccounts() async {
     setState(() => _loading = true);
     final accounts = await _dataService.getAllAccounts();
+    final balances = <int, double>{};
+    for (var acc in accounts) {
+      final accId = acc['id'] as int;
+      try {
+        balances[accId] = await _ledgerRepo.getBalance(accId);
+      } catch (_) {
+        balances[accId] = 0;
+      }
+    }
     setState(() {
       _allAccounts = accounts;
+      _balances = balances;
       _buildTree();
       _loading = false;
       for (var acc in accounts) {
@@ -68,13 +81,16 @@ class _AccountsScreenState extends State<AccountsScreen> {
     }
   }
 
+  bool _isPostingAccount(Map<String, dynamic> acc) {
+    return acc['level'] >= 4 || acc['accepts_posting'] == true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('دليل الحسابات'),
         actions: [
-          IconButton(icon: const Icon(Icons.add), onPressed: () => _showAddForm()),
           PopupMenuButton<String>(
             icon: const Icon(Icons.filter_list),
             onSelected: (v) => setState(() => _filterType = v == 'all' ? null : v),
@@ -86,6 +102,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
               PopupMenuItem(value: 'revenue', child: Text('الإيرادات')),
             ],
           ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAccounts),
         ],
       ),
       body: _loading
@@ -99,16 +116,33 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     onChanged: (v) => setState(() => _searchQuery = v),
                   ),
                 ),
+                // ملخص الأرصدة
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(color: Colors.teal.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Text('الأصول: ${_getTypeTotal('asset').toStringAsFixed(0)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                      Text('الخصوم: ${_getTypeTotal('liability').toStringAsFixed(0)}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      Text('المصروفات: ${_getTypeTotal('expense').toStringAsFixed(0)}', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                      Text('الإيرادات: ${_getTypeTotal('revenue').toStringAsFixed(0)}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
                 Expanded(
                   child: _allAccounts.isEmpty
                       ? const Center(child: Text('لا توجد حسابات'))
-                      : ListView(
-                          children: _buildTreeWidgets(null, 0),
-                        ),
+                      : ListView(children: _buildTreeWidgets(null, 0)),
                 ),
               ],
             ),
     );
+  }
+
+  double _getTypeTotal(String type) {
+    return _allAccounts.where((a) => a['type'] == type).fold(0.0, (sum, a) => sum + (_balances[a['id']] ?? 0).abs());
   }
 
   List<Widget> _buildTreeWidgets(int? parentId, int depth) {
@@ -117,6 +151,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
       final id = account['id'] as int;
       final hasChildren = _tree.containsKey(id);
       final isExpanded = _expandedNodes.contains(id);
+      final balance = _balances[id] ?? 0;
+      final isPosting = _isPostingAccount(account);
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,23 +162,24 @@ class _AccountsScreenState extends State<AccountsScreen> {
               if (hasChildren) {
                 setState(() { if (isExpanded) { _expandedNodes.remove(id); } else { _expandedNodes.add(id); } });
               }
-              // فتح شاشة التفاصيل
               Navigator.push(context, MaterialPageRoute(builder: (_) => AccountDetailScreen(account: account))).then((_) => _loadAccounts());
             },
             child: Container(
-              padding: EdgeInsets.only(right: 16.0 + depth * 24.0, left: 8, top: 8, bottom: 8),
-              color: _colorWithOpacity(_getColor(account['type'])),
+              padding: EdgeInsets.only(right: 16.0 + depth * 24.0, left: 8, top: 6, bottom: 6),
+              color: _getColor(account['type']).withOpacity(0.02),
               child: Row(
                 children: [
-                  Icon(hasChildren ? (isExpanded ? Icons.folder_open : Icons.folder) : Icons.description, color: _getColor(account['type']), size: 22),
+                  Icon(hasChildren ? (isExpanded ? Icons.folder_open : Icons.folder) : Icons.description, color: _getColor(account['type']), size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '${account['number']} - ${account['name_ar'] ?? account['name_en'] ?? ''}',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: _getColor(account['type'])),
+                      style: TextStyle(fontWeight: isPosting ? FontWeight.bold : FontWeight.w500, color: _getColor(account['type'])),
                     ),
                   ),
-                  const Icon(Icons.chevron_left, size: 18, color: Colors.grey),
+                  if (isPosting)
+                    Text(balance.toStringAsFixed(0), style: TextStyle(fontWeight: FontWeight.bold, color: balance >= 0 ? Colors.green : Colors.red)),
+                  const Icon(Icons.chevron_left, size: 16, color: Colors.grey),
                 ],
               ),
             ),
@@ -151,72 +188,5 @@ class _AccountsScreenState extends State<AccountsScreen> {
         ],
       );
     }).toList();
-  }
-
-  Color _colorWithOpacity(Color color) {
-    return color.withOpacity(0.03);
-  }
-
-  void _showAddForm() {
-    final nameArCtrl = TextEditingController();
-    String? type = 'asset';
-    String? nature = 'debit';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('إضافة حساب جديد'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'نوع الحساب'),
-                value: type,
-                items: const [
-                  DropdownMenuItem(value: 'asset', child: Text('أصل')),
-                  DropdownMenuItem(value: 'liability', child: Text('خصم')),
-                  DropdownMenuItem(value: 'expense', child: Text('مصروف')),
-                  DropdownMenuItem(value: 'revenue', child: Text('إيراد')),
-                ],
-                onChanged: (v) => setDialogState(() => type = v),
-              ),
-              const SizedBox(height: 8),
-              TextField(controller: nameArCtrl, decoration: const InputDecoration(labelText: 'الاسم العربي *')),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'الطبيعة'),
-                value: nature,
-                items: const [
-                  DropdownMenuItem(value: 'debit', child: Text('مدين 🔻')),
-                  DropdownMenuItem(value: 'credit', child: Text('دائن 🔺')),
-                ],
-                onChanged: (v) => setDialogState(() => nature = v),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameArCtrl.text.trim().isEmpty) return;
-                await _dataService.createAccount(
-                  number: '${_allAccounts.length + 1}',
-                  nameAr: nameArCtrl.text,
-                  nameEn: null,
-                  type: type!,
-                  nature: nature!,
-                  parentId: null,
-                  level: 1,
-                );
-                Navigator.pop(ctx);
-                _loadAccounts();
-              },
-              child: const Text('إضافة'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

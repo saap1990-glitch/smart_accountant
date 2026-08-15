@@ -24,41 +24,15 @@ part 'app_database.g.dart';
 
 @DriftDatabase(
   tables: [
-    Accounts,
-    Customers,
-    Suppliers,
-    Items,
-    Units,
-    Warehouses,
-    Banks,
-    CashBoxes,
-    Wallets,
-    ExchangeCompanies,
-    Currencies,
-    JournalEntries,
-    JournalLines,
-    Ledger,
-    InventoryTransactions,
-    Settings,
-    Company,
-    AccountLinks,
-    SystemAccounts,
+    Accounts, Customers, Suppliers, Items, Units, Warehouses, Banks,
+    CashBoxes, Wallets, ExchangeCompanies, Currencies, JournalEntries,
+    JournalLines, Ledger, InventoryTransactions, Settings, Company,
+    AccountLinks, SystemAccounts,
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
-
-  static QueryExecutor _openConnection() {
-    return driftDatabase(name: 'smart_accountant.db');
-  }
+  AppDatabase() : super(driftDatabase(name: 'smart_accountant_db'));
 
   @override
   int get schemaVersion => 1;
-
-  @override
-  MigrationStrategy get migration => MigrationStrategy(
-    beforeOpen: (details) async {
-      await customStatement('PRAGMA foreign_keys = ON');
-    },
-  );
 }

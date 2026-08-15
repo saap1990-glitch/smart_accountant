@@ -13,7 +13,6 @@ class PaymentScreen extends StatelessWidget {
         showPaymentMode: true,
         showCashSource: true,
         showBankSource: true,
-        showSupplier: true,
         showDebitAccount: true,
       ),
     );

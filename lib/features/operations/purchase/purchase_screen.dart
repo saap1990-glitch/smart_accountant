@@ -14,6 +14,7 @@ class PurchaseScreen extends StatelessWidget {
         showSupplier: true,
         showCashSource: true,
         showBankSource: true,
+        showDebitAccount: true,
         showWarehouse: true,
         showItems: true,
         showPrice: true,

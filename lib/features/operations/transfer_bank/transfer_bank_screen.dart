@@ -10,7 +10,7 @@ class TransferBankScreen extends StatelessWidget {
       config: OperationConfig(
         title: 'تحويل بين البنوك',
         transactionType: TransactionType.transfer,
-        showCashSource: true,
+        showBankSource: true,
         showDestinationWarehouse: true,
       ),
     );

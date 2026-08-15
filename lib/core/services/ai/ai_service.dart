@@ -173,3 +173,10 @@ class AiService {
         '⭐ صافي الربح: ${report['net_profit']} ريال';
   }
 }
+
+// Extension للصوت
+extension AiServiceVoice on AiService {
+  Future<String> processVoiceCommand(String recognizedText) async {
+    return processCommand(recognizedText);
+  }
+}

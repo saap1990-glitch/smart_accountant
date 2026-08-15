@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/services/backup/backup_service.dart';
 import '../../core/services/subscription/subscription_service.dart';
 import '../../core/services/templates/activity_templates.dart';
 import '../../core/auth/auth_service.dart';
-import 'privacy_screen.dart';
-import 'terms_screen.dart';
+import '../../core/theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'security_screen.dart';
 import 'print_screen.dart';
 import 'backup_settings_screen.dart';
 import 'advanced_settings_screen.dart';
+import 'year_close_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -20,23 +21,48 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final _storage = const FlutterSecureStorage();
   final _backup = GetIt.I<BackupService>();
   final _sub = GetIt.I<SubscriptionService>();
   final _templates = GetIt.I<ActivityTemplates>();
   final _auth = GetIt.I<AuthService>();
 
+  // إعدادات محفوظة
   bool _darkMode = false;
-  bool _showNotifications = true;
   bool _autoBackup = false;
   bool _lockWithPin = true;
   bool _showBalance = true;
   bool _preventNegativeSale = true;
   bool _showOperationNumber = true;
   bool _debtAlert = true;
-  bool _sendWhatsApp = false;
   bool _voiceAssistant = true;
   bool _showCurrency = true;
   double _fontSize = 16.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    _darkMode = await _storage.read(key: 'dark_mode') == 'true';
+    _autoBackup = await _storage.read(key: 'auto_backup') == 'true';
+    _lockWithPin = await _storage.read(key: 'lock_pin') != 'false';
+    _showBalance = await _storage.read(key: 'show_balance') != 'false';
+    _preventNegativeSale = await _storage.read(key: 'prevent_negative') != 'false';
+    _showOperationNumber = await _storage.read(key: 'show_op_number') != 'false';
+    _debtAlert = await _storage.read(key: 'debt_alert') != 'false';
+    _voiceAssistant = await _storage.read(key: 'voice_assistant') != 'false';
+    _showCurrency = await _storage.read(key: 'show_currency') != 'false';
+    final fontSize = await _storage.read(key: 'font_size');
+    if (fontSize != null) _fontSize = double.tryParse(fontSize) ?? 16.0;
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _saveSetting(String key, dynamic value) async {
+    await _storage.write(key: key, value: value.toString());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,105 +70,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text('الإعدادات')),
       body: ListView(
         children: [
-          _sectionHeader('👤 البيانات الشخصية'),
-          _tile(Icons.person, Colors.teal, 'الملف الشخصي', 'الاسم، العنوان، رقم الهاتف، البريد الإلكتروني',
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()))),
+          _section('👤 البيانات الشخصية'),
+          _tile(Icons.person, Colors.teal, 'الملف الشخصي', 'الاسم والعنوان والتواصل', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()))),
 
-          _sectionHeader('💾 النسخ الاحتياطي والمزامنة'),
-          _tile(Icons.backup, Colors.blue, 'حفظ نسخة احتياطية', null, () => _backup.shareBackup()),
-          _tile(Icons.restore, Colors.blue, 'استرجاع قاعدة البيانات', null, () {}),
-          _tile(Icons.cloud, Colors.blue, 'جوجل درايف', 'مزامنة سحابية',
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupSettingsScreen()))),
-          _switchTile(Icons.schedule, Colors.blue, 'حفظ البيانات يومياً', 'نسخ احتياطي تلقائي', _autoBackup,
-              (v) => setState(() => _autoBackup = v)),
+          _section('💾 النسخ الاحتياطي'),
+          _tile(Icons.backup, Colors.blue, 'حفظ نسخة احتياطية', 'تصدير ومشاركة', () => _backup.shareBackup()),
+          _tile(Icons.cloud, Colors.blue, 'خيارات الحفظ', 'تلقائي ومسارات', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupSettingsScreen()))),
+          _switch('حفظ يومي تلقائي', 'نسخ احتياطي تلقائي', _autoBackup, (v) { setState(() => _autoBackup = v); _saveSetting('auto_backup', v); }),
 
-          _sectionHeader('🔒 خيارات الأمان'),
-          _switchTile(Icons.lock, Colors.red, 'تفعيل كلمة السر', 'قفل التطبيق برقم سري', _lockWithPin,
-              (v) => setState(() => _lockWithPin = v)),
-          _tile(Icons.key, Colors.red, 'تغيير كلمة السر', null,
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityScreen()))),
+          _section('🔒 الأمان'),
+          _tile(Icons.lock, Colors.red, 'كلمة السر', 'PIN والحماية', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityScreen()))),
+          _switch('قفل التطبيق', 'يتطلب PIN عند الفتح', _lockWithPin, (v) { setState(() => _lockWithPin = v); _saveSetting('lock_pin', v); }),
 
-          _sectionHeader('🖨️ خيارات الطباعة'),
-          _tile(Icons.print, Colors.grey, 'إعدادات الطباعة', 'الترويسة، التذييل، خيارات العرض',
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrintSettingsScreen()))),
-          _switchTile(Icons.money, Colors.grey, 'طباعة الرصيد المتبقي', null, _showBalance,
-              (v) => setState(() => _showBalance = v)),
+          _section('🖨️ الطباعة'),
+          _tile(Icons.print, Colors.grey, 'خيارات الطباعة', 'ترويسة وتذييل', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrintSettingsScreen()))),
+          _switch('طباعة الرصيد', 'إظهار الرصيد في الطباعة', _showBalance, (v) { setState(() => _showBalance = v); _saveSetting('show_balance', v); }),
 
-          _sectionHeader('🔔 خيارات الإشعارات'),
-          _switchTile(Icons.notifications, Colors.orange, 'تفعيل الإشعارات', null, _showNotifications,
-              (v) => setState(() => _showNotifications = v)),
-          _switchTile(Icons.warning, Colors.orange, 'تنبيه الديون', 'تنبيه عند وجود ديون مستحقة', _debtAlert,
-              (v) => setState(() => _debtAlert = v)),
+          _section('⚙️ خيارات متقدمة'),
+          _tile(Icons.settings, Colors.teal, 'جميع الخيارات', 'الصوت والعملات والمزيد', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdvancedSettingsScreen()))),
+          _switch('منع البيع بالسالب', 'رقابة على المخزون', _preventNegativeSale, (v) { setState(() => _preventNegativeSale = v); _saveSetting('prevent_negative', v); }),
+          _switch('إظهار رقم العملية', 'في الشاشات', _showOperationNumber, (v) { setState(() => _showOperationNumber = v); _saveSetting('show_op_number', v); }),
+          _switch('تنبيه الديون', 'إشعار بالديون المستحقة', _debtAlert, (v) { setState(() => _debtAlert = v); _saveSetting('debt_alert', v); }),
+          _switch('المساعد الصوتي', 'الأوامر بالصوت', _voiceAssistant, (v) { setState(() => _voiceAssistant = v); _saveSetting('voice_assistant', v); }),
+          _switch('إظهار العملات', 'عملات متعددة', _showCurrency, (v) { setState(() => _showCurrency = v); _saveSetting('show_currency', v); }),
 
-          _sectionHeader('⚙️ خيارات متقدمة'),
-          _tile(Icons.settings, Colors.teal, 'جميع الخيارات المتقدمة', 'الواتساب، المساعد الصوتي، العملات...',
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdvancedSettingsScreen()))),
-          _switchTile(Icons.message, Colors.green, 'إرسال كشف الحساب عبر الواتساب', null, _sendWhatsApp,
-              (v) => setState(() => _sendWhatsApp = v)),
-          _switchTile(Icons.mic, Colors.purple, 'استخدام المساعد الصوتي', null, _voiceAssistant,
-              (v) => setState(() => _voiceAssistant = v)),
-          _switchTile(Icons.attach_money, Colors.teal, 'إظهار العملات', null, _showCurrency,
-              (v) => setState(() => _showCurrency = v)),
-          _switchTile(Icons.block, Colors.red, 'إيقاف البيع بالسالب', 'رقابة صارمة على المخزون', _preventNegativeSale,
-              (v) => setState(() => _preventNegativeSale = v)),
-          _switchTile(Icons.format_list_numbered, Colors.teal, 'إظهار رقم العملية', null, _showOperationNumber,
-              (v) => setState(() => _showOperationNumber = v)),
-
-          _sectionHeader('🎨 المظهر'),
-          _switchTile(Icons.dark_mode, Colors.indigo, 'الوضع الليلي', null, _darkMode,
-              (v) => setState(() => _darkMode = v)),
+          _section('🎨 المظهر'),
+          _switch('الوضع الليلي', 'Dark Mode', _darkMode, (v) { setState(() => _darkMode = v); _saveSetting('dark_mode', v); }),
           ListTile(
             leading: const Icon(Icons.format_size, color: Colors.indigo),
             title: const Text('حجم الخط'),
             subtitle: Text('${_fontSize.toInt()}'),
-            trailing: SizedBox(
-              width: 150,
-              child: Slider(value: _fontSize, min: 12, max: 24, onChanged: (v) => setState(() => _fontSize = v)),
-            ),
+            trailing: SizedBox(width: 150, child: Slider(value: _fontSize, min: 12, max: 24, onChanged: (v) { setState(() => _fontSize = v.toDouble()); _saveSetting('font_size', v.toString()); })),
           ),
 
-          _sectionHeader('👑 الاشتراك'),
+          _section('📂 القوالب'),
+          _tile(Icons.account_tree, Colors.teal, 'قوالب الأنشطة', 'اختيار دليل حسابات', _showTemplates),
+
+          _section('🔒 الإغلاق السنوي'),
+          _tile(Icons.calendar_month, Colors.red, 'الإغلاق السنوي', 'تصفير الحسابات', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const YearCloseScreen()))),
+
+          _section('👑 الاشتراك'),
           ListTile(
             leading: const Icon(Icons.subscriptions, color: Colors.purple),
             title: Text(_sub.isActive ? 'الاشتراك نشط' : 'الاشتراك منتهي'),
-            subtitle: Text(_sub.isActive ? 'متبقي ${_sub.daysLeft} يوم' : 'جدد اشتراكك الآن'),
-            trailing: _sub.isActive
-                ? const Icon(Icons.check_circle, color: Colors.green)
-                : const Icon(Icons.warning, color: Colors.red),
+            subtitle: Text(_sub.isActive ? 'متبقي ${_sub.daysLeft} يوم' : 'جدد اشتراكك'),
+            trailing: _sub.isActive ? const Icon(Icons.check_circle, color: Colors.green) : const Icon(Icons.warning, color: Colors.red),
           ),
-          if (_sub.isActive && _sub.activationCode != null)
-            ListTile(
-              leading: const Icon(Icons.date_range, color: Colors.purple),
-              title: const Text('تاريخ آخر تفعيل'),
-              subtitle: Text(DateTime.now().subtract(Duration(days: _sub.daysUsed)).toLocal().toString().split(' ')[0]),
-            ),
-          ListTile(
-            leading: const Icon(Icons.key, color: Colors.purple),
-            title: const Text('شراء النسخة الكاملة'),
-            subtitle: const Text('أدخل رمز التفعيل'),
-            onTap: () => _showActivationDialog(),
-          ),
+          _tile(Icons.key, Colors.purple, 'شراء النسخة الكاملة', 'إدخال رمز التفعيل', _showActivation),
 
-          _sectionHeader('📂 قوالب الأنشطة'),
-          _tile(Icons.account_tree, Colors.teal, 'اختيار قالب النشاط', 'دليل حسابات مناسب لنشاطك', _showTemplateDialog),
-
-          _sectionHeader('📞 روابط'),
-          _tile(Icons.support, Colors.blue, 'تواصل والدعم', null, () {}),
-          _tile(Icons.info, Colors.blue, 'حول البرنامج', null, () {}),
-          _tile(Icons.share, Colors.blue, 'مشاركة البرنامج', null, () {}),
-          _tile(Icons.privacy_tip, Colors.blue, 'سياسة الخصوصية', null,
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen()))),
-          _tile(Icons.description, Colors.blue, 'شروط الاستخدام', null,
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen()))),
-
-          _sectionHeader(''),
+          _section('🚪'),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text('خروج'),
-            onTap: () async {
-              await _auth.logout();
-              if (mounted) Navigator.pushReplacementNamed(context, '/login');
-            },
+            onTap: () async { await _auth.logout(); if (mounted) Navigator.pushReplacementNamed(context, '/login'); },
           ),
           const SizedBox(height: 40),
         ],
@@ -150,113 +130,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-      child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.teal)),
-    );
+  Widget _section(String title) {
+    return Padding(padding: const EdgeInsets.fromLTRB(16, 20, 16, 8), child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.teal)));
   }
 
-  Widget _tile(IconData icon, Color color, String title, String? subtitle, VoidCallback onTap) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: onTap,
-    );
+  Widget _tile(IconData icon, Color color, String title, String subtitle, VoidCallback onTap) {
+    return ListTile(leading: Icon(icon, color: color), title: Text(title), subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)), trailing: const Icon(Icons.arrow_forward_ios, size: 16), onTap: onTap);
   }
 
-  Widget _switchTile(IconData icon, Color color, String title, String? subtitle, bool value, ValueChanged<bool> onChanged) {
-    return SwitchListTile(
-      secondary: Icon(icon, color: color),
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle) : null,
-      value: value,
-      onChanged: onChanged,
-    );
+  Widget _switch(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile(title: Text(title, style: const TextStyle(fontSize: 15)), subtitle: Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)), value: value, onChanged: onChanged, secondary: const Icon(Icons.toggle_on, color: Colors.teal));
   }
 
-  void _showTemplateDialog() {
+  void _showTemplates() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('اختر قالب النشاط'),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _templates.templates.entries.map((entry) {
-              final t = entry.value;
-              return ListTile(
-                leading: Icon(_getIcon(t['icon']), color: Colors.teal),
-                title: Text(t['name']),
-                subtitle: Text(t['description']),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  await _templates.applyTemplate(entry.key);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم تطبيق قالب: ${t['name']}')));
-                },
-              );
-            }).toList(),
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: _templates.templates.entries.map((e) => ListTile(title: Text(e.value['name'] ?? ''), subtitle: Text(e.value['description'] ?? ''), onTap: () async { Navigator.pop(ctx); await _templates.applyTemplate(e.key); if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم تطبيق: ${e.value['name']}'))); })).toList()),
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء'))],
       ),
     );
   }
 
-  void _showActivationDialog() {
+  void _showActivation() {
     final codeCtrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('تفعيل الاشتراك'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('أدخل رمز التفعيل الذي حصلت عليه:'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: codeCtrl,
-              decoration: const InputDecoration(
-                labelText: 'رمز التفعيل',
-                hintText: 'XXXX-XXXXXXXX',
-                prefixIcon: Icon(Icons.key),
-              ),
-            ),
-          ],
-        ),
+        content: TextField(controller: codeCtrl, decoration: const InputDecoration(labelText: 'رمز التفعيل')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () async {
-              final success = await _sub.activate(codeCtrl.text.trim());
-              if (ctx.mounted) Navigator.pop(ctx);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(success ? 'تم التفعيل بنجاح! ✅' : 'رمز التفعيل غير صحيح ❌')),
-                );
-                setState(() {});
-              }
-            },
-            child: const Text('تفعيل'),
-          ),
+          ElevatedButton(onPressed: () async {
+            final ok = await _sub.activate(codeCtrl.text.trim());
+            if (ctx.mounted) Navigator.pop(ctx);
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'تم التفعيل ✅' : 'رمز غير صحيح ❌')));
+          }, child: const Text('تفعيل')),
         ],
       ),
     );
-  }
-
-  IconData _getIcon(String name) {
-    switch (name) {
-      case 'store': return Icons.store;
-      case 'shopping_cart': return Icons.shopping_cart;
-      case 'medical_services': return Icons.medical_services;
-      case 'currency_exchange': return Icons.currency_exchange;
-      case 'construction': return Icons.construction;
-      case 'miscellaneous_services': return Icons.miscellaneous_services;
-      case 'restaurant': return Icons.restaurant;
-      case 'factory': return Icons.factory;
-      default: return Icons.account_balance;
-    }
   }
 }

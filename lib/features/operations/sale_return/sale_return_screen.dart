@@ -14,6 +14,8 @@ class SaleReturnScreen extends StatelessWidget {
         showInvoiceNumber: true,
         showWarehouse: true,
         showItems: true,
+        showPrice: true,
+        showFreeQty: true,
         isReturn: true,
       ),
     );

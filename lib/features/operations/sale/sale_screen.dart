@@ -14,6 +14,7 @@ class SaleScreen extends StatelessWidget {
         showCustomer: true,
         showCashSource: true,
         showBankSource: true,
+        showCreditAccount: true,
         showWarehouse: true,
         showItems: true,
         showPrice: true,

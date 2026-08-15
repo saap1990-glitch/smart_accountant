@@ -1,5 +1,5 @@
-import '../../errors/app_exception.dart';
 import '../../errors/result.dart';
+import '../../errors/app_exception.dart';
 import '../../engine/accounting/accounting_engine.dart';
 import '../../engine/accounting/transaction_context.dart';
 import '../../engine/accounting/transaction_result.dart';
@@ -15,8 +15,6 @@ class OperationService {
 
   OperationService(this._engine, this._dataService, this._movementService, this._ledgerRepo);
 
-  /// تنفيذ عملية محاسبية كاملة
-  /// [items] تحتوي على أرقام الحسابات الفعلية المختارة
   Future<Result<TransactionResult>> execute({
     required TransactionType type,
     required DateTime date,
@@ -26,33 +24,22 @@ class OperationService {
     double exchangeRate = 1.0,
     Map<String, dynamic>? metadata,
   }) async {
-    // التحقق من أن جميع الحسابات موجودة
     for (final item in items) {
       if (item.accountId <= 0) {
-        return Failure(ValidationException('يجب اختيار جميع الحسابات'));
+        return const Failure(ValidationException('يجب اختيار جميع الحسابات'));
       }
     }
 
-    // التحقق من التوازن
     double totalDebit = 0, totalCredit = 0;
     for (final item in items) {
       totalDebit += item.debit;
       totalCredit += item.credit;
     }
     if ((totalDebit - totalCredit).abs() > 0.001) {
-      return Failure(ValidationException('القيد غير متوازن: المدين ${totalDebit.toStringAsFixed(2)} ≠ الدائن ${totalCredit.toStringAsFixed(2)}'));
+      return Failure(ValidationException('القيد غير متوازن'));
     }
 
-    final context = TransactionContext(
-      type: type,
-      date: date,
-      items: items,
-      reference: reference,
-      currencyCode: currencyCode ?? 'YER',
-      exchangeRate: exchangeRate,
-      metadata: metadata,
-    );
-
+    final context = TransactionContext(type: type, date: date, items: items, reference: reference, currencyCode: currencyCode ?? 'YER', exchangeRate: exchangeRate, metadata: metadata);
     final result = await _engine.execute(context);
 
     if (result is Success<TransactionResult> && metadata != null && metadata.containsKey('items')) {

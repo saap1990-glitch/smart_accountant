@@ -13,7 +13,6 @@ class ReceiptScreen extends StatelessWidget {
         showPaymentMode: true,
         showCashSource: true,
         showBankSource: true,
-        showCustomer: true,
         showCreditAccount: true,
       ),
     );
