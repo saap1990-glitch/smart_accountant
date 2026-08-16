@@ -20,6 +20,8 @@ import '../services/encryption/encryption_service.dart';
 import '../services/subscription/subscription_service.dart';
 import '../services/subscription/anti_tamper_service.dart';
 import '../services/inventory/item_movement_service.dart';
+import '../services/inventory/inventory_cost_service.dart';
+import '../services/inventory/inventory_movement_engine.dart';
 import '../services/accounting/accounting_link_service.dart';
 import '../services/templates/activity_templates.dart';
 import '../services/notifications/notification_service.dart';
@@ -39,33 +41,81 @@ Future<void> setupServiceLocator() async {
 
   sl.registerLazySingleton<AppEventBus>(() => AppEventBus());
   sl.registerLazySingleton<AuditService>(() => _InMemoryAuditService());
-  sl.registerLazySingleton<TransactionManager>(() => TransactionManager(sl<AuditService>(), sl<AppEventBus>()));
-  sl.registerLazySingleton<NumberGenerator>(() => NumberGenerator());
-  sl.registerLazySingleton<TransactionValidator>(() => DefaultTransactionValidator());
+  sl.registerLazySingleton<TransactionManager>(
+    () => TransactionManager(sl<AuditService>(), sl<AppEventBus>()),
+  );
+  sl.registerLazySingleton<NumberGenerator>(
+    () => NumberGenerator(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<TransactionValidator>(
+    () => DefaultTransactionValidator(),
+  );
   sl.registerLazySingleton<WorkflowEngine>(() => WorkflowEngine());
 
-  sl.registerLazySingleton<MasterDataRepository>(() => MasterDataRepository(sl<AppDatabase>()));
-  sl.registerLazySingleton<JournalRepository>(() => JournalRepository(sl<AppDatabase>()));
-  sl.registerLazySingleton<LedgerRepository>(() => LedgerRepository(sl<AppDatabase>()));
+  sl.registerLazySingleton<MasterDataRepository>(
+    () => MasterDataRepository(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<JournalRepository>(
+    () => JournalRepository(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<LedgerRepository>(
+    () => LedgerRepository(sl<AppDatabase>()),
+  );
 
-  sl.registerLazySingleton<AccountingEngine>(() => AccountingEngine(
-    validator: sl<TransactionValidator>(),
-    workflow: sl<WorkflowEngine>(),
-    numberGenerator: sl<NumberGenerator>(),
-    transactionManager: sl<TransactionManager>(),
-    eventBus: sl<AppEventBus>(),
-    journalRepo: sl<JournalRepository>(),
-    ledgerRepo: sl<LedgerRepository>(),
-  ));
+  sl.registerLazySingleton<AccountingEngine>(
+    () => AccountingEngine(
+      validator: sl<TransactionValidator>(),
+      workflow: sl<WorkflowEngine>(),
+      numberGenerator: sl<NumberGenerator>(),
+      transactionManager: sl<TransactionManager>(),
+      eventBus: sl<AppEventBus>(),
+      journalRepo: sl<JournalRepository>(),
+      ledgerRepo: sl<LedgerRepository>(),
+    ),
+  );
 
-  sl.registerLazySingleton<AccountingLinkService>(() => AccountingLinkService(sl<AppDatabase>()));
-  sl.registerLazySingleton<MasterDataService>(() => MasterDataService(sl<MasterDataRepository>(), sl<AccountingLinkService>()));
-  sl.registerLazySingleton<ItemMovementService>(() => ItemMovementService());
-  sl.registerLazySingleton<OperationService>(() => OperationService(
-    sl<AccountingEngine>(), sl<MasterDataService>(), sl<ItemMovementService>(), sl<LedgerRepository>(),
-  ));
-  sl.registerLazySingleton<ReportService>(() => ReportService(sl<MasterDataRepository>(), sl<ItemMovementService>(), sl<LedgerRepository>()));
-  sl.registerLazySingleton<AiService>(() => AiService(sl<OperationService>(), sl<ReportService>()));
+  sl.registerLazySingleton<AccountingLinkService>(
+    () => AccountingLinkService(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<MasterDataService>(
+    () => MasterDataService(
+      sl<MasterDataRepository>(),
+      sl<AccountingLinkService>(),
+    ),
+  );
+  sl.registerLazySingleton<ItemMovementService>(
+    () => ItemMovementService(sl<AppDatabase>()),
+  );
+
+  sl.registerLazySingleton<InventoryMovementEngine>(
+    () => InventoryMovementEngine(sl<AppDatabase>()),
+  );
+
+  sl.registerLazySingleton<InventoryCostService>(
+    () => InventoryCostService(sl<AppDatabase>()),
+  );
+
+  sl.registerLazySingleton<OperationService>(
+    () => OperationService(
+      sl<AccountingEngine>(),
+      sl<MasterDataService>(),
+      sl<ItemMovementService>(),
+      sl<InventoryMovementEngine>(),
+      sl<AppDatabase>(),
+      sl<LedgerRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<ReportService>(
+    () => ReportService(
+      sl<MasterDataRepository>(),
+      sl<ItemMovementService>(),
+      sl<InventoryCostService>(),
+      sl<LedgerRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<AiService>(
+    () => AiService(sl<OperationService>(), sl<ReportService>()),
+  );
   sl.registerLazySingleton<BackupService>(() => BackupService());
   sl.registerLazySingleton<EncryptionService>(() => EncryptionService());
   sl.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
@@ -83,7 +133,14 @@ Future<void> setupServiceLocator() async {
 class _InMemoryAuditService extends AuditService {
   final List<AuditEntry> _entries = [];
   final _controller = StreamController<AuditEntry>.broadcast();
-  @override Future<void> record(AuditEntry entry) async { _entries.add(entry); _controller.add(entry); }
-  @override Future<List<AuditEntry>> getAll() async => List.unmodifiable(_entries);
-  @override Stream<AuditEntry> watchAll() => _controller.stream;
+  @override
+  Future<void> record(AuditEntry entry) async {
+    _entries.add(entry);
+    _controller.add(entry);
+  }
+
+  @override
+  Future<List<AuditEntry>> getAll() async => List.unmodifiable(_entries);
+  @override
+  Stream<AuditEntry> watchAll() => _controller.stream;
 }

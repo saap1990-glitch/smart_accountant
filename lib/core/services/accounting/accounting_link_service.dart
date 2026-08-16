@@ -43,6 +43,7 @@ class AccountingLinkService {
       case 'inventory_default': return _getOrCreate('1106', 'المخزون', 'Inventory', 'asset', 'debit', 11, 3);
       case 'sales_default': return _getOrCreate('4101', 'المبيعات', 'Sales', 'revenue', 'credit', 41, 3);
       case 'expense_default': return _getOrCreate('3101', 'المصروفات التشغيلية', 'Expenses', 'expense', 'debit', 31, 3);
+      case 'cogs_default': return _getOrCreate('3102', 'تكلفة المبيعات', 'Cost of Goods Sold', 'expense', 'debit', 31, 3);
       default: return _getOrCreate('1101', 'افتراضي', 'Default', 'asset', 'debit', 11, 3);
     }
   }

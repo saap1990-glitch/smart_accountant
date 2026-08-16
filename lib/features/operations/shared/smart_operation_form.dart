@@ -3,11 +3,81 @@ import 'package:get_it/get_it.dart';
 import '../../../core/services/operations/operation_service.dart';
 import '../../../core/services/master_data/master_data_service.dart';
 import '../../../core/services/numbering/number_generator.dart';
+import '../../../core/services/inventory/inventory_journal_service.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/engine/accounting/transaction_context.dart';
 import '../../../core/errors/result.dart';
 import 'widgets/item_card_widget.dart';
 
 enum PaymentMode { cash, bank, credit }
+
+extension OperationConfigSmartRules on OperationConfig {
+  bool get needsPaymentMode {
+    // سند القبض والدفع يمثل حركة مالية فعلية،
+    // لذلك لا يحتوي على خيار "آجل".
+    if (transactionType == TransactionType.receipt ||
+        transactionType == TransactionType.payment) {
+      return false;
+    }
+
+    return showPaymentMode ||
+        transactionType == TransactionType.sale ||
+        transactionType == TransactionType.purchase;
+  }
+
+  bool get needsCustomer =>
+      showCustomer ||
+      (transactionType == TransactionType.sale &&
+          isReturn == false &&
+          paymentModeRequiredForCustomer);
+
+  bool get needsSupplier =>
+      showSupplier ||
+      (transactionType == TransactionType.purchase &&
+          isReturn == false &&
+          paymentModeRequiredForSupplier);
+
+  bool get paymentModeRequiredForCustomer =>
+      showCustomer && transactionType == TransactionType.sale;
+
+  bool get paymentModeRequiredForSupplier =>
+      showSupplier && transactionType == TransactionType.purchase;
+
+  bool get needsItems =>
+      showItems ||
+      transactionType == TransactionType.sale ||
+      transactionType == TransactionType.purchase;
+
+  bool get needsWarehouse => showWarehouse || needsItems;
+
+  bool get needsCurrency =>
+      transactionType == TransactionType.sale ||
+      transactionType == TransactionType.purchase ||
+      transactionType == TransactionType.receipt ||
+      transactionType == TransactionType.payment ||
+      transactionType == TransactionType.transfer;
+
+  bool get needsAmount =>
+      !needsItems ||
+      transactionType == TransactionType.receipt ||
+      transactionType == TransactionType.payment ||
+      transactionType == TransactionType.transfer;
+
+  bool get needsCounterAccount =>
+      showCreditAccount ||
+      showDebitAccount ||
+      transactionType == TransactionType.receipt ||
+      transactionType == TransactionType.payment;
+
+  bool get isStockOperation =>
+      isInventoryIn ||
+      isInventoryOut ||
+      (transactionType == TransactionType.transfer &&
+          (showWarehouse || showDestinationWarehouse));
+
+  bool get needsDestinationWarehouse =>
+      showDestinationWarehouse && isStockOperation;
+}
 
 class OperationConfig {
   final String title;
@@ -63,11 +133,23 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
   final _opService = GetIt.I<OperationService>();
   final _dataService = GetIt.I<MasterDataService>();
   final _numberGen = GetIt.I<NumberGenerator>();
+  final _inventoryJournalService = GetIt.I<InventoryJournalService>();
+  final _db = GetIt.I<AppDatabase>();
 
   DateTime _selectedDate = DateTime.now();
   String? _operationNumber;
   String _statusText = '';
   PaymentMode? _paymentMode;
+
+  Future<int?> _getSystemAccountId(String code) async {
+    final row =
+        await (_db.select(_db.systemAccounts)
+              ..where((t) => t.systemCode.equals(code))
+              ..where((t) => t.isActive.equals(true)))
+            .getSingleOrNull();
+
+    return row?.accountId;
+  }
 
   // الحسابات المختارة فعلياً
   int? _selectedCreditAccountId;
@@ -121,7 +203,9 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
   }
 
   Future<void> _generateNumber() async {
-    final number = await _numberGen.generate(widget.config.transactionType.name);
+    final number = await _numberGen.generate(
+      widget.config.transactionType.name,
+    );
     if (mounted) setState(() => _operationNumber = number);
   }
 
@@ -138,7 +222,11 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
 
     if (mounted) {
       setState(() {
-        _postingAccounts = accounts.where((a) => a['accepts_posting'] == true || a['level'] >= 4).toList();
+        _postingAccounts = accounts
+            .where(
+              (a) => a['is_active'] != false && a['accepts_posting'] == true,
+            )
+            .toList();
         _cashBoxes = cashBoxes;
         _banks = banks;
         _wallets = wallets;
@@ -156,70 +244,140 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
     }
   }
 
-  List<JournalItem> _buildJournalItems() {
-    final items = <JournalItem>[];
-    final amount = _totalAmount > 0 ? _totalAmount : double.tryParse(_amountCtrl.text) ?? 0;
+  Future<List<JournalItem>> _buildJournalItems() async {
+    final amount = _totalAmount > 0
+        ? _totalAmount
+        : double.tryParse(_amountCtrl.text) ?? 0;
 
-    // الحساب المدين
+    if (amount <= 0 && _items.isEmpty) {
+      return [];
+    }
+
+    // =========================
+    // البيع ومرتجع البيع
+    // =========================
+    if (widget.config.transactionType == TransactionType.sale &&
+        _items.isNotEmpty) {
+      final debitAccountId = _paymentMode == PaymentMode.credit
+          ? _selectedCustomerAccountId
+          : _selectedCashBoxAccountId ?? _selectedBankAccountId;
+
+      final salesAccountId =
+          _selectedCreditAccountId ??
+          await _getSystemAccountId('sales_default');
+
+      final inventoryAccountId = await _getSystemAccountId('inventory_default');
+
+      final cogsAccountId = await _getSystemAccountId('cogs_default');
+
+      if (debitAccountId == null ||
+          salesAccountId == null ||
+          inventoryAccountId == null ||
+          cogsAccountId == null) {
+        return [];
+      }
+
+      return _inventoryJournalService.buildSaleLines(
+        items: _items
+            .map(
+              (item) => {
+                'id': item.itemId,
+                'name': item.itemName,
+                'quantity': item.quantity,
+                'price': item.price,
+                'discount': item.discount,
+              },
+            )
+            .toList(),
+        receivableAccountId: debitAccountId,
+        salesAccountId: salesAccountId,
+        inventoryAccountId: inventoryAccountId,
+        cogsAccountId: cogsAccountId,
+        isReturn: widget.config.isReturn,
+      );
+    }
+
+    // =========================
+    // الشراء ومرتجع الشراء
+    // =========================
+    if (widget.config.transactionType == TransactionType.purchase &&
+        _items.isNotEmpty) {
+      final inventoryAccountId =
+          _selectedDebitAccountId ??
+          await _getSystemAccountId('inventory_default');
+
+      final payableAccountId = _paymentMode == PaymentMode.credit
+          ? _selectedSupplierAccountId
+          : _selectedCashBoxAccountId ?? _selectedBankAccountId;
+
+      if (inventoryAccountId == null || payableAccountId == null) {
+        return [];
+      }
+
+      return _inventoryJournalService.buildPurchaseLines(
+        total: amount,
+        inventoryAccountId: inventoryAccountId,
+        payableAccountId: payableAccountId,
+        isReturn: widget.config.isReturn,
+      );
+    }
+
+    // =========================
+    // العمليات المالية الأخرى
+    // =========================
     int? debitAccountId = _selectedDebitAccountId;
-    // الحساب الدائن
     int? creditAccountId = _selectedCreditAccountId;
 
-    // تحديد الحسابات حسب نوع العملية والوضع المختار
     switch (widget.config.transactionType) {
       case TransactionType.receipt:
-        // قبض: الصندوق مدين / الحساب المختار دائن
         debitAccountId = _selectedCashBoxAccountId ?? _selectedBankAccountId;
-        creditAccountId = _selectedCreditAccountId ?? _selectedCustomerAccountId;
+        creditAccountId =
+            _selectedCreditAccountId ?? _selectedCustomerAccountId;
         break;
+
       case TransactionType.payment:
-        // صرف: الحساب المختار مدين / الصندوق دائن
         debitAccountId = _selectedDebitAccountId ?? _selectedSupplierAccountId;
         creditAccountId = _selectedCashBoxAccountId ?? _selectedBankAccountId;
         break;
-      case TransactionType.sale:
-        // بيع: العميل/الصندوق مدين / المبيعات دائن
-        debitAccountId = _paymentMode == PaymentMode.credit ? _selectedCustomerAccountId : _selectedCashBoxAccountId ?? _selectedBankAccountId;
-        creditAccountId = _selectedCreditAccountId;
-        break;
-      case TransactionType.purchase:
-        // شراء: المخزون مدين / المورد/الصندوق دائن
-        debitAccountId = _selectedDebitAccountId;
-        creditAccountId = _paymentMode == PaymentMode.credit ? _selectedSupplierAccountId : _selectedCashBoxAccountId ?? _selectedBankAccountId;
-        break;
+
       default:
         break;
     }
 
-    if (widget.config.showItems && _items.isNotEmpty) {
-      for (var item in _items) {
-        final total = item.quantity * item.price;
-        if (widget.config.transactionType == TransactionType.sale || widget.config.isReturn && !widget.config.isInventoryIn) {
-          items.add(JournalItem(accountId: debitAccountId ?? 0, debit: total));
-          items.add(JournalItem(accountId: creditAccountId ?? 0, credit: total));
-        } else {
-          items.add(JournalItem(accountId: debitAccountId ?? 0, debit: total));
-          items.add(JournalItem(accountId: creditAccountId ?? 0, credit: total));
-        }
-      }
-    } else {
-      items.add(JournalItem(accountId: debitAccountId ?? 0, debit: amount));
-      items.add(JournalItem(accountId: creditAccountId ?? 0, credit: amount));
+    if (debitAccountId == null || creditAccountId == null) {
+      return [];
     }
 
-    return items;
+    return [
+      JournalItem(
+        accountId: debitAccountId,
+        debit: amount,
+        description: widget.config.title,
+      ),
+      JournalItem(
+        accountId: creditAccountId,
+        credit: amount,
+        description: widget.config.title,
+      ),
+    ];
   }
 
   Future<void> _submit() async {
-    if (_totalAmount <= 0 && _items.isEmpty && double.tryParse(_amountCtrl.text) == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل المبلغ أو أضف أصنافاً')));
+    if (_totalAmount <= 0 &&
+        _items.isEmpty &&
+        double.tryParse(_amountCtrl.text) == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أدخل المبلغ أو أضف أصنافاً')),
+      );
       return;
     }
 
-    final items = _buildJournalItems();
+    final items = await _buildJournalItems();
 
     if (items.any((i) => i.accountId <= 0)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ اختر جميع الحسابات المطلوبة')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ اختر جميع الحسابات المطلوبة')),
+      );
       return;
     }
 
@@ -231,19 +389,44 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
       currencyCode: _currencyCode,
       exchangeRate: _exchangeRate,
       metadata: {
-        'items': _items.map((e) => {'id': e.itemId, 'name': e.itemName, 'quantity': e.quantity, 'price': e.price}).toList(),
+        'items': _items
+            .map(
+              (e) => {
+                'id': e.itemId,
+                'name': e.itemName,
+                'quantity': e.quantity,
+                'price': e.price,
+              },
+            )
+            .toList(),
         'reference': _operationNumber,
+        'isReturn': widget.config.isReturn,
+        'isInventoryIn': widget.config.isInventoryIn,
+        'isInventoryOut': widget.config.isInventoryOut,
       },
     );
 
     if (!mounted) return;
     switch (result) {
       case Success(data: final res):
-        setState(() { _operationNumber = res.entryNumber; _statusText = '✅ ${res.message} - ${res.entryNumber}'; });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ ${res.entryNumber}'), backgroundColor: Colors.green));
+        setState(() {
+          _operationNumber = res.entryNumber;
+          _statusText = '✅ ${res.message} - ${res.entryNumber}';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${res.entryNumber}'),
+            backgroundColor: Colors.green,
+          ),
+        );
       case Failure(exception: final e):
         setState(() => _statusText = '❌ ${e.message}');
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ ${e.message}'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${e.message}'),
+            backgroundColor: Colors.red,
+          ),
+        );
     }
   }
 
@@ -252,7 +435,18 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.config.title),
-        actions: [if (_operationNumber != null) Center(child: Padding(padding: const EdgeInsets.only(left: 16), child: Text(_operationNumber!, style: const TextStyle(fontWeight: FontWeight.bold))))],
+        actions: [
+          if (_operationNumber != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Text(
+                  _operationNumber!,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -261,14 +455,28 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
             Container(
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-              child: Text('رقم العملية: $_operationNumber', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+              decoration: BoxDecoration(
+                color: Colors.teal.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'رقم العملية: $_operationNumber',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal,
+                ),
+              ),
             ),
           ListTile(
             title: Text('التاريخ: ${_selectedDate.toLocal()}'.split(' ')[0]),
             trailing: const Icon(Icons.calendar_today),
             onTap: () async {
-              final date = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
+              final date = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+              );
               if (date != null && mounted) setState(() => _selectedDate = date);
             },
           ),
@@ -276,16 +484,54 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(labelText: 'العملة'),
             value: _currencyCode,
-            items: _currencies.map((c) => DropdownMenuItem<String>(value: c['code'] as String?, child: Text('${c['name']} (${c['code']})'))).toList(),
+            items: _currencies
+                .map(
+                  (c) => DropdownMenuItem<String>(
+                    value: c['code'] as String?,
+                    child: Text('${c['name']} (${c['code']})'),
+                  ),
+                )
+                .toList(),
             onChanged: (v) => setState(() => _currencyCode = v!),
           ),
           const SizedBox(height: 8),
           if (widget.config.showPaymentMode)
-            Row(children: [
-              if (widget.config.showCashSource) Expanded(child: _modeBtn('نقدي', PaymentMode.cash, Icons.money, Colors.green)),
-              if (widget.config.showBankSource) ...[const SizedBox(width: 8), Expanded(child: _modeBtn('بنكي', PaymentMode.bank, Icons.account_balance, Colors.blue))],
-              if (widget.config.showCustomer || widget.config.showSupplier) ...[const SizedBox(width: 8), Expanded(child: _modeBtn('آجل', PaymentMode.credit, Icons.schedule, Colors.orange))],
-            ]),
+            Row(
+              children: [
+                if (widget.config.showCashSource)
+                  Expanded(
+                    child: _modeBtn(
+                      'نقدي',
+                      PaymentMode.cash,
+                      Icons.money,
+                      Colors.green,
+                    ),
+                  ),
+                if (widget.config.showBankSource) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _modeBtn(
+                      'بنكي',
+                      PaymentMode.bank,
+                      Icons.account_balance,
+                      Colors.blue,
+                    ),
+                  ),
+                ],
+                if (widget.config.showCustomer ||
+                    widget.config.showSupplier) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _modeBtn(
+                      'آجل',
+                      PaymentMode.credit,
+                      Icons.schedule,
+                      Colors.orange,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           const SizedBox(height: 12),
 
           // نقدي - صندوق
@@ -293,11 +539,27 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'اختر الصندوق'),
               value: _selectedCashBoxId?.toString(),
-              items: _cashBoxes.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['name'] ?? ''))).toList(),
+              items: _cashBoxes
+                  .map(
+                    (c) => DropdownMenuItem<String>(
+                      value: c['id'].toString(),
+                      child: Text(c['name'] ?? ''),
+                    ),
+                  )
+                  .toList(),
               onChanged: (v) async {
-                final cashBox = _cashBoxes.firstWhere((c) => c['id'].toString() == v);
-                final accountId = await _dataService.getLinkedAccountId('cash_boxes', 'CashBox', v!);
-                setState(() { _selectedCashBoxId = int.parse(v); _selectedCashBoxAccountId = accountId; });
+                final cashBox = _cashBoxes.firstWhere(
+                  (c) => c['id'].toString() == v,
+                );
+                final accountId = await _dataService.getLinkedAccountId(
+                  'cash_boxes',
+                  'CashBox',
+                  v!,
+                );
+                setState(() {
+                  _selectedCashBoxId = int.parse(v);
+                  _selectedCashBoxAccountId = accountId;
+                });
               },
             ),
 
@@ -306,18 +568,39 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'نوع الحساب'),
               value: _selectedBankSourceType,
-              items: const [DropdownMenuItem(value: 'bank', child: Text('بنك')), DropdownMenuItem(value: 'wallet', child: Text('محفظة')), DropdownMenuItem(value: 'exchange', child: Text('شركة صرافة'))],
-              onChanged: (v) => setState(() { _selectedBankSourceType = v; _selectedBankAccountId = null; }),
+              items: const [
+                DropdownMenuItem(value: 'bank', child: Text('بنك')),
+                DropdownMenuItem(value: 'wallet', child: Text('محفظة')),
+                DropdownMenuItem(value: 'exchange', child: Text('شركة صرافة')),
+              ],
+              onChanged: (v) => setState(() {
+                _selectedBankSourceType = v;
+                _selectedBankAccountId = null;
+              }),
             ),
 
           if (_selectedBankSourceType == 'bank')
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'اختر البنك'),
               value: _selectedBankSourceId?.toString(),
-              items: _banks.map((b) => DropdownMenuItem<String>(value: b['id'].toString(), child: Text(b['name'] ?? ''))).toList(),
+              items: _banks
+                  .map(
+                    (b) => DropdownMenuItem<String>(
+                      value: b['id'].toString(),
+                      child: Text(b['name'] ?? ''),
+                    ),
+                  )
+                  .toList(),
               onChanged: (v) async {
-                final accountId = await _dataService.getLinkedAccountId('banks', 'Bank', v!);
-                setState(() { _selectedBankSourceId = int.parse(v); _selectedBankAccountId = accountId; });
+                final accountId = await _dataService.getLinkedAccountId(
+                  'banks',
+                  'Bank',
+                  v!,
+                );
+                setState(() {
+                  _selectedBankSourceId = int.parse(v);
+                  _selectedBankAccountId = accountId;
+                });
               },
             ),
 
@@ -326,20 +609,48 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'اختر العميل'),
               value: _selectedCustomerId?.toString(),
-              items: _customers.map((c) => DropdownMenuItem<String>(value: c['id'].toString(), child: Text(c['name'] ?? ''))).toList(),
+              items: _customers
+                  .map(
+                    (c) => DropdownMenuItem<String>(
+                      value: c['id'].toString(),
+                      child: Text(c['name'] ?? ''),
+                    ),
+                  )
+                  .toList(),
               onChanged: (v) async {
-                final accountId = await _dataService.getLinkedAccountId('customers', 'Customer', v!);
-                setState(() { _selectedCustomerId = int.parse(v); _selectedCustomerAccountId = accountId; });
+                final accountId = await _dataService.getLinkedAccountId(
+                  'customers',
+                  'Customer',
+                  v!,
+                );
+                setState(() {
+                  _selectedCustomerId = int.parse(v);
+                  _selectedCustomerAccountId = accountId;
+                });
               },
             ),
           if (_paymentMode == PaymentMode.credit && widget.config.showSupplier)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'اختر المورد'),
               value: _selectedSupplierId?.toString(),
-              items: _suppliers.map((s) => DropdownMenuItem<String>(value: s['id'].toString(), child: Text(s['name'] ?? ''))).toList(),
+              items: _suppliers
+                  .map(
+                    (s) => DropdownMenuItem<String>(
+                      value: s['id'].toString(),
+                      child: Text(s['name'] ?? ''),
+                    ),
+                  )
+                  .toList(),
               onChanged: (v) async {
-                final accountId = await _dataService.getLinkedAccountId('suppliers', 'Supplier', v!);
-                setState(() { _selectedSupplierId = int.parse(v); _selectedSupplierAccountId = accountId; });
+                final accountId = await _dataService.getLinkedAccountId(
+                  'suppliers',
+                  'Supplier',
+                  v!,
+                );
+                setState(() {
+                  _selectedSupplierId = int.parse(v);
+                  _selectedSupplierAccountId = accountId;
+                });
               },
             ),
 
@@ -348,8 +659,18 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'الحساب المدين'),
               value: _selectedDebitAccountId?.toString(),
-              items: _postingAccounts.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text('${a['number']} - ${a['name_ar'] ?? a['name_en']}'))).toList(),
-              onChanged: (v) => setState(() => _selectedDebitAccountId = int.parse(v!)),
+              items: _postingAccounts
+                  .map(
+                    (a) => DropdownMenuItem<String>(
+                      value: a['id'].toString(),
+                      child: Text(
+                        '${a['number']} - ${a['name_ar'] ?? a['name_en']}',
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) =>
+                  setState(() => _selectedDebitAccountId = int.parse(v!)),
             ),
 
           // الحساب الدائن
@@ -357,30 +678,78 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'الحساب الدائن'),
               value: _selectedCreditAccountId?.toString(),
-              items: _postingAccounts.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text('${a['number']} - ${a['name_ar'] ?? a['name_en']}'))).toList(),
-              onChanged: (v) => setState(() => _selectedCreditAccountId = int.parse(v!)),
+              items: _postingAccounts
+                  .map(
+                    (a) => DropdownMenuItem<String>(
+                      value: a['id'].toString(),
+                      child: Text(
+                        '${a['number']} - ${a['name_ar'] ?? a['name_en']}',
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) =>
+                  setState(() => _selectedCreditAccountId = int.parse(v!)),
             ),
 
           const SizedBox(height: 8),
-          TextFormField(controller: _descriptionCtrl, decoration: const InputDecoration(labelText: 'البيان'), maxLines: 2),
+          TextFormField(
+            controller: _descriptionCtrl,
+            decoration: const InputDecoration(labelText: 'البيان'),
+            maxLines: 2,
+          ),
           const SizedBox(height: 8),
-          TextFormField(controller: _referenceCtrl, decoration: const InputDecoration(labelText: 'رقم المرجع')),
+          TextFormField(
+            controller: _referenceCtrl,
+            decoration: const InputDecoration(labelText: 'رقم المرجع'),
+          ),
           if (!widget.config.showItems)
-            TextFormField(controller: _amountCtrl, decoration: const InputDecoration(labelText: 'المبلغ'), keyboardType: TextInputType.number),
+            TextFormField(
+              controller: _amountCtrl,
+              decoration: const InputDecoration(labelText: 'المبلغ'),
+              keyboardType: TextInputType.number,
+            ),
 
           if (widget.config.showItems) ...[
             const SizedBox(height: 12),
-            ItemCardWidget(items: _items, availableItems: _allItems, showPriceColumn: widget.config.showPrice, showFreeColumn: widget.config.showFreeQty, onChanged: (items) { double total = 0; for (var item in items) { total += item.quantity * item.price; } setState(() => _totalAmount = total); }),
+            ItemCardWidget(
+              items: _items,
+              availableItems: _allItems,
+              showPriceColumn: widget.config.showPrice,
+              showFreeColumn: widget.config.showFreeQty,
+              onChanged: (items) {
+                double total = 0;
+                for (var item in items) {
+                  total += item.quantity * item.price;
+                }
+                setState(() => _totalAmount = total);
+              },
+            ),
           ],
 
           const SizedBox(height: 20),
           ElevatedButton.icon(
             icon: const Icon(Icons.check_circle),
             label: const Text('حفظ وترحيل'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+            ),
             onPressed: _submit,
           ),
-          if (_statusText.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_statusText, style: TextStyle(color: _statusText.startsWith('✅') ? Colors.green : Colors.red, fontWeight: FontWeight.bold))),
+          if (_statusText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                _statusText,
+                style: TextStyle(
+                  color: _statusText.startsWith('✅')
+                      ? Colors.green
+                      : Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -391,7 +760,11 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
     return ElevatedButton.icon(
       icon: Icon(icon),
       label: Text(label, style: const TextStyle(fontSize: 12)),
-      style: ElevatedButton.styleFrom(backgroundColor: selected ? color : Colors.grey.shade200, foregroundColor: selected ? Colors.white : Colors.black, padding: const EdgeInsets.symmetric(vertical: 8)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: selected ? color : Colors.grey.shade200,
+        foregroundColor: selected ? Colors.white : Colors.black,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+      ),
       onPressed: () => setState(() => _paymentMode = selected ? null : mode),
     );
   }

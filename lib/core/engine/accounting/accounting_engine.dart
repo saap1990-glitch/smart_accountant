@@ -28,13 +28,13 @@ class AccountingEngine {
     required AppEventBus eventBus,
     required JournalRepository journalRepo,
     required LedgerRepository ledgerRepo,
-  })  : _validator = validator,
-        _workflow = workflow,
-        _numberGenerator = numberGenerator,
-        _transactionManager = transactionManager,
-        _eventBus = eventBus,
-        _journalRepo = journalRepo,
-        _ledgerRepo = ledgerRepo;
+  }) : _validator = validator,
+       _workflow = workflow,
+       _numberGenerator = numberGenerator,
+       _transactionManager = transactionManager,
+       _eventBus = eventBus,
+       _journalRepo = journalRepo,
+       _ledgerRepo = ledgerRepo;
 
   Future<Result<TransactionResult>> execute(
     TransactionContext context, {
@@ -42,9 +42,7 @@ class AccountingEngine {
   }) async {
     final validationResult = _validator.validate(context);
     if (!validationResult.isValid) {
-      return Failure(
-        ValidationException(validationResult.errors.join('، ')),
-      );
+      return Failure(ValidationException(validationResult.errors.join('، ')));
     }
 
     final status = _workflow.execute(initialStatus, WorkflowAction.post);
@@ -54,7 +52,10 @@ class AccountingEngine {
       );
     }
 
-    final number = await _numberGenerator.generate(context.type.name);
+    final number = await _numberGenerator.generate(
+      context.type.name,
+      date: context.date,
+    );
 
     return _transactionManager.execute<TransactionResult>(
       operation: () async {
@@ -68,12 +69,16 @@ class AccountingEngine {
           referenceId: context.reference,
           currencyCode: context.currencyCode ?? 'YER',
           exchangeRate: context.exchangeRate,
-          lines: context.items.map((item) => {
-            'accountId': item.accountId,
-            'debit': item.debit,
-            'credit': item.credit,
-            'description': item.description,
-          }).toList(),
+          lines: context.items
+              .map(
+                (item) => {
+                  'accountId': item.accountId,
+                  'debit': item.debit,
+                  'credit': item.credit,
+                  'description': item.description,
+                },
+              )
+              .toList(),
         );
 
         // 2. تحديث Ledger لكل بند
@@ -90,7 +95,9 @@ class AccountingEngine {
           );
         }
 
-        _eventBus.fire(TransactionCompleted({'entryId': entryId, 'number': number}));
+        _eventBus.fire(
+          TransactionCompleted({'entryId': entryId, 'number': number}),
+        );
         return TransactionResult.success(number);
       },
       action: 'POST_${context.type.name.toUpperCase()}',
@@ -100,7 +107,9 @@ class AccountingEngine {
     );
   }
 
-  Future<Result<TransactionResult>> saveAsDraft(TransactionContext context) async {
+  Future<Result<TransactionResult>> saveAsDraft(
+    TransactionContext context,
+  ) async {
     final validationResult = _validator.validate(context);
     if (!validationResult.isValid) {
       return Failure(const ValidationException('Validation failed'));

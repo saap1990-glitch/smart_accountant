@@ -11,17 +11,38 @@ class ItemCardScreen extends StatefulWidget {
 }
 
 class _ItemCardScreenState extends State<ItemCardScreen> {
-  late Map<String, dynamic> _card;
+  Map<String, dynamic>? _card;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadCard();
+  }
+
+  Future<void> _loadCard() async {
     final service = GetIt.I<ItemMovementService>();
-    _card = service.getItemCard(widget.itemName);
+    final card = await service.getItemCard(widget.itemName);
+
+    if (!mounted) return;
+
+    setState(() {
+      _card = card;
+      _loading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading || _card == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text('كرت صنف: ${widget.itemName}')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final card = _card!;
+
     return Scaffold(
       appBar: AppBar(title: Text('كرت صنف: ${widget.itemName}')),
       body: ListView(
@@ -32,23 +53,28 @@ class _ItemCardScreenState extends State<ItemCardScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _row('المشتريات', _card['purchases'].toString()),
-                  _row('المبيعات', _card['sales'].toString()),
-                  _row('المرتجعات', _card['returns'].toString()),
-                  _row('التسويات', _card['adjustments'].toString()),
+                  _row('المشتريات', card['purchases'].toString()),
+                  _row('المبيعات', card['sales'].toString()),
+                  _row('المرتجعات', card['returns'].toString()),
+                  _row('التسويات', card['adjustments'].toString()),
                   const Divider(),
-                  _row('الرصيد', _card['balance'].toString(), bold: true),
+                  _row('الرصيد', card['balance'].toString(), bold: true),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
-          const Text('حركات الصنف', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ...(_card['movements'] as List).map((m) => ListTile(
-            title: Text(m.reference ?? m.operationType),
-            subtitle: Text('${m.date.toLocal()}'.split(' ')[0]),
-            trailing: Text('${m.quantity}'),
-          )),
+          const Text(
+            'حركات الصنف',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          ...(card['movements'] as List).map(
+            (m) => ListTile(
+              title: Text(m.reference ?? m.operationType),
+              subtitle: Text('${m.date.toLocal()}'.split(' ')[0]),
+              trailing: Text('${m.quantity}'),
+            ),
+          ),
         ],
       ),
     );
@@ -60,8 +86,18 @@ class _ItemCardScreenState extends State<ItemCardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
-          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
         ],
       ),
     );
