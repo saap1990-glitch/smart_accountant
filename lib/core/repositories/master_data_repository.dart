@@ -119,6 +119,43 @@ class MasterDataRepository {
           nameEn: Value(data['name_en']),
         ),
       );
+  Future<Map<String, dynamic>?> getAccountById(int id) async {
+    final r = await (db.select(
+      db.accounts,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'number': r.number,
+      'name_ar': r.nameAr,
+      'name_en': r.nameEn,
+      'type': r.type,
+      'nature': r.nature,
+      'parent_id': r.parentId,
+      'level': r.level,
+      'accepts_posting': r.acceptsPosting,
+      'is_system': r.isSystem,
+      'is_active': r.isActive,
+    };
+  }
+
+  Future<Map<String, dynamic>?> getAccountByNumber(String number) async {
+    final r = await (db.select(
+      db.accounts,
+    )..where((t) => t.number.equals(number))).getSingleOrNull();
+    if (r == null) return null;
+    return {'id': r.id, 'number': r.number, 'level': r.level};
+  }
+
+  Future<List<Map<String, dynamic>>> getChildAccounts(int parentId) async {
+    final rows = await (db.select(
+      db.accounts,
+    )..where((t) => t.parentId.equals(parentId))).get();
+    return rows
+        .map((r) => {'id': r.id, 'number': r.number, 'parent_id': r.parentId})
+        .toList();
+  }
+
   Future<int> deleteAccount(int id) async =>
       (db.delete(db.accounts)..where((t) => t.id.equals(id))).go();
 

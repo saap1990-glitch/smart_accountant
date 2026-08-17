@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
+
 import '../../database/app_database.dart';
-import '../numbering/number_generator.dart';
 
 class AccountingLinkService {
   final AppDatabase _db;
@@ -14,117 +14,473 @@ class AccountingLinkService {
     required String entityName,
     required String parentSystemCode,
   }) async {
+    return createLink(
+      module: module,
+      entityType: entityType,
+      entityId: entityId,
+      entityName: entityName,
+      parentSystemCode: parentSystemCode,
+    );
+  }
+
+  Future<int> createLink({
+    required String module,
+    required String entityType,
+    required String entityId,
+    required String entityName,
+    required String parentSystemCode,
+  }) async {
+    final existing = await getLinkedAccount(module, entityType, entityId);
+
+    if (existing != null) {
+      return existing;
+    }
+
     final parentId = await _ensureParentExists(parentSystemCode);
-    final parent = await (_db.select(_db.accounts)..where((t) => t.id.equals(parentId))).getSingle();
-    final children = await (_db.select(_db.accounts)..where((t) => t.parentId.equals(parentId))).get();
-    final nextNumber = '${parent.number}${(children.length + 1).toString().padLeft(2, '0')}';
 
-    final accountId = await _db.into(_db.accounts).insert(AccountsCompanion(
-      number: Value(nextNumber), nameAr: Value(entityName), nameEn: Value(entityName),
-      type: Value(parent.type), nature: Value(parent.nature), parentId: Value(parentId),
-      level: Value(parent.level + 1), acceptsPosting: const Value(true),
-      isSystem: const Value(false), isActive: const Value(true),
-    ));
+    final parent = await (_db.select(
+      _db.accounts,
+    )..where((t) => t.id.equals(parentId))).getSingle();
 
-    await _db.into(_db.accountLinks).insert(AccountLinksCompanion(
-      module: Value(module), entityType: Value(entityType), entityId: Value(entityId), accountId: Value(accountId),
-    ));
+    final parentLevel = parent.level;
+
+    if (parentLevel >= 5) {
+      throw StateError('لا يمكن إنشاء حساب فرعي تحت المستوى الخامس');
+    }
+
+    final children = await (_db.select(
+      _db.accounts,
+    )..where((t) => t.parentId.equals(parentId))).get();
+
+    var nextSequence = 1;
+
+    for (final child in children) {
+      final number = child.number;
+
+      if (number.startsWith(parent.number) &&
+          number.length == parent.number.length + 2) {
+        final suffix = int.tryParse(number.substring(parent.number.length));
+
+        if (suffix != null && suffix >= nextSequence) {
+          nextSequence = suffix + 1;
+        }
+      }
+    }
+
+    if (nextSequence > 99) {
+      throw StateError('تم الوصول إلى الحد الأقصى للحسابات الفرعية');
+    }
+
+    final nextNumber =
+        '${parent.number}${nextSequence.toString().padLeft(2, '0')}';
+
+    final accountId = await _db
+        .into(_db.accounts)
+        .insert(
+          AccountsCompanion(
+            number: Value(nextNumber),
+            nameAr: Value(entityName),
+            nameEn: Value(entityName),
+            type: Value(parent.type),
+            nature: Value(parent.nature),
+            parentId: Value(parentId),
+            level: Value(parentLevel + 1),
+            acceptsPosting: Value(parentLevel + 1 == 5),
+            isSystem: const Value(false),
+            isActive: const Value(true),
+          ),
+        );
+
+    await _db
+        .into(_db.accountLinks)
+        .insert(
+          AccountLinksCompanion(
+            module: Value(module),
+            entityType: Value(entityType),
+            entityId: Value(entityId),
+            accountId: Value(accountId),
+          ),
+        );
+
     return accountId;
   }
 
   Future<int> _ensureParentExists(String systemCode) async {
+    String number;
+
     switch (systemCode) {
-      case 'customer_parent': return _getOrCreate('1105', 'العملاء', 'Customers', 'asset', 'debit', 11, 3);
-      case 'supplier_parent': return _getOrCreate('2101', 'الموردون', 'Suppliers', 'liability', 'credit', 21, 3);
-      case 'bank_default': return _getOrCreate('1102', 'البنوك', 'Banks', 'asset', 'debit', 11, 3);
-      case 'cash_default': return _getOrCreate('1101', 'الصندوق', 'Cash', 'asset', 'debit', 11, 3);
-      case 'wallet_parent': return _getOrCreate('1104', 'المحافظ الإلكترونية', 'E-Wallets', 'asset', 'debit', 11, 3);
-      case 'exchange_parent': return _getOrCreate('1103', 'شركات الصرافة', 'Exchange', 'asset', 'debit', 11, 3);
-      case 'inventory_default': return _getOrCreate('1106', 'المخزون', 'Inventory', 'asset', 'debit', 11, 3);
-      case 'sales_default': return _getOrCreate('4101', 'المبيعات', 'Sales', 'revenue', 'credit', 41, 3);
-      case 'expense_default': return _getOrCreate('3101', 'المصروفات التشغيلية', 'Expenses', 'expense', 'debit', 31, 3);
-      case 'cogs_default': return _getOrCreate('3102', 'تكلفة المبيعات', 'Cost of Goods Sold', 'expense', 'debit', 31, 3);
-      default: return _getOrCreate('1101', 'افتراضي', 'Default', 'asset', 'debit', 11, 3);
+      case 'customer_parent':
+        number = '1105';
+        break;
+
+      case 'supplier_parent':
+        number = '2101';
+        break;
+
+      case 'bank_default':
+        number = '1102';
+        break;
+
+      case 'cash_default':
+        number = '1101';
+        break;
+
+      case 'wallet_parent':
+        number = '1104';
+        break;
+
+      case 'exchange_parent':
+        number = '1103';
+        break;
+
+      case 'inventory_default':
+        number = '1106';
+        break;
+
+      case 'sales_default':
+        number = '4101';
+        break;
+
+      case 'expense_default':
+        number = '3102';
+        break;
+
+      default:
+        throw ArgumentError('رمز الحساب النظامي غير معروف: $systemCode');
     }
+
+    return _getByNumber(number);
   }
 
-  Future<int> _getOrCreate(String number, String nameAr, String nameEn, String type, String nature, int parentNumber, int level) async {
-    final existing = await (_db.select(_db.accounts)..where((t) => t.number.equals(number))).getSingleOrNull();
-    if (existing != null) return existing.id;
-    return _db.into(_db.accounts).insert(AccountsCompanion(
-      number: Value(number), nameAr: Value(nameAr), nameEn: Value(nameEn),
-      type: Value(type), nature: Value(nature), parentId: const Value(null),
-      level: Value(level), acceptsPosting: const Value(true),
-      isSystem: const Value(true), isActive: const Value(true),
-    ));
+  Future<int> _getByNumber(String number) async {
+    final account = await (_db.select(
+      _db.accounts,
+    )..where((t) => t.number.equals(number))).getSingleOrNull();
+
+    if (account == null) {
+      throw StateError(
+        'الحساب النظامي $number غير موجود. '
+        'يجب تشغيل تهيئة دليل الحسابات أولًا.',
+      );
+    }
+
+    return account.id;
   }
 
-  Future<int?> getLinkedAccount(String module, String entityType, String entityId) async {
-    final link = await (_db.select(_db.accountLinks)
-      ..where((t) => t.module.equals(module))
-      ..where((t) => t.entityType.equals(entityType))
-      ..where((t) => t.entityId.equals(entityId))).getSingleOrNull();
+  Future<int?> getLinkedAccount(
+    String module,
+    String entityType,
+    String entityId,
+  ) async {
+    final link =
+        await (_db.select(_db.accountLinks)
+              ..where((t) => t.module.equals(module))
+              ..where((t) => t.entityType.equals(entityType))
+              ..where((t) => t.entityId.equals(entityId)))
+            .getSingleOrNull();
+
     return link?.accountId;
   }
 
   Future<void> seedDefaultAccounts() async {
-    final count = await _db.select(_db.accounts).get().then((v) => v.length);
-    if (count > 0) return;
+    final a1 = await _ensureAccount(
+      number: '1',
+      nameAr: 'الأصول',
+      nameEn: 'Assets',
+      type: 'asset',
+      nature: 'debit',
+      parentId: null,
+      level: 1,
+    );
+    final a2 = await _ensureAccount(
+      number: '2',
+      nameAr: 'الخصوم',
+      nameEn: 'Liabilities',
+      type: 'liability',
+      nature: 'credit',
+      parentId: null,
+      level: 1,
+    );
+    final a3 = await _ensureAccount(
+      number: '3',
+      nameAr: 'المصروفات',
+      nameEn: 'Expenses',
+      type: 'expense',
+      nature: 'debit',
+      parentId: null,
+      level: 1,
+    );
+    final a4 = await _ensureAccount(
+      number: '4',
+      nameAr: 'الإيرادات',
+      nameEn: 'Revenues',
+      type: 'revenue',
+      nature: 'credit',
+      parentId: null,
+      level: 1,
+    );
 
-    // المستوى 1
-    final a1 = await _insert('1', 'الأصول', 'Assets', 'asset', 'debit', null, 1);
-    final a2 = await _insert('2', 'الخصوم', 'Liabilities', 'liability', 'credit', null, 1);
-    final a3 = await _insert('3', 'المصروفات', 'Expenses', 'expense', 'debit', null, 1);
-    final a4 = await _insert('4', 'الإيرادات', 'Revenues', 'revenue', 'credit', null, 1);
+    final a11 = await _ensureAccount(
+      number: '11',
+      nameAr: 'الأصول المتداولة',
+      nameEn: 'Current Assets',
+      type: 'asset',
+      nature: 'debit',
+      parentId: a1,
+      level: 2,
+    );
+    final a12 = await _ensureAccount(
+      number: '12',
+      nameAr: 'الأصول غير المتداولة',
+      nameEn: 'Non-current Assets',
+      type: 'asset',
+      nature: 'debit',
+      parentId: a1,
+      level: 2,
+    );
+    final a21 = await _ensureAccount(
+      number: '21',
+      nameAr: 'الخصوم المتداولة',
+      nameEn: 'Current Liabilities',
+      type: 'liability',
+      nature: 'credit',
+      parentId: a2,
+      level: 2,
+    );
+    final a22 = await _ensureAccount(
+      number: '22',
+      nameAr: 'الخصوم طويلة الأجل',
+      nameEn: 'Long-term Liabilities',
+      type: 'liability',
+      nature: 'credit',
+      parentId: a2,
+      level: 2,
+    );
+    final a31 = await _ensureAccount(
+      number: '31',
+      nameAr: 'المصروفات التشغيلية',
+      nameEn: 'Operating Expenses',
+      type: 'expense',
+      nature: 'debit',
+      parentId: a3,
+      level: 2,
+    );
+    final a41 = await _ensureAccount(
+      number: '41',
+      nameAr: 'الإيرادات التشغيلية',
+      nameEn: 'Operating Revenues',
+      type: 'revenue',
+      nature: 'credit',
+      parentId: a4,
+      level: 2,
+    );
 
-    // المستوى 2
-    final a11 = await _insert('11', 'الأصول المتداولة', 'Current Assets', 'asset', 'debit', a1, 2);
-    final a12 = await _insert('12', 'الأصول غير المتداولة', 'Fixed Assets', 'asset', 'debit', a1, 2);
-    final a21 = await _insert('21', 'الخصوم المتداولة', 'Current Liabilities', 'liability', 'credit', a2, 2);
-    final a22 = await _insert('22', 'الخصوم طويلة الأجل', 'Long-term Liabilities', 'liability', 'credit', a2, 2);
-    final a31 = await _insert('31', 'المصروفات التشغيلية', 'Operating Expenses', 'expense', 'debit', a3, 2);
-    final a41 = await _insert('41', 'إيرادات النشاط الرئيسي', 'Main Revenues', 'revenue', 'credit', a4, 2);
+    await _default3(
+      '1101',
+      'النقدية والصناديق',
+      'Cash and Cash Boxes',
+      a11,
+      'asset',
+      'debit',
+    );
+    await _default3('1102', 'البنوك', 'Banks', a11, 'asset', 'debit');
+    await _default3(
+      '1103',
+      'شركات الصرافة',
+      'Exchange Companies',
+      a11,
+      'asset',
+      'debit',
+    );
+    await _default3(
+      '1104',
+      'المحافظ الإلكترونية',
+      'E-Wallets',
+      a11,
+      'asset',
+      'debit',
+    );
+    await _default3('1105', 'العملاء', 'Customers', a11, 'asset', 'debit');
+    await _default3('1106', 'المخزون', 'Inventory', a11, 'asset', 'debit');
+    await _default3('1201', 'الأراضي', 'Land', a12, 'asset', 'debit');
+    await _default3('1202', 'المباني', 'Buildings', a12, 'asset', 'debit');
+    await _default3('1203', 'السيارات', 'Vehicles', a12, 'asset', 'debit');
+    await _default3(
+      '1204',
+      'الأثاث والمعدات',
+      'Furniture and Equipment',
+      a12,
+      'asset',
+      'debit',
+    );
 
-    // المستوى 3
-    await _insert('1101', 'الصندوق', 'Cash', 'asset', 'debit', a11, 3);
-    await _insert('1102', 'البنوك', 'Banks', 'asset', 'debit', a11, 3);
-    await _insert('1103', 'شركات الصرافة', 'Exchange Companies', 'asset', 'debit', a11, 3);
-    await _insert('1104', 'المحافظ الإلكترونية', 'E-Wallets', 'asset', 'debit', a11, 3);
-    await _insert('1105', 'العملاء', 'Customers', 'asset', 'debit', a11, 3);
-    await _insert('1106', 'المخزون', 'Inventory', 'asset', 'debit', a11, 3);
-    await _insert('1201', 'الأراضي', 'Lands', 'asset', 'debit', a12, 3);
-    await _insert('1202', 'المباني', 'Buildings', 'asset', 'debit', a12, 3);
-    await _insert('2101', 'الموردون', 'Suppliers', 'liability', 'credit', a21, 3);
-    await _insert('2102', 'أوراق الدفع', 'Notes Payable', 'liability', 'credit', a21, 3);
-    await _insert('2201', 'القروض', 'Loans', 'liability', 'credit', a22, 3);
-    await _insert('3101', 'الرواتب', 'Salaries', 'expense', 'debit', a31, 3);
-    await _insert('3102', 'الإيجارات', 'Rent', 'expense', 'debit', a31, 3);
-    await _insert('3103', 'الكهرباء', 'Electricity', 'expense', 'debit', a31, 3);
-    await _insert('4101', 'المبيعات', 'Sales', 'revenue', 'credit', a41, 3);
+    await _default3(
+      '2101',
+      'الموردون',
+      'Suppliers',
+      a21,
+      'liability',
+      'credit',
+    );
+    await _default3(
+      '2102',
+      'أوراق الدفع',
+      'Notes Payable',
+      a21,
+      'liability',
+      'credit',
+    );
+    await _default3(
+      '2103',
+      'مصروفات مستحقة',
+      'Accrued Expenses',
+      a21,
+      'liability',
+      'credit',
+    );
+    await _default3(
+      '2201',
+      'القروض طويلة الأجل',
+      'Long-term Loans',
+      a22,
+      'liability',
+      'credit',
+    );
 
-    // المستوى 4 (أمثلة)
-    final cashId = await _getByNumber('1101');
-    final bankId = await _getByNumber('1102');
-    await _insert('110101', 'الصندوق الرئيسي', 'Main Cash', 'asset', 'debit', cashId, 4);
-    await _insert('110102', 'صندوق الفرع', 'Branch Cash', 'asset', 'debit', cashId, 4);
-    await _insert('110201', 'حساب جاري', 'Current Account', 'asset', 'debit', bankId, 4);
+    await _default3(
+      '3101',
+      'الرواتب والأجور',
+      'Salaries and Wages',
+      a31,
+      'expense',
+      'debit',
+    );
+    await _default3('3102', 'الإيجارات', 'Rent', a31, 'expense', 'debit');
+    await _default3(
+      '3103',
+      'الكهرباء والمياه',
+      'Utilities',
+      a31,
+      'expense',
+      'debit',
+    );
+    await _default3(
+      '3104',
+      'النقل والمواصلات',
+      'Transport',
+      a31,
+      'expense',
+      'debit',
+    );
+    await _default3(
+      '3105',
+      'الاتصالات',
+      'Communication',
+      a31,
+      'expense',
+      'debit',
+    );
+    await _default3('3106', 'الإهلاك', 'Depreciation', a31, 'expense', 'debit');
 
-    // المستوى 5 (مثال)
-    final mainCashId = await _getByNumber('110101');
-    await _insert('11010101', 'صندوق الخزنة', 'Safe Box', 'asset', 'debit', mainCashId, 5);
+    await _default3('4101', 'المبيعات', 'Sales', a41, 'revenue', 'credit');
+    await _default3(
+      '4102',
+      'إيرادات الخدمات',
+      'Service Revenue',
+      a41,
+      'revenue',
+      'credit',
+    );
+    await _default3(
+      '4103',
+      'إيرادات أخرى',
+      'Other Revenue',
+      a41,
+      'revenue',
+      'credit',
+    );
   }
 
-  Future<int> _insert(String number, String nameAr, String nameEn, String type, String nature, int? parentId, int level) async {
-    return _db.into(_db.accounts).insert(AccountsCompanion(
-      number: Value(number), nameAr: Value(nameAr), nameEn: Value(nameEn),
-      type: Value(type), nature: Value(nature), parentId: Value(parentId),
-      level: Value(level), acceptsPosting: Value(level >= 4),
-      isSystem: const Value(true), isActive: const Value(true),
-    ));
+  Future<void> _default3(
+    String n,
+    String ar,
+    String en,
+    int p,
+    String t,
+    String r,
+  ) async {
+    await _ensureAccount(
+      number: n,
+      nameAr: ar,
+      nameEn: en,
+      type: t,
+      nature: r,
+      parentId: p,
+      level: 3,
+    );
   }
 
-  Future<int> _getByNumber(String number) async {
-    final acc = await (_db.select(_db.accounts)..where((t) => t.number.equals(number))).getSingle();
-    return acc.id;
+  Future<void> _default45(
+    int p,
+    String n,
+    String ar,
+    String en,
+    String t,
+    String r,
+  ) async {
+    final l4 = await _ensureAccount(
+      number: n,
+      nameAr: ar,
+      nameEn: en,
+      type: t,
+      nature: r,
+      parentId: p,
+      level: 4,
+    );
+    await _ensureAccount(
+      number: '${n}01',
+      nameAr: '${ar} - رئيسي',
+      nameEn: '${en} - Main',
+      type: t,
+      nature: r,
+      parentId: l4,
+      level: 5,
+    );
+  }
+
+  Future<int> _ensureAccount({
+    required String number,
+    required String nameAr,
+    required String nameEn,
+    required String type,
+    required String nature,
+    required int? parentId,
+    required int level,
+    bool acceptsPosting = false,
+  }) async {
+    final existing = await (_db.select(
+      _db.accounts,
+    )..where((t) => t.number.equals(number))).getSingleOrNull();
+
+    if (existing != null) {
+      return existing.id;
+    }
+
+    return _db
+        .into(_db.accounts)
+        .insert(
+          AccountsCompanion(
+            number: Value(number),
+            nameAr: Value(nameAr),
+            nameEn: Value(nameEn),
+            type: Value(type),
+            nature: Value(nature),
+            parentId: Value(parentId),
+            level: Value(level),
+            acceptsPosting: Value(level == 5 && acceptsPosting),
+            isSystem: const Value(true),
+            isActive: const Value(true),
+          ),
+        );
   }
 }

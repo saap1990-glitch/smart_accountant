@@ -42,39 +42,123 @@ class MasterDataService {
 
   // الحسابات
   Future<int> createAccount({
-    required String number,
     required String nameAr,
     String? nameEn,
     required String type,
     required String nature,
     int? parentId,
-    int level = 1,
-    bool acceptsPosting = false,
     bool isActive = true,
     String currencyCode = 'YER',
     String? notes,
     double openingBalance = 0,
     String openingBalanceNature = 'debit',
   }) async {
-    if (openingBalance < 0) {
-      throw ArgumentError('الرصيد الافتتاحي لا يمكن أن يكون سالبًا');
+    final accounts = await _repository.getAllAccounts();
+
+    const allowedTypes = {'asset', 'liability', 'expense', 'revenue'};
+
+    if (!allowedTypes.contains(type)) {
+      throw ArgumentError('نوع الحساب غير صالح');
     }
 
-    if (openingBalance > 0 &&
-        openingBalanceNature != 'debit' &&
-        openingBalanceNature != 'credit') {
-      throw ArgumentError('طبيعة الرصيد الافتتاحي غير صحيحة');
+    if (nameAr.trim().isEmpty) {
+      throw ArgumentError('اسم الحساب مطلوب');
     }
+
+    if (openingBalance < 0) {
+      throw ArgumentError('الرصيد الافتتاحي لا يمكن أن يكون سالباً');
+    }
+
+    if (openingBalanceNature != 'debit' && openingBalanceNature != 'credit') {
+      throw ArgumentError('طبيعة الرصيد يجب أن تكون debit أو credit');
+    }
+
+    Map<String, dynamic>? parent;
+    int level;
+
+    if (parentId == null) {
+      level = 1;
+
+      final rootNumbers = {
+        'asset': '1',
+        'liability': '2',
+        'expense': '3',
+        'revenue': '4',
+      };
+
+      final rootNumber = rootNumbers[type]!;
+
+      if (accounts.any((a) => '${a['number']}' == rootNumber)) {
+        throw ArgumentError('الحساب الرئيسي موجود مسبقاً');
+      }
+
+      final rootNames = {
+        'asset': 'الأصول',
+        'liability': 'الخصوم',
+        'expense': 'المصروفات',
+        'revenue': 'الإيرادات',
+      };
+
+      return _repository.insertAccount({
+        'number': rootNumber,
+        'name_ar': rootNames[type],
+        'name_en': nameEn,
+        'type': type,
+        'nature': nature,
+        'parent_id': null,
+        'level': 1,
+        'accepts_posting': false,
+        'is_active': isActive,
+        'currency_code': currencyCode,
+        'notes': notes,
+        'opening_balance': openingBalance.toString(),
+        'opening_balance_nature': openingBalanceNature,
+      });
+    }
+
+    parent = accounts.firstWhere(
+      (a) => a['id'] == parentId,
+      orElse: () => <String, dynamic>{},
+    );
+
+    if (parent.isEmpty) {
+      throw ArgumentError('الحساب الأب غير موجود');
+    }
+
+    final parentLevel = int.tryParse('${parent['level']}') ?? 0;
+    level = parentLevel + 1;
+
+    if (level > 5) {
+      throw ArgumentError('لا يمكن إنشاء حساب بعد المستوى الخامس');
+    }
+
+    if (parent['accepts_posting'] == true) {
+      throw ArgumentError('لا يمكن إنشاء حساب تحت حساب يقبل القيود');
+    }
+
+    if (type != parent['type'] || nature != parent['nature']) {
+      throw ArgumentError('نوع وطبيعة الحساب يجب أن تطابق الحساب الأب');
+    }
+
+    final prefix = '${parent['number']}';
+
+    var next = 1;
+    late String number;
+
+    do {
+      number = '$prefix${next.toString().padLeft(2, '0')}';
+      next++;
+    } while (accounts.any((a) => '${a['number']}' == number));
 
     return _repository.insertAccount({
       'number': number,
-      'name_ar': nameAr,
-      'name_en': nameEn,
+      'name_ar': nameAr.trim(),
+      'name_en': nameEn?.trim(),
       'type': type,
       'nature': nature,
       'parent_id': parentId,
       'level': level,
-      'accepts_posting': acceptsPosting,
+      'accepts_posting': level == 5,
       'is_active': isActive,
       'currency_code': currencyCode,
       'notes': notes,

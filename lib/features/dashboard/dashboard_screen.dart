@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
-import 'package:fl_chart/fl_chart.dart';
+
+import '../../core/di/service_locator.dart';
 import '../../core/services/reports/report_service.dart';
-import '../../core/services/targets/target_service.dart';
-import '../../core/services/notifications/notification_service.dart';
-import 'widgets/notification_bell.dart';
-import 'widgets/target_gauge.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -15,189 +11,342 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final _reportService = GetIt.I<ReportService>();
-  final _targetService = GetIt.I<TargetService>();
-  final _notificationService = GetIt.I<NotificationService>();
+  final ReportService _reportService = sl<ReportService>();
 
   bool _loading = true;
-  bool _hasData = false;
+  String? _error;
+
   Map<String, dynamic> _income = {};
   Map<String, dynamic> _balance = {};
+  List<Map<String, dynamic>> _trialBalance = [];
 
   @override
   void initState() {
     super.initState();
-    _loadData();
-    _notificationService.checkDeadlines();
+    _loadDashboard();
   }
 
-  Future<void> _loadData() async {
-    try {
-      final income = await _reportService.incomeStatement(
-        from: DateTime(DateTime.now().year, DateTime.now().month, 1),
-        to: DateTime.now(),
-      );
-      final balance = await _reportService.balanceSheet(DateTime.now());
+  Future<void> _loadDashboard() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
-      if (mounted) {
-        setState(() {
-          _income = income;
-          _balance = balance;
-          _hasData = true;
-          _loading = false;
-        });
-      }
+    try {
+      final now = DateTime.now();
+      final from = DateTime(now.year, now.month, 1);
+      final to = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+
+      final results = await Future.wait([
+        _reportService.incomeStatement(from: from, to: to),
+        _reportService.balanceSheet(now),
+        _reportService.trialBalance(now),
+      ]);
+
+      if (!mounted) return;
+
+      setState(() {
+        _income = results[0] as Map<String, dynamic>;
+        _balance = results[1] as Map<String, dynamic>;
+        _trialBalance = results[2] as List<Map<String, dynamic>>;
+        _loading = false;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _hasData = false;
-          _loading = false;
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
     }
+  }
+
+  double _number(dynamic value) {
+    if (value == null) return 0;
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(value.toString()) ?? 0;
+  }
+
+  String _money(dynamic value) {
+    return _number(value).toStringAsFixed(2);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('لوحة التحكم'), actions: const [NotificationBell()]),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
+    return RefreshIndicator(
+      onRefresh: _loadDashboard,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildHeader(context),
+          const SizedBox(height: 16),
 
-    final target = _targetService.overallTarget;
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('لوحة التحكم'),
-        actions: const [NotificationBell()],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // رسالة ترحيبية
-            Text('مرحباً بك! 👋', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text('${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}', style: TextStyle(color: Colors.grey.shade600)),
-            const SizedBox(height: 20),
-
-            if (!_hasData) ...[
-              // شاشة الترحيب الجذابة للمستخدم الجديد
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF006D5B), Color(0xFF4ED9B2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.auto_awesome, size: 60, color: Colors.white),
-                    const SizedBox(height: 16),
-                    const Text('ابدأ رحلتك المحاسبية', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                    const SizedBox(height: 8),
-                    const Text('أضف أول عملية لبدء تتبع أرباحك ومصروفاتك', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _quickAction('فاتورة بيع', Icons.point_of_sale, Colors.white),
-                        _quickAction('سند قبض', Icons.arrow_downward, Colors.white),
-                        _quickAction('قيد يومية', Icons.book, Colors.white),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-            ] else ...[
-              // البطاقات الملخصة
-              Row(
-                children: [
-                  Expanded(child: _summaryCard('الإيرادات', _income['revenues'] ?? '0', Colors.teal, Icons.trending_up)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _summaryCard('المصروفات', _income['expenses'] ?? '0', Colors.red, Icons.trending_down)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: _summaryCard('صافي الربح', _income['net_income'] ?? '0', Colors.blue, Icons.savings)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _summaryCard('الأصول', _balance['assets'] ?? '0', Colors.purple, Icons.account_balance)),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
-
-            // الهدف الشهري
-            if (target.monthlyTarget > 0) ...[
-              const Text('🎯 الهدف الشهري', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              TargetGauge(target: target),
-              const SizedBox(height: 16),
-            ],
-
-            // رسم بياني
-            if (_hasData) ...[
-              const Text('📊 أداء الإيرادات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 200,
-                child: BarChart(
-                  BarChartData(
-                    barGroups: List.generate(6, (i) => BarChartGroupData(
-                      x: i,
-                      barRods: [BarChartRodData(toY: (i + 1) * 3000, color: Colors.teal, width: 20, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)))],
-                    )),
-                    titlesData: const FlTitlesData(show: false),
-                    gridData: const FlGridData(show: false),
-                    borderData: FlBorderData(show: false),
-                  ),
-                ),
-              ),
-            ],
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(40),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            _buildError()
+          else ...[
+            _buildFinancialSummary(),
+            const SizedBox(height: 16),
+            _buildQuickActions(context),
+            const SizedBox(height: 16),
+            _buildAccountingStatus(),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _summaryCard(String title, String value, Color color, IconData icon) {
+  Widget _buildHeader(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'لوحة التحكم',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'ملخص الوضع المالي والمحاسبي',
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          tooltip: 'تحديث',
+          onPressed: _loading ? null : _loadDashboard,
+          icon: const Icon(Icons.refresh),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFinancialSummary() {
+    final cards = [
+      _Metric(
+        title: 'الإيرادات',
+        value: _money(_income['revenues']),
+        icon: Icons.trending_up,
+      ),
+      _Metric(
+        title: 'المصروفات',
+        value: _money(_income['expenses']),
+        icon: Icons.trending_down,
+      ),
+      _Metric(
+        title: 'صافي الربح',
+        value: _money(_income['net_income']),
+        icon: Icons.account_balance_wallet,
+      ),
+      _Metric(
+        title: 'الأصول',
+        value: _money(_balance['assets']),
+        icon: Icons.account_balance,
+      ),
+      _Metric(
+        title: 'الخصوم',
+        value: _money(_balance['liabilities']),
+        icon: Icons.payments_outlined,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+
+        final columns = width >= 900
+            ? 5
+            : width >= 600
+            ? 3
+            : 2;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: cards.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: width < 600 ? 1.5 : 1.8,
+          ),
+          itemBuilder: (_, index) {
+            final item = cards[index];
+
+            return Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(item.icon),
+                    const Spacer(),
+                    Text(
+                      item.title,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 6),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        item.value,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    final actions = [
+      ('بيع', Icons.point_of_sale),
+      ('شراء', Icons.shopping_cart),
+      ('قبض', Icons.call_received),
+      ('دفع', Icons.call_made),
+      ('قيد يومي', Icons.menu_book),
+      ('تحويل', Icons.swap_horiz),
+    ];
+
     return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
-              Icon(icon, color: color, size: 20),
-            ]),
-            const SizedBox(height: 8),
-            Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+            const Text(
+              'العمليات السريعة',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: actions.map((action) {
+                return OutlinedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'سيتم فتح عملية ${action.$1} بعد ربط شاشة العملية.',
+                        ),
+                      ),
+                    );
+                  },
+                  icon: Icon(action.$2),
+                  label: Text(action.$1),
+                );
+              }).toList(),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _quickAction(String label, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 50, height: 50,
-          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(14)),
-          child: Icon(icon, color: color, size: 26),
+  Widget _buildAccountingStatus() {
+    final totalAccounts = _trialBalance.length;
+
+    double debit = 0;
+    double credit = 0;
+
+    for (final row in _trialBalance) {
+      debit += _number(row['debit']);
+      credit += _number(row['credit']);
+    }
+
+    final balanced = (debit - credit).abs() < 0.01;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'حالة النظام المحاسبي',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 14),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(balanced ? Icons.check_circle : Icons.warning),
+              title: const Text('توازن ميزان المراجعة'),
+              subtitle: Text(
+                balanced
+                    ? 'المدين والدائن متساويان'
+                    : 'يوجد فرق يحتاج إلى مراجعة',
+              ),
+              trailing: Text('${_money(debit)} / ${_money(credit)}'),
+            ),
+            const Divider(),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.account_tree),
+              title: const Text('الحسابات المستخدمة'),
+              trailing: Text('$totalAccounts'),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
-      ],
+      ),
     );
   }
+
+  Widget _buildError() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Icon(Icons.error_outline, size: 42),
+            const SizedBox(height: 10),
+            const Text(
+              'تعذر تحميل بيانات لوحة التحكم',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(_error ?? 'خطأ غير معروف', textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _loadDashboard,
+              icon: const Icon(Icons.refresh),
+              label: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Metric {
+  final String title;
+  final String value;
+  final IconData icon;
+
+  const _Metric({required this.title, required this.value, required this.icon});
 }
