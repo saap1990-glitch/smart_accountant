@@ -47,19 +47,50 @@ class ReportService {
     required DateTime from,
     required DateTime to,
   }) async {
-    double revenues = 0, expenses = 0;
+    double revenues = 0;
+    double expenses = 0;
+
     final accounts = await _repository.getAllAccounts();
-    for (var acc in accounts) {
-      final balance = await _ledgerRepo.getBalance(acc['id'] as int);
-      if (acc['type'] == 'revenue') revenues += balance;
-      if (acc['type'] == 'expense') expenses += balance.abs();
+
+    for (final acc in accounts) {
+      final accountId = acc['id'] as int;
+      final type = (acc['type'] ?? '').toString().toLowerCase();
+
+      final entries = await _ledgerRepo.getAccountStatement(
+        accountId: accountId,
+        from: from,
+        to: to,
+      );
+
+      double debit = 0;
+      double credit = 0;
+
+      for (final entry in entries) {
+        debit += _toDouble(entry['debit']);
+        credit += _toDouble(entry['credit']);
+      }
+
+      if (type == 'revenue') {
+        revenues += credit - debit;
+      } else if (type == 'expense') {
+        expenses += debit - credit;
+      }
     }
+
+    final netIncome = revenues - expenses;
+
     return {
       'revenues': revenues.toStringAsFixed(2),
       'expenses': expenses.toStringAsFixed(2),
-      'net_income': (revenues - expenses).toStringAsFixed(2),
+      'net_income': netIncome.toStringAsFixed(2),
       'period': '${from.toIso8601String()} / ${to.toIso8601String()}',
     };
+  }
+
+  double _toDouble(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0;
   }
 
   Future<Map<String, dynamic>> balanceSheet(DateTime asOf) async {
