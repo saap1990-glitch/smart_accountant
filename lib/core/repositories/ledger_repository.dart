@@ -6,7 +6,6 @@ class LedgerRepository {
 
   LedgerRepository(this._db);
 
-  /// إضافة حركة إلى الأستاذ العام
   Future<void> addLedgerEntry({
     required int journalEntryId,
     required int journalLineId,
@@ -16,78 +15,187 @@ class LedgerRepository {
     required double credit,
     required String currencyCode,
   }) async {
-    // جلب الرصيد السابق
-    final previousBalance = await _getCurrentBalance(accountId, currencyCode);
-
-    final newBalance = previousBalance + debit - credit;
-
-    await _db.into(_db.ledger).insert(
-      LedgerCompanion(
-        journalEntryId: Value(journalEntryId),
-        journalLineId: Value(journalLineId),
-        accountId: Value(accountId),
-        entryDate: Value(entryDate),
-        debit: Value(debit.toString()),
-        credit: Value(credit.toString()),
-        balance: Value(newBalance.toString()),
-        currencyCode: Value(currencyCode),
-      ),
-    );
+    await _db
+        .into(_db.ledger)
+        .insert(
+          LedgerCompanion(
+            journalEntryId: Value(journalEntryId),
+            journalLineId: Value(journalLineId),
+            accountId: Value(accountId),
+            entryDate: Value(entryDate),
+            debit: Value(debit.toString()),
+            credit: Value(credit.toString()),
+            balance: const Value('0'),
+            currencyCode: Value(currencyCode),
+          ),
+        );
   }
 
-  /// جلب الرصيد الحالي لحساب معين
-  Future<double> _getCurrentBalance(int accountId, String currencyCode) async {
-    final lastEntry = await (_db.select(_db.ledger)
-      ..where((t) => t.accountId.equals(accountId))
-      ..where((t) => t.currencyCode.equals(currencyCode))
-      ..orderBy([(t) => OrderingTerm.desc(t.entryDate)]))
-      .getSingleOrNull();
-
-    if (lastEntry != null) {
-      return double.tryParse(lastEntry.balance) ?? 0;
-    }
-    return 0;
-  }
-
-  /// جلب كشف حساب كامل
   Future<List<Map<String, dynamic>>> getAccountStatement({
     required int accountId,
     DateTime? from,
     DateTime? to,
+    String? currencyCode,
   }) async {
     var query = _db.select(_db.ledger)
       ..where((t) => t.accountId.equals(accountId));
 
+    if (currencyCode != null) {
+      query = query..where((t) => t.currencyCode.equals(currencyCode));
+    }
+
     if (from != null) {
       query = query..where((t) => t.entryDate.isBiggerOrEqualValue(from));
     }
+
     if (to != null) {
       query = query..where((t) => t.entryDate.isSmallerOrEqualValue(to));
     }
 
-    final rows = await (query
-      ..orderBy([(t) => OrderingTerm.asc(t.entryDate)]))
-      .get();
+    query.orderBy([
+      (t) => OrderingTerm.asc(t.entryDate),
+      (t) => OrderingTerm.asc(t.id),
+    ]);
 
-    return rows.map((r) => {
-      'date': r.entryDate,
-      'description': 'قيد #${r.journalEntryId}',
-      'debit': r.debit,
-      'credit': r.credit,
-      'balance': r.balance,
+    final rows = await query.get();
+
+    double runningBalance = 0;
+
+    if (from != null) {
+      runningBalance = await getBalance(
+        accountId,
+        asOf: from.subtract(const Duration(microseconds: 1)),
+        currencyCode: currencyCode,
+      );
+    }
+
+    return rows.map((r) {
+      final debit = _number(r.debit);
+      final credit = _number(r.credit);
+
+      runningBalance += debit - credit;
+
+      return {
+        'id': r.id,
+        'journal_entry_id': r.journalEntryId,
+        'journal_line_id': r.journalLineId,
+        'date': r.entryDate,
+        'description': 'رقم القيد: ${r.journalEntryId}',
+        'debit': debit,
+        'credit': credit,
+        'balance': runningBalance,
+        'currency_code': r.currencyCode,
+      };
     }).toList();
   }
 
-  /// جلب الرصيد الحالي كـ double
-  Future<double> getBalance(int accountId) async {
-    final rows = await (_db.select(_db.ledger)
-      ..where((t) => t.accountId.equals(accountId))
-      ..orderBy([(t) => OrderingTerm.desc(t.entryDate)]))
-      .get();
+  Future<double> getBalance(
+    int accountId, {
+    DateTime? asOf,
+    String? currencyCode,
+  }) async {
+    var query = _db.select(_db.ledger)
+      ..where((t) => t.accountId.equals(accountId));
 
-    if (rows.isNotEmpty) {
-      return double.tryParse(rows.first.balance) ?? 0;
+    if (currencyCode != null) {
+      query = query..where((t) => t.currencyCode.equals(currencyCode));
     }
-    return 0;
+
+    if (asOf != null) {
+      query = query..where((t) => t.entryDate.isSmallerOrEqualValue(asOf));
+    }
+
+    final rows = await query.get();
+
+    double balance = 0;
+
+    for (final row in rows) {
+      balance += _number(row.debit) - _number(row.credit);
+    }
+
+    return balance;
+  }
+
+  Future<Map<String, double>> getTotals(
+    int accountId, {
+    DateTime? from,
+    DateTime? to,
+    String? currencyCode,
+  }) async {
+    var query = _db.select(_db.ledger)
+      ..where((t) => t.accountId.equals(accountId));
+
+    if (currencyCode != null) {
+      query = query..where((t) => t.currencyCode.equals(currencyCode));
+    }
+
+    if (from != null) {
+      query = query..where((t) => t.entryDate.isBiggerOrEqualValue(from));
+    }
+
+    if (to != null) {
+      query = query..where((t) => t.entryDate.isSmallerOrEqualValue(to));
+    }
+
+    final rows = await query.get();
+
+    double debit = 0;
+    double credit = 0;
+
+    for (final row in rows) {
+      debit += _number(row.debit);
+      credit += _number(row.credit);
+    }
+
+    return {'debit': debit, 'credit': credit, 'balance': debit - credit};
+  }
+
+  Future<List<Map<String, dynamic>>> getEntries({
+    DateTime? from,
+    DateTime? to,
+    String? currencyCode,
+  }) async {
+    var query = _db.select(_db.ledger);
+
+    if (currencyCode != null) {
+      query = query..where((t) => t.currencyCode.equals(currencyCode));
+    }
+
+    if (from != null) {
+      query = query..where((t) => t.entryDate.isBiggerOrEqualValue(from));
+    }
+
+    if (to != null) {
+      query = query..where((t) => t.entryDate.isSmallerOrEqualValue(to));
+    }
+
+    query.orderBy([
+      (t) => OrderingTerm.asc(t.entryDate),
+      (t) => OrderingTerm.asc(t.id),
+    ]);
+
+    final rows = await query.get();
+
+    return rows
+        .map(
+          (r) => {
+            'id': r.id,
+            'journal_entry_id': r.journalEntryId,
+            'journal_line_id': r.journalLineId,
+            'account_id': r.accountId,
+            'date': r.entryDate,
+            'debit': _number(r.debit),
+            'credit': _number(r.credit),
+            'balance': _number(r.balance),
+            'currency_code': r.currencyCode,
+          },
+        )
+        .toList();
+  }
+
+  double _number(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0;
   }
 }

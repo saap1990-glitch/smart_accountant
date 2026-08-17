@@ -280,28 +280,99 @@ class MasterDataService {
   Future<int> createItem({
     required String name,
     required String unit,
-    double? cost,
-    double? price,
-  }) async => _repository.insertItem({
-    'name': name,
-    'unit': unit,
-    'cost': cost,
-    'price': price,
-  });
+    double cost = 0,
+    double price = 0,
+    String? nameEn,
+    String itemType = 'inventory',
+    String? category,
+    double openingQuantity = 0,
+    double minimumQuantity = 0,
+    double maximumQuantity = 0,
+    String? barcode,
+    String? sku,
+    String? description,
+    String? notes,
+    bool isActive = true,
+    bool isService = false,
+  }) async {
+    if (name.trim().isEmpty) {
+      throw ArgumentError('اسم الصنف مطلوب');
+    }
+
+    if (unit.trim().isEmpty) {
+      throw ArgumentError('الوحدة مطلوبة');
+    }
+
+    if (cost < 0 || price < 0) {
+      throw ArgumentError('الأسعار لا يمكن أن تكون سالبة');
+    }
+
+    final items = await _repository.getAllItems();
+    final code = 'ITM-${(items.length + 1).toString().padLeft(5, '0')}';
+
+    return _repository.insertItem({
+      'code': code,
+      'name': name.trim(),
+      'name_en': nameEn,
+      'item_type': itemType,
+      'category': category,
+      'unit': unit.trim(),
+      'cost': cost,
+      'price': price,
+      'opening_quantity': openingQuantity,
+      'minimum_quantity': minimumQuantity,
+      'maximum_quantity': maximumQuantity,
+      'barcode': barcode,
+      'sku': sku,
+      'description': description,
+      'notes': notes,
+      'is_active': isActive,
+      'is_service': isService,
+    });
+  }
+
   Future<List<Map<String, dynamic>>> getAllItems() async =>
       _repository.getAllItems();
+
   Future<int> updateItem(
     int id, {
     required String name,
     required String unit,
-    double? cost,
-    double? price,
-  }) async => _repository.updateItem(id, {
-    'name': name,
-    'unit': unit,
-    'cost': cost,
-    'price': price,
-  });
+    double cost = 0,
+    double price = 0,
+    String? nameEn,
+    String itemType = 'inventory',
+    String? category,
+    double openingQuantity = 0,
+    double minimumQuantity = 0,
+    double maximumQuantity = 0,
+    String? barcode,
+    String? sku,
+    String? description,
+    String? notes,
+    bool isActive = true,
+    bool isService = false,
+  }) async {
+    return _repository.updateItem(id, {
+      'name': name.trim(),
+      'name_en': nameEn,
+      'item_type': itemType,
+      'category': category,
+      'unit': unit.trim(),
+      'cost': cost,
+      'price': price,
+      'opening_quantity': openingQuantity,
+      'minimum_quantity': minimumQuantity,
+      'maximum_quantity': maximumQuantity,
+      'barcode': barcode,
+      'sku': sku,
+      'description': description,
+      'notes': notes,
+      'is_active': isActive,
+      'is_service': isService,
+    });
+  }
+
   Future<int> deleteItem(int id) async => _repository.deleteItem(id);
 
   // الوحدات
@@ -312,23 +383,70 @@ class MasterDataService {
   Future<int> deleteUnit(int id) async => _repository.deleteUnit(id);
 
   // المخازن
-  Future<int> createWarehouse({required String name, String? location}) async {
+  Future<int> createWarehouse({
+    required String name,
+    String? code,
+    String? location,
+    String? address,
+    String? notes,
+    bool isActive = true,
+  }) async {
+    if (name.trim().isEmpty) {
+      throw ArgumentError('اسم المستودع مطلوب');
+    }
+
+    final warehouses = await _repository.getAllWarehouses();
+
+    final generatedCode = code == null || code.trim().isEmpty
+        ? 'WH-${(warehouses.length + 1).toString().padLeft(3, '0')}'
+        : code.trim();
+
     final warehouseId = await _repository.insertWarehouse({
-      'name': name,
+      'name': name.trim(),
+      'code': generatedCode,
       'location': location,
+      'address': address,
+      'notes': notes,
+      'is_active': isActive,
     });
+
     await _linkService.createAndLink(
       module: 'warehouses',
       entityType: 'Warehouse',
       entityId: warehouseId.toString(),
-      entityName: name,
+      entityName: name.trim(),
       parentSystemCode: 'inventory_default',
     );
+
     return warehouseId;
   }
 
   Future<List<Map<String, dynamic>>> getAllWarehouses() async =>
       _repository.getAllWarehouses();
+
+  Future<int> updateWarehouse(
+    int id, {
+    required String name,
+    String? code,
+    String? location,
+    String? address,
+    String? notes,
+    bool isActive = true,
+  }) async {
+    if (name.trim().isEmpty) {
+      throw ArgumentError('اسم المستودع مطلوب');
+    }
+
+    return _repository.updateWarehouse(id, {
+      'name': name.trim(),
+      'code': code,
+      'location': location,
+      'address': address,
+      'notes': notes,
+      'is_active': isActive,
+    });
+  }
+
   Future<int> deleteWarehouse(int id) async => _repository.deleteWarehouse(id);
 
   // البنوك

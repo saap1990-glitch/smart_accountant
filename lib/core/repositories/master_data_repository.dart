@@ -234,22 +234,52 @@ class MasterDataRepository {
       .into(db.items)
       .insert(
         ItemsCompanion(
+          code: Value(data['code']),
           name: Value(data['name']),
+          nameEn: Value(data['name_en']),
+          itemType: Value(data['item_type'] ?? 'inventory'),
+          category: Value(data['category']),
           unit: Value(data['unit']),
-          cost: Value(data['cost']?.toString() ?? '0'),
-          price: Value(data['price']?.toString() ?? '0'),
+          cost: Value(data['cost'] ?? 0),
+          price: Value(data['price'] ?? 0),
+          openingQuantity: Value(data['opening_quantity'] ?? 0),
+          minimumQuantity: Value(data['minimum_quantity'] ?? 0),
+          maximumQuantity: Value(data['maximum_quantity'] ?? 0),
+          barcode: Value(data['barcode']),
+          sku: Value(data['sku']),
+          description: Value(data['description']),
+          notes: Value(data['notes']),
+          isActive: Value(data['is_active'] ?? true),
+          isService: Value(data['is_service'] ?? false),
         ),
       );
+
   Future<List<Map<String, dynamic>>> getAllItems() async {
     final rows = await db.select(db.items).get();
+
     return rows
         .map(
           (r) => {
             'id': r.id,
+            'code': r.code,
             'name': r.name,
+            'name_en': r.nameEn,
+            'item_type': r.itemType,
+            'category': r.category,
             'unit': r.unit,
             'cost': r.cost,
             'price': r.price,
+            'opening_quantity': r.openingQuantity,
+            'minimum_quantity': r.minimumQuantity,
+            'maximum_quantity': r.maximumQuantity,
+            'barcode': r.barcode,
+            'sku': r.sku,
+            'description': r.description,
+            'notes': r.notes,
+            'is_active': r.isActive,
+            'is_service': r.isService,
+            'created_at': r.createdAt,
+            'updated_at': r.updatedAt,
           },
         )
         .toList();
@@ -259,11 +289,25 @@ class MasterDataRepository {
       (db.update(db.items)..where((t) => t.id.equals(id))).write(
         ItemsCompanion(
           name: Value(data['name']),
+          nameEn: Value(data['name_en']),
+          itemType: Value(data['item_type']),
+          category: Value(data['category']),
           unit: Value(data['unit']),
-          cost: Value(data['cost']?.toString() ?? '0'),
-          price: Value(data['price']?.toString() ?? '0'),
+          cost: Value(data['cost']),
+          price: Value(data['price']),
+          openingQuantity: Value(data['opening_quantity']),
+          minimumQuantity: Value(data['minimum_quantity']),
+          maximumQuantity: Value(data['maximum_quantity']),
+          barcode: Value(data['barcode']),
+          sku: Value(data['sku']),
+          description: Value(data['description']),
+          notes: Value(data['notes']),
+          isActive: Value(data['is_active']),
+          isService: Value(data['is_service']),
+          updatedAt: Value(DateTime.now()),
         ),
       );
+
   Future<int> deleteItem(int id) async =>
       (db.delete(db.items)..where((t) => t.id.equals(id))).go();
 
@@ -288,21 +332,49 @@ class MasterDataRepository {
   Future<int> deleteUnit(int id) async =>
       (db.delete(db.units)..where((t) => t.id.equals(id))).go();
 
-  // المخازن
+  // المستودعات
   Future<int> insertWarehouse(Map<String, dynamic> data) => db
       .into(db.warehouses)
       .insert(
         WarehousesCompanion(
+          code: Value(data['code']),
           name: Value(data['name']),
           location: Value(data['location']),
+          address: Value(data['address']),
+          notes: Value(data['notes']),
+          isActive: Value(data['is_active'] ?? true),
         ),
       );
+
   Future<List<Map<String, dynamic>>> getAllWarehouses() async {
     final rows = await db.select(db.warehouses).get();
+
     return rows
-        .map((r) => {'id': r.id, 'name': r.name, 'location': r.location})
+        .map(
+          (r) => {
+            'id': r.id,
+            'code': r.code,
+            'name': r.name,
+            'location': r.location,
+            'address': r.address,
+            'notes': r.notes,
+            'is_active': r.isActive,
+          },
+        )
         .toList();
   }
+
+  Future<int> updateWarehouse(int id, Map<String, dynamic> data) =>
+      (db.update(db.warehouses)..where((t) => t.id.equals(id))).write(
+        WarehousesCompanion(
+          code: Value(data['code']),
+          name: Value(data['name']),
+          location: Value(data['location']),
+          address: Value(data['address']),
+          notes: Value(data['notes']),
+          isActive: Value(data['is_active'] ?? true),
+        ),
+      );
 
   Future<int> deleteWarehouse(int id) async =>
       (db.delete(db.warehouses)..where((t) => t.id.equals(id))).go();

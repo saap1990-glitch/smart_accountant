@@ -88,7 +88,7 @@ class BackupService {
       }
       if (data['items'] != null) {
         for (var i in data['items'] as List) {
-          await db.into(db.items).insert(ItemsCompanion(name: Value(i['name']), unit: Value(i['unit']), cost: Value(i['cost']?.toString() ?? '0'), price: Value(i['price']?.toString() ?? '0')));
+          await db.into(db.items).insert(ItemsCompanion(name: Value(i['name']), unit: Value(i['unit']), cost: Value(double.tryParse(i['cost']?.toString() ?? '0') ?? 0), price: Value(double.tryParse(i['price']?.toString() ?? '0') ?? 0)));
         }
       }
 

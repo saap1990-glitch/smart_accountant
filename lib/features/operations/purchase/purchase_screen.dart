@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../shared/smart_operation_form.dart';
-import '../../../../core/engine/accounting/transaction_context.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
 
 class PurchaseScreen extends StatelessWidget {
   const PurchaseScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return const SmartOperationForm(
@@ -17,6 +18,7 @@ class PurchaseScreen extends StatelessWidget {
         showDebitAccount: true,
         showWarehouse: true,
         showItems: true,
+        showInvoiceNumber: true,
         showPrice: true,
         showFreeQty: true,
       ),

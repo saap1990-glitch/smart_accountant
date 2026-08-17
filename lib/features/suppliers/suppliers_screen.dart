@@ -1,118 +1,371 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+
 import '../../core/services/master_data/master_data_service.dart';
-import '../../core/services/accounting/accounting_link_service.dart';
-import '../../core/database/app_database.dart';
 
 class SuppliersScreen extends StatefulWidget {
   const SuppliersScreen({super.key});
+
   @override
   State<SuppliersScreen> createState() => _SuppliersScreenState();
 }
 
 class _SuppliersScreenState extends State<SuppliersScreen> {
-  final _dataService = GetIt.I<MasterDataService>();
-  final _linkService = GetIt.I<AccountingLinkService>();
+  final _service = GetIt.I<MasterDataService>();
+  final _searchController = TextEditingController();
+
   List<Map<String, dynamic>> _suppliers = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _load();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _loading = true);
-    final suppliers = await _dataService.getAllSuppliers();
-    for (var s in suppliers) {
-      final accountId = await _linkService.getLinkedAccount('suppliers', 'Supplier', s['id'].toString());
-      s['account_id'] = accountId;
-      s['balance'] = 0;
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllSuppliers();
+
+      if (!mounted) return;
+
+      setState(() {
+        _suppliers = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تحميل بيانات الموردين')),
+      );
     }
-    setState(() { _suppliers = suppliers; _loading = false; });
   }
 
-  void _showForm({Map<String, dynamic>? existing}) {
-    final nameCtrl = TextEditingController(text: existing?['name'] ?? '');
-    final phoneCtrl = TextEditingController(text: existing?['phone'] ?? '');
-    final addressCtrl = TextEditingController(text: existing?['address'] ?? '');
+  List<Map<String, dynamic>> get _filtered {
+    final query = _searchController.text.trim().toLowerCase();
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(existing != null ? 'تعديل مورد' : 'إضافة مورد جديد'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'الاسم *')),
-              const SizedBox(height: 8),
-              TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'رقم الهاتف'), keyboardType: TextInputType.phone),
-              const SizedBox(height: 8),
-              TextField(controller: addressCtrl, decoration: const InputDecoration(labelText: 'العنوان'), maxLines: 2),
+    if (query.isEmpty) return _suppliers;
+
+    return _suppliers.where((supplier) {
+      final name = '${supplier['name'] ?? ''}'.toLowerCase();
+      final phone = '${supplier['phone'] ?? ''}'.toLowerCase();
+      final address = '${supplier['address'] ?? ''}'.toLowerCase();
+
+      return name.contains(query) ||
+          phone.contains(query) ||
+          address.contains(query);
+    }).toList();
+  }
+
+  Future<void> _showForm({Map<String, dynamic>? existing}) async {
+    final name = TextEditingController(text: '${existing?['name'] ?? ''}');
+
+    final phone = TextEditingController(text: '${existing?['phone'] ?? ''}');
+
+    final address = TextEditingController(
+      text: '${existing?['address'] ?? ''}',
+    );
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: Text(existing == null ? 'إضافة مورد' : 'تعديل المورد'),
+            content: SizedBox(
+              width: 450,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: name,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم المورد *',
+                        prefixIcon: Icon(Icons.business),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: phone,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'رقم الهاتف',
+                        prefixIcon: Icon(Icons.phone),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: address,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'العنوان',
+                        prefixIcon: Icon(Icons.location_on),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  final supplierName = name.text.trim();
+
+                  if (supplierName.isEmpty) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('اسم المورد مطلوب')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    if (existing == null) {
+                      await _service.createSupplier(
+                        name: supplierName,
+                        phone: phone.text.trim().isEmpty
+                            ? null
+                            : phone.text.trim(),
+                        address: address.text.trim().isEmpty
+                            ? null
+                            : address.text.trim(),
+                      );
+                    } else {
+                      final id = existing['id'];
+
+                      if (id is! int) {
+                        throw Exception('معرف المورد غير صالح');
+                      }
+
+                      await _service.updateSupplier(
+                        id,
+                        name: supplierName,
+                        phone: phone.text.trim().isEmpty
+                            ? null
+                            : phone.text.trim(),
+                        address: address.text.trim().isEmpty
+                            ? null
+                            : address.text.trim(),
+                      );
+                    }
+
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext, true);
+                    }
+                  } catch (_) {
+                    if (!dialogContext.mounted) return;
+
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('تعذر حفظ بيانات المورد')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.save),
+                label: Text(existing == null ? 'حفظ' : 'حفظ التعديل'),
+              ),
             ],
-          ),
-        ),
+          );
+        },
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      name.dispose();
+      phone.dispose();
+      address.dispose();
+    }
+  }
+
+  Future<void> _deleteSupplier(Map<String, dynamic> supplier) async {
+    final id = supplier['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف المورد'),
+        content: Text('هل تريد حذف "${supplier['name'] ?? ''}"؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) return;
-              if (existing != null) {
-                await _dataService.updateSupplier(existing['id'] as int, name: nameCtrl.text, phone: phoneCtrl.text, address: addressCtrl.text);
-              } else {
-                await _dataService.createSupplier(name: nameCtrl.text, phone: phoneCtrl.text, address: addressCtrl.text);
-              }
-              Navigator.pop(ctx);
-              _loadData();
-            },
-            child: Text(existing != null ? 'حفظ' : 'إضافة'),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteSupplier(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يمكن حذف المورد لأنه مرتبط ببيانات أخرى'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final suppliers = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الموردون'),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showForm(),
+        icon: const Icon(Icons.person_add),
+        label: const Text('إضافة مورد'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث ذكي',
+                hintText: 'الاسم أو الهاتف أو العنوان...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : suppliers.isEmpty
+                ? _emptyState()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: suppliers.length,
+                      itemBuilder: (_, index) {
+                        return _supplierCard(suppliers[index]);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('الموردين'), actions: [IconButton(icon: const Icon(Icons.search), onPressed: () {})]),
-      floatingActionButton: FloatingActionButton(onPressed: () => _showForm(), child: const Icon(Icons.add)),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _suppliers.isEmpty
-              ? const Center(child: Text('لا يوجد موردين'))
-              : ListView.builder(
-                  itemCount: _suppliers.length,
-                  itemBuilder: (ctx, index) {
-                    final s = _suppliers[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: ListTile(
-                        leading: CircleAvatar(backgroundColor: Colors.orange.withOpacity(0.1), child: const Icon(Icons.business, color: Colors.orange)),
-                        title: Text(s['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (s['phone'] != null) Text('📞 ${s['phone']}'),
-                            if (s['address'] != null) Text('📍 ${s['address']}'),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showForm(existing: s)),
-                            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async {
-                              await _dataService.deleteSupplier(s['id'] as int);
-                              _loadData();
-                            }),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+  Widget _supplierCard(Map<String, dynamic> supplier) {
+    final name = '${supplier['name'] ?? ''}';
+    final phone = '${supplier['phone'] ?? ''}';
+    final address = '${supplier['address'] ?? ''}';
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.business)),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (phone.isNotEmpty) Text('الهاتف: $phone'),
+              if (address.isNotEmpty) Text('العنوان: $address'),
+            ],
+          ),
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit') {
+              _showForm(existing: supplier);
+            } else if (value == 'delete') {
+              _deleteSupplier(supplier);
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'edit', child: Text('تعديل')),
+            PopupMenuItem(value: 'delete', child: Text('حذف')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.business,
+            size: 64,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'لا يوجد موردون',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          const Text('أضف الموردين لإدارة المشتريات والحسابات'),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => _showForm(),
+            icon: const Icon(Icons.person_add),
+            label: const Text('إضافة أول مورد'),
+          ),
+        ],
+      ),
     );
   }
 }

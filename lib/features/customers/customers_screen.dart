@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 
-import '../../core/di/service_locator.dart';
 import '../../core/services/master_data/master_data_service.dart';
 
 class CustomersScreen extends StatefulWidget {
@@ -11,8 +11,8 @@ class CustomersScreen extends StatefulWidget {
 }
 
 class _CustomersScreenState extends State<CustomersScreen> {
-  final MasterDataService _service = sl<MasterDataService>();
-  final TextEditingController _search = TextEditingController();
+  final _service = GetIt.I<MasterDataService>();
+  final _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _customers = [];
   bool _loading = true;
@@ -25,7 +25,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
   @override
   void dispose() {
-    _search.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -41,118 +41,63 @@ class _CustomersScreenState extends State<CustomersScreen> {
         _customers = data;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
 
       setState(() => _loading = false);
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('فشل تحميل العملاء')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تحميل بيانات العملاء')),
+      );
     }
   }
 
   List<Map<String, dynamic>> get _filtered {
-    final q = _search.text.trim().toLowerCase();
+    final query = _searchController.text.trim().toLowerCase();
 
-    if (q.isEmpty) return _customers;
+    if (query.isEmpty) return _customers;
 
     return _customers.where((customer) {
       final name = '${customer['name'] ?? ''}'.toLowerCase();
       final phone = '${customer['phone'] ?? ''}'.toLowerCase();
       final address = '${customer['address'] ?? ''}'.toLowerCase();
 
-      return name.contains(q) || phone.contains(q) || address.contains(q);
+      return name.contains(query) ||
+          phone.contains(query) ||
+          address.contains(query);
     }).toList();
-  }
-
-  Future<void> _deleteCustomer(Map<String, dynamic> customer) async {
-    final id = customer['id'];
-
-    if (id is! int) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('حذف العميل'),
-          content: Text('هل تريد حذف العميل "${customer['name'] ?? ''}"؟'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('حذف'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      await _service.deleteCustomer(id);
-
-      if (!mounted) return;
-
-      await _load();
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('تم حذف العميل')));
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('تعذر حذف العميل')));
-    }
   }
 
   Future<void> _showForm({Map<String, dynamic>? existing}) async {
     final name = TextEditingController(text: '${existing?['name'] ?? ''}');
-
     final phone = TextEditingController(text: '${existing?['phone'] ?? ''}');
-
     final address = TextEditingController(
       text: '${existing?['address'] ?? ''}',
     );
-
-    final formKey = GlobalKey<FormState>();
 
     try {
       final saved = await showDialog<bool>(
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: Text(existing == null ? 'عميل جديد' : 'تعديل العميل'),
-            content: Form(
-              key: formKey,
+            title: Text(existing == null ? 'إضافة عميل' : 'تعديل العميل'),
+            content: SizedBox(
+              width: 450,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextFormField(
+                    TextField(
                       controller: name,
+                      autofocus: true,
                       decoration: const InputDecoration(
-                        labelText: 'اسم العميل',
+                        labelText: 'اسم العميل *',
                         prefixIcon: Icon(Icons.person),
                         border: OutlineInputBorder(),
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'أدخل اسم العميل';
-                        }
-                        return null;
-                      },
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
+                    TextField(
                       controller: phone,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(
@@ -162,14 +107,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
+                    TextField(
                       controller: address,
+                      maxLines: 2,
                       decoration: const InputDecoration(
                         labelText: 'العنوان',
                         prefixIcon: Icon(Icons.location_on),
                         border: OutlineInputBorder(),
                       ),
-                      maxLines: 2,
                     ),
                   ],
                 ),
@@ -182,18 +127,29 @@ class _CustomersScreenState extends State<CustomersScreen> {
               ),
               FilledButton.icon(
                 onPressed: () async {
-                  if (!formKey.currentState!.validate()) return;
+                  final customerName = name.text.trim();
+
+                  if (customerName.isEmpty) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('اسم العميل مطلوب')),
+                    );
+                    return;
+                  }
 
                   try {
+                    final phoneValue = phone.text.trim().isEmpty
+                        ? null
+                        : phone.text.trim();
+
+                    final addressValue = address.text.trim().isEmpty
+                        ? null
+                        : address.text.trim();
+
                     if (existing == null) {
                       await _service.createCustomer(
-                        name: name.text.trim(),
-                        phone: phone.text.trim().isEmpty
-                            ? null
-                            : phone.text.trim(),
-                        address: address.text.trim().isEmpty
-                            ? null
-                            : address.text.trim(),
+                        name: customerName,
+                        phone: phoneValue,
+                        address: addressValue,
                       );
                     } else {
                       final id = existing['id'];
@@ -204,13 +160,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
                       await _service.updateCustomer(
                         id,
-                        name: name.text.trim(),
-                        phone: phone.text.trim().isEmpty
-                            ? null
-                            : phone.text.trim(),
-                        address: address.text.trim().isEmpty
-                            ? null
-                            : address.text.trim(),
+                        name: customerName,
+                        phone: phoneValue,
+                        address: addressValue,
                       );
                     }
 
@@ -218,15 +170,15 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       Navigator.pop(dialogContext, true);
                     }
                   } catch (_) {
-                    if (dialogContext.mounted) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(content: Text('تعذر حفظ بيانات العميل')),
-                      );
-                    }
+                    if (!dialogContext.mounted) return;
+
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('تعذر حفظ بيانات العميل')),
+                    );
                   }
                 },
                 icon: const Icon(Icons.save),
-                label: const Text('حفظ'),
+                label: Text(existing == null ? 'حفظ' : 'حفظ التعديل'),
               ),
             ],
           );
@@ -243,6 +195,48 @@ class _CustomersScreenState extends State<CustomersScreen> {
     }
   }
 
+  Future<void> _deleteCustomer(Map<String, dynamic> customer) async {
+    final id = customer['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف العميل'),
+        content: Text('هل تريد حذف "${customer['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteCustomer(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يمكن حذف العميل لأنه مرتبط ببيانات أخرى'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final customers = _filtered;
@@ -253,7 +247,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
         actions: [
           IconButton(
             tooltip: 'تحديث',
-            onPressed: _loading ? null : _load,
+            onPressed: _load,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -261,24 +255,24 @@ class _CustomersScreenState extends State<CustomersScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showForm(),
         icon: const Icon(Icons.person_add),
-        label: const Text('عميل جديد'),
+        label: const Text('إضافة عميل'),
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
-              controller: _search,
+              controller: _searchController,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                labelText: 'بحث',
-                hintText: 'اسم العميل أو الهاتف أو العنوان',
+                labelText: 'بحث ذكي',
+                hintText: 'الاسم أو الهاتف أو العنوان...',
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: _search.text.isEmpty
+                suffixIcon: _searchController.text.isEmpty
                     ? null
                     : IconButton(
                         onPressed: () {
-                          _search.clear();
+                          _searchController.clear();
                           setState(() {});
                         },
                         icon: const Icon(Icons.clear),
@@ -291,25 +285,13 @@ class _CustomersScreenState extends State<CustomersScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : customers.isEmpty
-                ? RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView(
-                      children: const [
-                        SizedBox(height: 180),
-                        Center(child: Text('لا يوجد عملاء')),
-                      ],
-                    ),
-                  )
+                ? _emptyState()
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.builder(
-                      padding: const EdgeInsets.only(
-                        left: 8,
-                        right: 8,
-                        bottom: 100,
-                      ),
+                      padding: const EdgeInsets.only(bottom: 100),
                       itemCount: customers.length,
-                      itemBuilder: (context, index) {
+                      itemBuilder: (_, index) {
                         return _customerCard(customers[index]);
                       },
                     ),
@@ -321,29 +303,25 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
 
   Widget _customerCard(Map<String, dynamic> customer) {
-    final name = '${customer['name'] ?? 'بدون اسم'}';
-    final phone = customer['phone'];
-    final address = customer['address'];
+    final name = '${customer['name'] ?? ''}';
+    final phone = '${customer['phone'] ?? ''}';
+    final address = '${customer['address'] ?? ''}';
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         leading: const CircleAvatar(child: Icon(Icons.person)),
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (phone != null && '$phone'.trim().isNotEmpty)
-              Text('الهاتف: $phone'),
-            if (address != null && '$address'.trim().isNotEmpty)
-              Text('العنوان: $address'),
-            const Text(
-              'الحساب المحاسبي مرتبط تلقائياً',
-              style: TextStyle(fontSize: 12),
-            ),
-          ],
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (phone.isNotEmpty) Text('الهاتف: $phone'),
+              if (address.isNotEmpty) Text('العنوان: $address'),
+            ],
+          ),
         ),
-        isThreeLine: true,
         trailing: PopupMenuButton<String>(
           onSelected: (value) {
             if (value == 'edit') {
@@ -352,17 +330,39 @@ class _CustomersScreenState extends State<CustomersScreen> {
               _deleteCustomer(customer);
             }
           },
-          itemBuilder: (context) => const [
-            PopupMenuItem(
-              value: 'edit',
-              child: ListTile(leading: Icon(Icons.edit), title: Text('تعديل')),
-            ),
-            PopupMenuItem(
-              value: 'delete',
-              child: ListTile(leading: Icon(Icons.delete), title: Text('حذف')),
-            ),
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'edit', child: Text('تعديل')),
+            PopupMenuItem(value: 'delete', child: Text('حذف')),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.people_outline,
+            size: 64,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'لا يوجد عملاء',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          const Text('أضف العملاء لإدارة المبيعات والحسابات'),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => _showForm(),
+            icon: const Icon(Icons.person_add),
+            label: const Text('إضافة أول عميل'),
+          ),
+        ],
       ),
     );
   }
