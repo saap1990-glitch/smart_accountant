@@ -1,4 +1,6 @@
+import 'package:get_it/get_it.dart';
 import 'package:drift/drift.dart';
+import '../accounting/system_account_resolver.dart';
 
 import '../../errors/result.dart';
 import '../../errors/app_exception.dart';
@@ -12,13 +14,6 @@ import '../inventory/inventory_movement_engine.dart';
 import '../../repositories/ledger_repository.dart';
 
 class OperationService {
-  final AccountingEngine _engine;
-  final MasterDataService _dataService;
-  final ItemMovementService _movementService;
-  final InventoryMovementEngine _inventoryMovementEngine;
-  final AppDatabase _db;
-  final LedgerRepository _ledgerRepo;
-
   OperationService(
     this._engine,
     this._dataService,
@@ -26,9 +21,18 @@ class OperationService {
     this._inventoryMovementEngine,
     this._db,
     this._ledgerRepo,
+    this._systemResolver,
   );
+  final AccountingEngine _engine;
+  final MasterDataService _dataService;
+  final ItemMovementService _movementService;
+  final InventoryMovementEngine _inventoryMovementEngine;
+  final AppDatabase _db;
+  final LedgerRepository _ledgerRepo;
+  final SystemAccountResolver _systemResolver;
 
   Future<Result<TransactionResult>> execute({
+    SystemAccountResolver? systemResolver,
     required TransactionType type,
     required DateTime date,
     required List<JournalItem> items,
@@ -37,6 +41,7 @@ class OperationService {
     double exchangeRate = 1.0,
     Map<String, dynamic>? metadata,
   }) async {
+    final resolver = systemResolver ?? GetIt.I<SystemAccountResolver>();
     for (final item in items) {
       if (item.accountId <= 0) {
         return const Failure(ValidationException('يجب اختيار جميع الحسابات'));

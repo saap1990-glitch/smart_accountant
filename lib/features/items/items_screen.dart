@@ -116,7 +116,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
-                          value: selectedUnit,
+                          initialValue: selectedUnit,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'وحدة القياس *',
@@ -371,7 +371,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
-        leading: CircleAvatar(child: const Icon(Icons.inventory_2)),
+        leading: const CircleAvatar(child: Icon(Icons.inventory_2)),
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 5),

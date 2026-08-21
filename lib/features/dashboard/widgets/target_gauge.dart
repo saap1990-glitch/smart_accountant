@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../core/services/targets/target_service.dart';
 
 class TargetGauge extends StatelessWidget {
-  final SalesTarget target;
   const TargetGauge({super.key, required this.target});
+  final SalesTarget target;
 
   @override
   Widget build(BuildContext context) {

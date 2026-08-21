@@ -1,0 +1,1268 @@
+cd /workspaces/smart_accountant
+
+python3 - <<'PY'
+import re, os
+
+# 1. إصلاح ملف operation_service.dart
+file_path = 'lib/core/services/operations/operation_service.dart'
+if os.path.exists(file_path):
+    with open(file_path, 'r') as f:
+            content = f.read()
+                # إزالة تكرار الحقل _systemResolver
+                    content = re.sub(r'(\s*)(final SystemAccountResolver _systemResolver;)\n\1\2\n', r'\1\2\n', content)
+                        # إزالة سطر resolver من قائمة المعاملات
+                            content = content.replace('    final resolver = systemResolver ?? GetIt.I<SystemAccountResolver>();\n', '')
+                                # إدراج سطر resolver داخل جسم الدالة
+                                    start_idx = content.find('Future<Result<TransactionResult>> execute({')
+                                        if start_idx != -1:
+                                                brace_idx = content.find('}) async {', start_idx)
+                                                        if brace_idx != -1:
+                                                                    insert_idx = brace_idx + len('}) async {')
+                                                                                content = content[:insert_idx] + '\n    final resolver = systemResolver ?? GetIt.I<SystemAccountResolver>();' + content[insert_idx:]
+                                                                                    with open(file_path, 'w') as f:
+                                                                                            f.write(content)
+                                                                                                print("✅ operation_service.dart fixed")
+                                                                                                else:
+                                                                                                    print("⚠️ operation_service.dart not found")
+                                                                                                    
+                                                                                                    # 2. إزالة التسجيل المكرر لـ SystemAccountResolver في service_locator
+                                                                                                    file_path = 'lib/core/di/service_locator.dart'
+                                                                                                    if os.path.exists(file_path):
+                                                                                                        with open(file_path, 'r') as f:
+                                                                                                                content = f.read()
+                                                                                                                    # احسب عدد الأسطر التي تحتوي على registerLazySingleton<SystemAccountResolver>
+                                                                                                                        lines = content.splitlines()
+                                                                                                                            found = 0
+                                                                                                                                new_lines = []
+                                                                                                                                    for line in lines:
+                                                                                                                                            if 'registerLazySingleton<SystemAccountResolver>' in line:
+                                                                                                                                                        found += 1
+                                                                                                                                                                    if found == 1:
+                                                                                                                                                                                    new_lines.append(line)
+                                                                                                                                                                                                else:
+                                                                                                                                                                                                                # تخطي السطر المكرر (إزالة)
+                                                                                                                                                                                                                                continue
+                                                                                                                                                                                                                                        else:
+                                                                                                                                                                                                                                                    new_lines.append(line)
+                                                                                                                                                                                                                                                        content = '\n'.join(new_lines)
+                                                                                                                                                                                                                                                            with open(file_path, 'w') as f:
+                                                                                                                                                                                                                                                                    f.write(content)
+                                                                                                                                                                                                                                                                        print("✅ service_locator.dart duplicate removed")
+                                                                                                                                                                                                                                                                        else:
+                                                                                                                                                                                                                                                                            print("⚠️ service_locator.dart not found")
+                                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                            # 3. إصلاح بعض الأسطر في AuthService
+                                                                                                                                                                                                                                                                            file_path = 'lib/core/auth/auth_service.dart'
+                                                                                                                                                                                                                                                                            if os.path.exists(file_path):
+                                                                                                                                                                                                                                                                                with open(file_path, 'r') as f:
+                                                                                                                                                                                                                                                                                        content = f.read()
+                                                                                                                                                                                                                                                                                            # إضافة خيارات biometricOptions لتجنب التعليق الفارغ (اختياري)
+                                                                                                                                                                                                                                                                                                content = content.replace(
+                                                                                                                                                                                                                                                                                                          "        localizedReason: 'استخدم بصمة إصبعك للدخول',\n        \n",
+                                                                                                                                                                                                                                                                                                                  "        localizedReason: 'استخدم بصمة إصبعك للدخول',\n        options: const AuthenticationOptions(biometricOnly: true),\n"
+                                                                                                                                                                                                                                                                                                )
+                                                                                                                                                                                                                                                                                                    with open(file_path, 'w') as f:
+                                                                                                                                                                                                                                                                                                            f.write(content)
+                                                                                                                                                                                                                                                                                                                print("✅ auth_service.dart fixed")
+                                                                                                                                                                                                                                                                                                                else:
+                                                                                                                                                                                                                                                                                                                    print("⚠️ auth_service.dart not found")
+                                                                                                                                                                                                                                                                                                                    PY
+                                                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                                                    dart format lib/core/services/operations/operation_service.dart lib/core/di/service_locator.dart lib/core/auth/auth_service.dart
+                                                                                                                                                                                                                                                                                                                    ]633;E;echo "============================================";af05cc2f-abc9-4396-a3a8-14921b358ba7]633;C============================================
+ SMART ACCOUNTANT - FULL SOURCE CODE DUMP
+ Generated: Fri Aug 21 01:14:15 UTC 2026
+============================================
+
+
+----- FILE: lib/app/app.dart -----
+import 'package:flutter/material.dart';
+import '../core/theme/app_theme.dart';
+import '../features/auth/login_screen.dart';
+import '../features/dashboard/main_screen.dart';
+
+class SmartAccountantApp extends StatelessWidget {
+  const SmartAccountantApp({super.key, this.showLogin = true});
+  final bool showLogin;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'المحاسب الذكي',
+      debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.light,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      home: showLogin ? const LoginScreen() : const MainScreen(),
+    );
+  }
+}
+
+
+----- FILE: lib/core/audit/audit_entry.dart -----
+class AuditEntry {
+
+  const AuditEntry({
+    required this.id,
+    required this.action,
+    required this.entityType,
+    required this.timestamp,
+    this.entityId,
+    this.description,
+    this.performedBy,
+  });
+  final String id;
+  final String action;
+  final String entityType;
+  final String? entityId;
+  final DateTime timestamp;
+  final String? description;
+  final String? performedBy;
+}
+
+
+----- FILE: lib/core/audit/audit_service.dart -----
+import 'audit_entry.dart';
+import 'dart:async';
+
+abstract class AuditService {
+  Future<void> record(AuditEntry entry);
+  Future<List<AuditEntry>> getAll();
+  Stream<AuditEntry> watchAll();
+}
+
+
+----- FILE: lib/core/auth/auth_service.dart -----
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth/local_auth.dart';
+
+class AuthService {
+  static const _storage = FlutterSecureStorage();
+  static const _pinKey = 'user_pin';
+  static const _sessionKey = 'remember_session';
+  static const _recoveryKey = 'recovery_code';
+  static const _biometricKey = 'biometric_enabled';
+
+  final _localAuth = LocalAuthentication();
+
+  // ====== البصمة ======
+  Future<bool> isBiometricAvailable() async {
+    return await _localAuth.isDeviceSupported();
+  }
+
+  Future<bool> isBiometricEnabled() async {
+    return await _storage.read(key: _biometricKey) == 'true';
+  }
+
+  Future<void> enableBiometric(bool enable) async {
+    await _storage.write(key: _biometricKey, value: enable.toString());
+  }
+
+  Future<bool> authenticateWithBiometric() async {
+    try {
+      final available = await _localAuth.isDeviceSupported();
+      if (!available) return false;
+      return await _localAuth.authenticate(
+        localizedReason: 'استخدم بصمة إصبعك للدخول',
+        
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ====== الرقم السري ======
+  Future<void> setPin(String pin) async => await _storage.write(key: _pinKey, value: pin);
+  Future<bool> verifyPin(String pin) async {
+    final stored = await _storage.read(key: _pinKey);
+    return stored == pin;
+  }
+  Future<bool> hasPin() async {
+    final stored = await _storage.read(key: _pinKey);
+    return stored != null && stored.isNotEmpty;
+  }
+  Future<bool> changePin(String oldPin, String newPin) async {
+    if (await verifyPin(oldPin)) { await _storage.write(key: _pinKey, value: newPin); return true; }
+    return false;
+  }
+
+  // ====== رمز الاسترداد ======
+  Future<void> setRecoveryCode(String code) async => await _storage.write(key: _recoveryKey, value: code);
+  Future<bool> verifyRecoveryCode(String code) async {
+    final stored = await _storage.read(key: _recoveryKey);
+    return stored == code;
+  }
+  Future<bool> resetPinWithRecovery(String code, String newPin) async {
+    if (await verifyRecoveryCode(code)) { await _storage.write(key: _pinKey, value: newPin); return true; }
+    return false;
+  }
+
+  // ====== الجلسة ======
+  Future<void> rememberSession(bool remember) async => await _storage.write(key: _sessionKey, value: remember.toString());
+  Future<bool> isSessionRemembered() async {
+    final stored = await _storage.read(key: _sessionKey);
+    return stored == 'true';
+  }
+  Future<void> logout() async => await _storage.delete(key: _sessionKey);
+}
+
+
+----- FILE: lib/core/config/app_config.dart -----
+class AppConfig {
+
+  const AppConfig({
+    required this.appName,
+    required this.version,
+  });
+  final String appName;
+  final String version;
+}
+
+
+----- FILE: lib/core/constants/app_constants.dart -----
+class AppConstants {
+  const AppConstants._();
+
+  static const String appName = 'المحاسب الذكي';
+  static const String version = '1.0.0';
+  static const String defaultCurrency = 'YER';
+}
+
+
+----- FILE: lib/core/database/app_database.dart -----
+import 'package:drift/drift.dart';
+import 'package:drift_flutter/drift_flutter.dart';
+import 'tables/accounts_table.dart';
+import 'tables/customers_table.dart';
+import 'tables/suppliers_table.dart';
+import 'tables/items_table.dart';
+import 'tables/units_table.dart';
+import 'tables/warehouses_table.dart';
+import 'tables/banks_table.dart';
+import 'tables/cash_boxes_table.dart';
+import 'tables/wallets_table.dart';
+import 'tables/exchange_companies_table.dart';
+import 'tables/currencies_table.dart';
+import 'tables/journal_entries_table.dart';
+import 'tables/journal_lines_table.dart';
+import 'tables/ledger_table.dart';
+import 'tables/inventory_transactions_table.dart';
+import 'tables/settings_table.dart';
+import 'tables/company_table.dart';
+import 'tables/account_links_table.dart';
+import 'tables/system_accounts_table.dart';
+
+part 'app_database.g.dart';
+
+@DriftDatabase(
+  tables: [
+    Accounts,
+    Customers,
+    Suppliers,
+    Items,
+    Units,
+    Warehouses,
+    Banks,
+    CashBoxes,
+    Wallets,
+    ExchangeCompanies,
+    Currencies,
+    JournalEntries,
+    JournalLines,
+    Ledger,
+    InventoryTransactions,
+    Settings,
+    Company,
+    AccountLinks,
+    SystemAccounts,
+  ],
+)
+class AppDatabase extends _$AppDatabase {
+  AppDatabase() : super(driftDatabase(name: 'smart_accountant_db'));
+
+  @override
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (Migrator m) async {
+      await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 2) {
+        await m.addColumn(accounts, accounts.openingBalance);
+
+        await m.addColumn(accounts, accounts.openingBalanceNature);
+      }
+    },
+  );
+}
+
+
+----- FILE: lib/core/database/database_provider.dart -----
+import 'package:drift/drift.dart';
+import 'package:drift_flutter/drift_flutter.dart';
+
+QueryExecutor openAppDatabase() {
+  return driftDatabase(
+    name: 'smart_accountant',
+  );
+}
+
+
+----- FILE: lib/core/database/migrations/database_migration.dart -----
+class DatabaseMigration {
+  const DatabaseMigration._();
+
+  static const int initialVersion = 1;
+}
+
+
+----- FILE: lib/core/database/seeds/database_seed.dart -----
+class DatabaseSeed {
+  const DatabaseSeed._();
+
+  static const String baseCurrency = 'YER';
+
+  static const List<Map<String, Object>> rootAccounts = [
+    {
+      'number': '1',
+      'nameAr': 'الأصول',
+      'nameEn': 'Assets',
+      'level': 1,
+      'type': 'asset',
+      'nature': 'debit',
+    },
+    {
+      'number': '2',
+      'nameAr': 'الخصوم',
+      'nameEn': 'Liabilities',
+      'level': 1,
+      'type': 'liability',
+      'nature': 'credit',
+    },
+    {
+      'number': '3',
+      'nameAr': 'المصروفات',
+      'nameEn': 'Expenses',
+      'level': 1,
+      'type': 'expense',
+      'nature': 'debit',
+    },
+    {
+      'number': '4',
+      'nameAr': 'الإيرادات',
+      'nameEn': 'Revenues',
+      'level': 1,
+      'type': 'revenue',
+      'nature': 'credit',
+    },
+  ];
+}
+
+
+----- FILE: lib/core/database/tables/account_links_table.dart -----
+import 'package:drift/drift.dart';
+import 'accounts_table.dart';
+
+class AccountLinks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get module => text()(); // customers, suppliers, banks, cash_boxes, wallets, exchange_companies, warehouses
+  TextColumn get entityType => text()(); // Customer, Supplier, Bank, CashBox, Wallet, ExchangeCompany, Warehouse
+  TextColumn get entityId => text()(); // ID الخاص بالكيان
+  IntColumn get accountId => integer().references(Accounts, #id)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+
+----- FILE: lib/core/database/tables/account_rules_table.dart -----
+import 'package:drift/drift.dart';
+
+class AccountRules extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get ruleCode => text().unique()();
+
+  TextColumn get descriptionAr => text()();
+
+  TextColumn get descriptionEn => text().nullable()();
+
+  TextColumn get ruleValue => text().nullable()();
+
+  BoolColumn get isActive =>
+      boolean().withDefault(const Constant(true))();
+}
+
+
+----- FILE: lib/core/database/tables/accounts_table.dart -----
+import 'package:drift/drift.dart';
+
+class Accounts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get number => text().unique()();
+
+  TextColumn get nameAr => text()();
+
+  TextColumn get nameEn => text().nullable()();
+
+  IntColumn get parentId => integer().nullable().references(Accounts, #id)();
+
+  IntColumn get level => integer()();
+
+  TextColumn get type => text()();
+
+  TextColumn get nature => text()();
+
+  BoolColumn get acceptsPosting =>
+      boolean().withDefault(const Constant(false))();
+
+  BoolColumn get isSystem => boolean().withDefault(const Constant(false))();
+
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+
+  TextColumn get currencyCode => text().withDefault(const Constant('YER'))();
+
+  TextColumn get notes => text().nullable()();
+
+  /// الرصيد الافتتاحي للحساب.
+  /// يخزن كنص للحفاظ على دقة القيم المالية مثل بقية النظام.
+  TextColumn get openingBalance => text().withDefault(const Constant('0'))();
+
+  /// طبيعة الرصيد الافتتاحي: debit / credit.
+  TextColumn get openingBalanceNature =>
+      text().withDefault(const Constant('debit'))();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+
+----- FILE: lib/core/database/tables/balances_table.dart -----
+import 'package:drift/drift.dart';
+import 'accounts_table.dart';
+
+class Balances extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get accountId => integer().references(Accounts, #id)();
+  TextColumn get currencyCode => text().withDefault(const Constant('YER'))();
+  TextColumn get debitTotal => text().withDefault(const Constant('0'))();
+  TextColumn get creditTotal => text().withDefault(const Constant('0'))();
+  TextColumn get balance => text().withDefault(const Constant('0'))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+
+----- FILE: lib/core/database/tables/banks_table.dart -----
+import 'package:drift/drift.dart';
+
+class Banks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get accountNumber => text().nullable()();
+}
+
+
+----- FILE: lib/core/database/tables/cash_boxes_table.dart -----
+import 'package:drift/drift.dart';
+
+class CashBoxes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+}
+
+
+----- FILE: lib/core/database/tables/company_table.dart -----
+import 'package:drift/drift.dart';
+
+class Company extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get address => text().nullable()();
+  TextColumn get logo => text().nullable()();
+}
+
+
+----- FILE: lib/core/database/tables/currencies_table.dart -----
+import 'package:drift/drift.dart';
+
+class Currencies extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get code => text().unique()();
+  TextColumn get name => text()();
+  TextColumn get exchangeRate => text().withDefault(const Constant('1.0'))();
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+}
+
+
+----- FILE: lib/core/database/tables/customers_table.dart -----
+import 'package:drift/drift.dart';
+
+class Customers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get address => text().nullable()();
+}
+
+
+----- FILE: lib/core/database/tables/exchange_companies_table.dart -----
+import 'package:drift/drift.dart';
+
+class ExchangeCompanies extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get phone => text().nullable()();
+}
+
+
+----- FILE: lib/core/database/tables/inventory_transactions_table.dart -----
+import 'package:drift/drift.dart';
+import 'items_table.dart';
+
+class InventoryTransactions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get itemId => integer().references(Items, #id)();
+  TextColumn get type => text()();
+  TextColumn get quantity => text()();
+  TextColumn get price => text().nullable()();
+  TextColumn get reference => text().nullable()();
+  DateTimeColumn get date => dateTime()();
+}
+
+
+----- FILE: lib/core/database/tables/items_table.dart -----
+import 'package:drift/drift.dart';
+
+class Items extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  // الهوية
+  TextColumn get code =>
+      text().unique()();
+
+  TextColumn get name =>
+      text()();
+
+  TextColumn get nameEn =>
+      text().nullable()();
+
+  // التصنيف
+  TextColumn get itemType =>
+      text().withDefault(const Constant('inventory'))();
+
+  TextColumn get category =>
+      text().nullable()();
+
+  // الوحدة
+  TextColumn get unit =>
+      text()();
+
+  // الأسعار
+  RealColumn get cost =>
+      real().withDefault(const Constant(0))();
+
+  RealColumn get price =>
+      real().withDefault(const Constant(0))();
+
+  // المخزون
+  RealColumn get openingQuantity =>
+      real().withDefault(const Constant(0))();
+
+  RealColumn get minimumQuantity =>
+      real().withDefault(const Constant(0))();
+
+  RealColumn get maximumQuantity =>
+      real().withDefault(const Constant(0))();
+
+  // بيانات إضافية
+  TextColumn get barcode =>
+      text().nullable()();
+
+  TextColumn get sku =>
+      text().nullable()();
+
+  TextColumn get description =>
+      text().nullable()();
+
+  TextColumn get notes =>
+      text().nullable()();
+
+  // الحالة
+  BoolColumn get isActive =>
+      boolean().withDefault(const Constant(true))();
+
+  BoolColumn get isService =>
+      boolean().withDefault(const Constant(false))();
+
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
+
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+}
+
+
+----- FILE: lib/core/database/tables/journal_entries_table.dart -----
+import 'package:drift/drift.dart';
+
+class JournalEntries extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get entryNumber => text().unique()();
+  DateTimeColumn get entryDate => dateTime()();
+  TextColumn get operationType => text()();
+  TextColumn get status => text().withDefault(const Constant('posted'))();
+  TextColumn get description => text().nullable()();
+  TextColumn get referenceType => text().nullable()();
+  TextColumn get referenceId => text().nullable()();
+  TextColumn get currencyCode => text().withDefault(const Constant('YER'))();
+  TextColumn get exchangeRate => text().withDefault(const Constant('1'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+
+----- FILE: lib/core/database/tables/journal_lines_table.dart -----
+import 'package:drift/drift.dart';
+import 'accounts_table.dart';
+import 'journal_entries_table.dart';
+
+class JournalLines extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get journalEntryId => integer().references(JournalEntries, #id)();
+  IntColumn get accountId => integer().references(Accounts, #id)();
+  TextColumn get description => text().nullable()();
+  TextColumn get debit => text().withDefault(const Constant('0'))();
+  TextColumn get credit => text().withDefault(const Constant('0'))();
+  TextColumn get currencyCode => text().withDefault(const Constant('YER'))();
+  TextColumn get exchangeRate => text().withDefault(const Constant('1'))();
+  TextColumn get foreignDebit => text().withDefault(const Constant('0'))();
+  TextColumn get foreignCredit => text().withDefault(const Constant('0'))();
+}
+
+
+----- FILE: lib/core/database/tables/ledger_table.dart -----
+import 'package:drift/drift.dart';
+import 'accounts_table.dart';
+import 'journal_entries_table.dart';
+import 'journal_lines_table.dart';
+
+class Ledger extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get journalEntryId => integer().references(JournalEntries, #id)();
+  IntColumn get journalLineId => integer().references(JournalLines, #id)();
+  IntColumn get accountId => integer().references(Accounts, #id)();
+  DateTimeColumn get entryDate => dateTime()();
+  TextColumn get debit => text().withDefault(const Constant('0'))();
+  TextColumn get credit => text().withDefault(const Constant('0'))();
+  TextColumn get balance => text().withDefault(const Constant('0'))();
+  TextColumn get currencyCode => text().withDefault(const Constant('YER'))();
+}
+
+
+----- FILE: lib/core/database/tables/settings_table.dart -----
+import 'package:drift/drift.dart';
+
+class Settings extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get key => text().unique()();
+  TextColumn get value => text()();
+}
+
+
+----- FILE: lib/core/database/tables/suppliers_table.dart -----
+import 'package:drift/drift.dart';
+
+class Suppliers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get address => text().nullable()();
+}
+
+
+----- FILE: lib/core/database/tables/system_accounts_table.dart -----
+import 'package:drift/drift.dart';
+import 'accounts_table.dart';
+
+class SystemAccounts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get systemCode => text().unique()(); // cash_default, bank_default, sales_default, purchase_default, inventory_default, cogs_default, customer_parent, supplier_parent, exchange_parent, wallet_parent
+  IntColumn get accountId => integer().references(Accounts, #id)();
+  TextColumn get description => text().nullable()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+
+----- FILE: lib/core/database/tables/units_table.dart -----
+import 'package:drift/drift.dart';
+
+class Units extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get abbreviation => text().nullable()();
+}
+
+
+----- FILE: lib/core/database/tables/wallets_table.dart -----
+import 'package:drift/drift.dart';
+
+class Wallets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get provider => text().nullable()();
+}
+
+
+----- FILE: lib/core/database/tables/warehouses_table.dart -----
+import 'package:drift/drift.dart';
+
+class Warehouses extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get code => text().withLength(min: 1, max: 30)();
+
+  TextColumn get name => text().withLength(min: 1, max: 150)();
+
+  TextColumn get location => text().nullable()();
+
+  TextColumn get address => text().nullable()();
+
+  TextColumn get notes => text().nullable()();
+
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+}
+
+
+----- FILE: lib/core/di/service_locator.dart -----
+import 'dart:async';
+import '../services/accounting/system_account_resolver.dart';
+import 'package:get_it/get_it.dart';
+import '../event_bus/event_bus.dart';
+import '../audit/audit_entry.dart';
+import '../audit/audit_service.dart';
+import '../services/transaction_manager.dart';
+import '../services/numbering/number_generator.dart';
+import '../engine/accounting/accounting_engine.dart';
+import '../engine/validation/transaction_validator.dart';
+import '../engine/workflow/workflow_engine.dart';
+import '../repositories/master_data_repository.dart';
+import '../repositories/journal_repository.dart';
+import '../repositories/ledger_repository.dart';
+import '../services/master_data/master_data_service.dart';
+import '../services/operations/operation_service.dart';
+import '../services/reports/report_service.dart';
+import '../services/ai/ai_service.dart';
+import '../services/backup/backup_service.dart';
+import '../services/encryption/encryption_service.dart';
+import '../services/subscription/subscription_service.dart';
+import '../services/subscription/anti_tamper_service.dart';
+import '../services/inventory/item_movement_service.dart';
+import '../services/inventory/inventory_cost_service.dart';
+import '../services/inventory/inventory_movement_engine.dart';
+import '../services/accounting/accounting_link_service.dart';
+import '../services/templates/activity_templates.dart';
+import '../services/notifications/notification_service.dart';
+import '../services/targets/target_service.dart';
+import '../services/pdf/pdf_service.dart';
+import '../services/excel/excel_service.dart';
+import '../services/debts/debt_service.dart';
+import '../services/admin/owner_auth_service.dart';
+import '../auth/auth_service.dart';
+import '../database/app_database.dart';
+
+final sl = GetIt.instance;
+
+Future<void> setupServiceLocator() async {
+  final db = AppDatabase();
+  sl.registerSingleton<AppDatabase>(db);
+  sl.registerLazySingleton<SystemAccountResolver>(() => SystemAccountResolver(sl<AppDatabase>()));
+
+  sl.registerLazySingleton<AppEventBus>(() => AppEventBus());
+  sl.registerLazySingleton<AuditService>(() => _InMemoryAuditService());
+  sl.registerLazySingleton<TransactionManager>(
+    () => TransactionManager(sl<AuditService>(), sl<AppEventBus>()),
+  );
+  sl.registerLazySingleton<NumberGenerator>(
+    () => NumberGenerator(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<TransactionValidator>(
+    () => DefaultTransactionValidator(),
+  );
+  sl.registerLazySingleton<WorkflowEngine>(() => WorkflowEngine());
+
+  sl.registerLazySingleton<MasterDataRepository>(
+    () => MasterDataRepository(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<JournalRepository>(
+    () => JournalRepository(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<LedgerRepository>(
+    () => LedgerRepository(sl<AppDatabase>()),
+  );
+
+  sl.registerLazySingleton<AccountingEngine>(
+    () => AccountingEngine(
+      validator: sl<TransactionValidator>(),
+      workflow: sl<WorkflowEngine>(),
+      numberGenerator: sl<NumberGenerator>(),
+      transactionManager: sl<TransactionManager>(),
+      eventBus: sl<AppEventBus>(),
+      journalRepo: sl<JournalRepository>(),
+      ledgerRepo: sl<LedgerRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<AccountingLinkService>(
+    () => AccountingLinkService(sl<AppDatabase>()),
+  );
+  sl.registerLazySingleton<MasterDataService>(
+    () => MasterDataService(
+      sl<MasterDataRepository>(),
+      sl<AccountingLinkService>(),
+    ),
+  );
+  sl.registerLazySingleton<ItemMovementService>(
+    () => ItemMovementService(sl<AppDatabase>()),
+  );
+
+  sl.registerLazySingleton<InventoryMovementEngine>(
+    () => InventoryMovementEngine(sl<AppDatabase>()),
+  );
+
+  sl.registerLazySingleton<InventoryCostService>(
+    () => InventoryCostService(sl<AppDatabase>()),
+  );
+
+  sl.registerLazySingleton<OperationService>(
+    () => OperationService(
+      sl<AccountingEngine>(),
+      sl<MasterDataService>(),
+      sl<ItemMovementService>(),
+      sl<InventoryMovementEngine>(),
+      sl<AppDatabase>(),
+      sl<LedgerRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<ReportService>(
+    () => ReportService(
+      sl<MasterDataRepository>(),
+      sl<ItemMovementService>(),
+      sl<InventoryCostService>(),
+      sl<LedgerRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<AiService>(
+    () => AiService(sl<OperationService>(), sl<ReportService>()),
+  );
+  sl.registerLazySingleton<BackupService>(() => BackupService());
+  sl.registerLazySingleton<EncryptionService>(() => EncryptionService());
+  sl.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
+  sl.registerLazySingleton<AntiTamperService>(() => AntiTamperService());
+  sl.registerLazySingleton<SystemAccountResolver>(() => SystemAccountResolver(sl<AppDatabase>()));
+  sl.registerLazySingleton<AuthService>(() => AuthService());
+  sl.registerLazySingleton<ActivityTemplates>(() => ActivityTemplates());
+  sl.registerLazySingleton<NotificationService>(() => NotificationService());
+  sl.registerLazySingleton<TargetService>(() => TargetService());
+  sl.registerLazySingleton<PdfService>(() => PdfService());
+  sl.registerLazySingleton<ExcelService>(() => ExcelService());
+  sl.registerLazySingleton<DebtService>(() => DebtService());
+  sl.registerLazySingleton<OwnerAuthService>(() => OwnerAuthService());
+}
+
+class _InMemoryAuditService extends AuditService {
+  final List<AuditEntry> _entries = [];
+  final _controller = StreamController<AuditEntry>.broadcast();
+  @override
+  Future<void> record(AuditEntry entry) async {
+    _entries.add(entry);
+    _controller.add(entry);
+  }
+
+  @override
+  Future<List<AuditEntry>> getAll() async => List.unmodifiable(_entries);
+  @override
+  Stream<AuditEntry> watchAll() => _controller.stream;
+}
+
+
+----- FILE: lib/core/engine/accounting/accounting_engine.dart -----
+import 'package:get_it/get_it.dart';
+import '../../errors/result.dart';
+import '../../errors/app_exception.dart';
+import '../../event_bus/event_bus.dart';
+import '../../services/transaction_manager.dart';
+import '../../services/numbering/number_generator.dart';
+import '../../repositories/journal_repository.dart';
+import '../../repositories/ledger_repository.dart';
+import 'transaction_context.dart';
+import 'transaction_result.dart';
+import '../validation/transaction_validator.dart';
+import '../workflow/workflow_engine.dart';
+
+class AccountingEngine {
+
+  AccountingEngine({
+    required this._validator,
+    required this._workflow,
+    required this._numberGenerator,
+    required this._transactionManager,
+    required this._eventBus,
+    required this._journalRepo,
+    required this._ledgerRepo,
+  });
+  final TransactionValidator _validator;
+  final WorkflowEngine _workflow;
+  final NumberGenerator _numberGenerator;
+  final TransactionManager _transactionManager;
+  final AppEventBus _eventBus;
+  final JournalRepository _journalRepo;
+  final LedgerRepository _ledgerRepo;
+
+  Future<Result<TransactionResult>> execute(
+    TransactionContext context, {
+    TransactionStatus initialStatus = TransactionStatus.approved,
+  }) async {
+    final validationResult = _validator.validate(context);
+    if (!validationResult.isValid) {
+      return Failure(ValidationException(validationResult.errors.join('، ')));
+    }
+
+    final status = _workflow.execute(initialStatus, WorkflowAction.post);
+    if (status != TransactionStatus.posted) {
+      return const Failure(
+        AppException('لا يمكن ترحيل العملية في حالتها الحالية'),
+      );
+    }
+
+    final number = await _numberGenerator.generate(
+      context.type.name,
+      date: context.date,
+    );
+
+    return _transactionManager.execute<TransactionResult>(
+      operation: () async {
+        // 1. حفظ القيد في JournalEntries + JournalLines
+        final entryId = await _journalRepo.saveJournalEntry(
+          entryNumber: number,
+          entryDate: context.date,
+          operationType: context.type.name,
+          description: context.reference,
+          referenceType: context.type.name,
+          referenceId: context.reference,
+          currencyCode: context.currencyCode ?? 'YER',
+          exchangeRate: context.exchangeRate,
+          lines: context.items
+              .map(
+                (item) => {
+                  'accountId': item.accountId,
+                  'debit': item.debit,
+                  'credit': item.credit,
+                  'description': item.description,
+                },
+              )
+              .toList(),
+        );
+
+        // 2. تحديث Ledger لكل بند
+        final lines = await _journalRepo.getEntryLines(entryId);
+        for (final line in lines) {
+          await _ledgerRepo.addLedgerEntry(
+            journalEntryId: entryId,
+            journalLineId: line['id'] as int,
+            accountId: line['account_id'] as int,
+            entryDate: context.date,
+            debit: double.tryParse(line['debit']?.toString() ?? '0') ?? 0,
+            credit: double.tryParse(line['credit']?.toString() ?? '0') ?? 0,
+            currencyCode: context.currencyCode ?? 'YER',
+          );
+        }
+
+        _eventBus.fire(
+          TransactionCompleted({'entryId': entryId, 'number': number}),
+        );
+        return TransactionResult.success(number);
+      },
+      action: 'POST_${context.type.name.toUpperCase()}',
+      entityType: 'Transaction',
+      entityId: number,
+      description: context.reference ?? 'عملية محاسبية',
+    );
+  }
+
+  Future<Result<TransactionResult>> saveAsDraft(
+    TransactionContext context,
+  ) async {
+    final validationResult = _validator.validate(context);
+    if (!validationResult.isValid) {
+      return const Failure(ValidationException('Validation failed'));
+    }
+
+    return _transactionManager.execute<TransactionResult>(
+      operation: () async => TransactionResult.draft(),
+      action: 'DRAFT_${context.type.name.toUpperCase()}',
+      entityType: 'Transaction',
+      description: context.reference ?? 'مسودة عملية',
+    );
+  }
+}
+
+extension AccountingEngineLocator on GetIt {
+  AccountingEngine get accountingEngine => this<AccountingEngine>();
+}
+
+
+----- FILE: lib/core/engine/accounting/transaction_context.dart -----
+import '../../errors/app_exception.dart';
+import '../../errors/result.dart';
+
+enum TransactionType {
+  receipt, payment, journal, sale, purchase, transfer, inventory,
+}
+
+class JournalItem {
+
+  const JournalItem({
+    required this.accountId,
+    this.debit = 0,
+    this.credit = 0,
+    this.description,
+  });
+  final int accountId;
+  final double debit;
+  final double credit;
+  final String? description;
+}
+
+class TransactionContext {
+
+  const TransactionContext({
+    required this.type,
+    required this.date,
+    required this.items,
+    this.reference,
+    this.currencyCode = 'YER',
+    this.exchangeRate = 1.0,
+    this.metadata,
+  });
+  final TransactionType type;
+  final DateTime date;
+  final String? reference;
+  final List<JournalItem> items;
+  final String? currencyCode;
+  final double exchangeRate;
+  final Map<String, dynamic>? metadata;
+
+  Result<void> validate() {
+    if (items.isEmpty) {
+      return const Failure(ValidationException('يجب إضافة بند واحد على الأقل'));
+    }
+    double totalDebit = 0, totalCredit = 0;
+    for (final item in items) {
+      totalDebit += item.debit;
+      totalCredit += item.credit;
+    }
+    if ((totalDebit - totalCredit).abs() > 0.001) {
+      return const Failure(ValidationException('يجب أن يتساوى مجموع المدين والدائن'));
+    }
+    return const Success(null);
+  }
+}
+
+
+----- FILE: lib/core/engine/accounting/transaction_result.dart -----
+enum TransactionStatus { draft, approved, posted, cancelled }
+
+class TransactionResult {
+
+  const TransactionResult({this.entryNumber, required this.status, this.message});
+
+  factory TransactionResult.success(String entryNumber) => TransactionResult(
+        entryNumber: entryNumber,
+        status: TransactionStatus.posted,
+        message: 'تم ترحيل العملية بنجاح',
+      );
+
+  factory TransactionResult.draft() => const TransactionResult(
+        status: TransactionStatus.draft,
+        message: 'تم الحفظ كمسودة',
+      );
+
+  factory TransactionResult.cancelled() => const TransactionResult(
+        status: TransactionStatus.cancelled,
+        message: 'تم إلغاء العملية',
+      );
+  final String? entryNumber;
+  final TransactionStatus status;
+  final String? message;
+}
+
+
+----- FILE: lib/core/engine/validation/transaction_validator.dart -----
+import 'validation_result.dart';
+import '../accounting/transaction_context.dart';
+
+abstract class TransactionValidator {
+  ValidationResult validate(TransactionContext context);
+}
+
+class DefaultTransactionValidator implements TransactionValidator {
+  @override
+  ValidationResult validate(TransactionContext context) {
+    final errors = <String>[];
+
+    if (context.items.isEmpty) {
+      errors.add('يجب إضافة بند واحد على الأقل');
+    }
+
+    double totalDebit = 0;
+    double totalCredit = 0;
+    for (final item in context.items) {
+      if (item.accountId <= 0) {
+        errors.add('رقم الحساب غير صالح');
+      }
+      if (item.debit < 0 || item.credit < 0) {
+        errors.add('لا يمكن إدخال قيم سالبة');
+      }
+      totalDebit += item.debit;
+      totalCredit += item.credit;
+    }
+
+    if ((totalDebit - totalCredit).abs() > 0.001) {
+      errors.add('يجب أن يتساوى مجموع المدين والدائن');
+    }
+
+    if (totalDebit == 0 && totalCredit == 0) {
+      errors.add('لا يمكن أن تكون جميع المبالغ صفراً');
+    }
+
+    return errors.isEmpty
+        ? ValidationResult.success()
+        : ValidationResult.failure(errors);
+  }
+}
+
+
+----- FILE: lib/core/engine/validation/validation_result.dart -----
+class ValidationResult {
+  const ValidationResult({required this.isValid, this.errors = const []});
+
+  factory ValidationResult.success() => const ValidationResult(isValid: true);
+  factory ValidationResult.failure(List<String> errors) => ValidationResult(isValid: false, errors: errors);
+  final bool isValid;
+  final List<String> errors;
+}
+
+
+----- FILE: lib/core/engine/workflow/workflow_engine.dart -----
+import '../accounting/transaction_result.dart';
+
+enum WorkflowAction {
+  saveAsDraft,
+  approve,
+  post,
+  cancel,
+}
+
+class WorkflowEngine {
+  TransactionStatus execute(TransactionStatus current, WorkflowAction action) {
+    switch (current) {
+      case TransactionStatus.draft:
+        if (action == WorkflowAction.approve) return TransactionStatus.approved;
+        if (action == WorkflowAction.cancel) return TransactionStatus.cancelled;
+        break;
+      case TransactionStatus.approved:
+        if (action == WorkflowAction.post) return TransactionStatus.posted;
+        if (action == WorkflowAction.cancel) return TransactionStatus.cancelled;
+        break;
+      case TransactionStatus.posted:
+        // لا يمكن تغيير الحالة بعد الترحيل (إلا بإلغاء خاص)
+        break;
+      case TransactionStatus.cancelled:
+        // لا يمكن تغيير الحالة بعد الإلغاء
+        break;
+    }
+    return current; // لا تغيير إذا كان الإجراء غير مسموح
+  }
+}
+
+
+----- FILE: lib/core/errors/app_exception.dart -----
+class AppException implements Exception {
+  const AppException(this.message, {this.code, this.cause});
+  final String message;
+  final String? code;
+  final Object? cause;
+
+  @override
+  String toString() => 'AppException($code): $message';
+}
+
+class ValidationException extends AppException {
+  const ValidationException(super.message, {super.code});
+}
+
+class DatabaseException extends AppException {
+  const DatabaseException(super.message, {super.code});
+}
+
+class AccountingException extends AppException {
+  const AccountingException(super.message, {super.code});
+}
+
+
+----- FILE: lib/core/errors/failure.dart -----
+class Failure {
+  const Failure({required this.message});
+  final String message;
+}
+
+
+----- FILE: lib/core/errors/result.dart -----
+import 'app_exception.dart';
+
+sealed class Result<T> {
+  const Result();
+}
+
+final class Success<T> extends Result<T> {
+  const Success(this.data);
+  final T data;
+}
+
+final class Failure<T> extends Result<T> {
+  const Failure(this.exception);
+  final AppException exception;
+}
+
+
+----- FILE: lib/core/event_bus/event_bus.dart -----
+import 'dart:async';
+import 'package:get_it/get_it.dart';
+
+class AppEventBus {
+  final _controllers = <Type, StreamController<dynamic>>{};
+
+  void fire<T>(T event) {
+    final controller = _controllers[T] as StreamController<T>?;
+    if (controller != null && !controller.isClosed) {
+      controller.add(event);
+    }
+  }
+
+  Stream<T> on<T>() {
+    final controller =
+        _controllers.putIfAbsent(T, () => StreamController<T>.broadcast());
+    return controller.stream as Stream<T>;
+  }
+
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.close();
+    }
+    _controllers.clear();
+  }
+}
+
+extension EventBusLocator on GetIt {
+  AppEventBus get eventBus => this<AppEven

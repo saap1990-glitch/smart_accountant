@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../services/accounting/system_account_resolver.dart';
 import 'package:get_it/get_it.dart';
 import '../event_bus/event_bus.dart';
 import '../audit/audit_entry.dart';
@@ -31,6 +32,7 @@ import '../services/excel/excel_service.dart';
 import '../services/debts/debt_service.dart';
 import '../services/admin/owner_auth_service.dart';
 import '../auth/auth_service.dart';
+import '../auth/firebase_auth_service.dart';
 import '../database/app_database.dart';
 
 final sl = GetIt.instance;
@@ -38,6 +40,9 @@ final sl = GetIt.instance;
 Future<void> setupServiceLocator() async {
   final db = AppDatabase();
   sl.registerSingleton<AppDatabase>(db);
+  sl.registerLazySingleton<SystemAccountResolver>(
+    () => SystemAccountResolver(sl<AppDatabase>()),
+  );
 
   sl.registerLazySingleton<AppEventBus>(() => AppEventBus());
   sl.registerLazySingleton<AuditService>(() => _InMemoryAuditService());
@@ -103,6 +108,7 @@ Future<void> setupServiceLocator() async {
       sl<InventoryMovementEngine>(),
       sl<AppDatabase>(),
       sl<LedgerRepository>(),
+      sl<SystemAccountResolver>(),
     ),
   );
   sl.registerLazySingleton<ReportService>(
@@ -121,6 +127,7 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
   sl.registerLazySingleton<AntiTamperService>(() => AntiTamperService());
   sl.registerLazySingleton<AuthService>(() => AuthService());
+  sl.registerLazySingleton<FirebaseAuthService>(() => FirebaseAuthService());
   sl.registerLazySingleton<ActivityTemplates>(() => ActivityTemplates());
   sl.registerLazySingleton<NotificationService>(() => NotificationService());
   sl.registerLazySingleton<TargetService>(() => TargetService());

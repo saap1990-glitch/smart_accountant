@@ -31,12 +31,12 @@ class AppTheme {
     colorSchemeSeed: primaryLight,
     scaffoldBackgroundColor: backgroundLight,
     fontFamily: 'Cairo',
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: primaryLight,
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
       ),
     ),
@@ -94,12 +94,12 @@ class AppTheme {
     colorSchemeSeed: primaryDark,
     scaffoldBackgroundColor: backgroundDark,
     fontFamily: 'Cairo',
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: surfaceDark,
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
       ),
     ),
@@ -142,7 +142,7 @@ class AppTheme {
       ),
       contentPadding: const EdgeInsets.all(16),
     ),
-    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: surfaceDark,
       selectedItemColor: primaryDark,
       unselectedItemColor: Colors.grey,

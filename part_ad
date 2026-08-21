@@ -1,0 +1,1784 @@
+ (unit.trim().isEmpty) {
+      throw ArgumentError('الوحدة مطلوبة');
+    }
+
+    if (cost < 0 || price < 0) {
+      throw ArgumentError('الأسعار لا يمكن أن تكون سالبة');
+    }
+
+    final items = await _repository.getAllItems();
+    final code = 'ITM-${(items.length + 1).toString().padLeft(5, '0')}';
+
+    return _repository.insertItem({
+      'code': code,
+      'name': name.trim(),
+      'name_en': nameEn,
+      'item_type': itemType,
+      'category': category,
+      'unit': unit.trim(),
+      'cost': cost,
+      'price': price,
+      'opening_quantity': openingQuantity,
+      'minimum_quantity': minimumQuantity,
+      'maximum_quantity': maximumQuantity,
+      'barcode': barcode,
+      'sku': sku,
+      'description': description,
+      'notes': notes,
+      'is_active': isActive,
+      'is_service': isService,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getAllItems() async =>
+      _repository.getAllItems();
+
+  Future<int> updateItem(
+    int id, {
+    required String name,
+    required String unit,
+    double cost = 0,
+    double price = 0,
+    String? nameEn,
+    String itemType = 'inventory',
+    String? category,
+    double openingQuantity = 0,
+    double minimumQuantity = 0,
+    double maximumQuantity = 0,
+    String? barcode,
+    String? sku,
+    String? description,
+    String? notes,
+    bool isActive = true,
+    bool isService = false,
+  }) async {
+    return _repository.updateItem(id, {
+      'name': name.trim(),
+      'name_en': nameEn,
+      'item_type': itemType,
+      'category': category,
+      'unit': unit.trim(),
+      'cost': cost,
+      'price': price,
+      'opening_quantity': openingQuantity,
+      'minimum_quantity': minimumQuantity,
+      'maximum_quantity': maximumQuantity,
+      'barcode': barcode,
+      'sku': sku,
+      'description': description,
+      'notes': notes,
+      'is_active': isActive,
+      'is_service': isService,
+    });
+  }
+
+  Future<int> deleteItem(int id) async => _repository.deleteItem(id);
+
+  // الوحدات
+  Future<int> createUnit({required String name, String? abbreviation}) async =>
+      _repository.insertUnit({'name': name, 'abbreviation': abbreviation});
+  Future<List<Map<String, dynamic>>> getAllUnits() async =>
+      _repository.getAllUnits();
+  Future<int> deleteUnit(int id) async => _repository.deleteUnit(id);
+
+  // المخازن
+  Future<int> createWarehouse({
+    required String name,
+    String? code,
+    String? location,
+    String? address,
+    String? notes,
+    bool isActive = true,
+  }) async {
+    if (name.trim().isEmpty) {
+      throw ArgumentError('اسم المستودع مطلوب');
+    }
+
+    final warehouses = await _repository.getAllWarehouses();
+
+    final generatedCode = code == null || code.trim().isEmpty
+        ? 'WH-${(warehouses.length + 1).toString().padLeft(3, '0')}'
+        : code.trim();
+
+    final warehouseId = await _repository.insertWarehouse({
+      'name': name.trim(),
+      'code': generatedCode,
+      'location': location,
+      'address': address,
+      'notes': notes,
+      'is_active': isActive,
+    });
+
+    await _linkService.createAndLink(
+      module: 'warehouses',
+      entityType: 'Warehouse',
+      entityId: warehouseId.toString(),
+      entityName: name.trim(),
+      parentSystemCode: 'inventory_default',
+    );
+
+    return warehouseId;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllWarehouses() async =>
+      _repository.getAllWarehouses();
+
+  Future<int> updateWarehouse(
+    int id, {
+    required String name,
+    String? code,
+    String? location,
+    String? address,
+    String? notes,
+    bool isActive = true,
+  }) async {
+    if (name.trim().isEmpty) {
+      throw ArgumentError('اسم المستودع مطلوب');
+    }
+
+    return _repository.updateWarehouse(id, {
+      'name': name.trim(),
+      'code': code,
+      'location': location,
+      'address': address,
+      'notes': notes,
+      'is_active': isActive,
+    });
+  }
+
+  Future<int> deleteWarehouse(int id) async => _repository.deleteWarehouse(id);
+
+  // البنوك
+  Future<int> createBank({required String name, String? accountNumber}) async {
+    final bankId = await _repository.insertBank({
+      'name': name,
+      'account_number': accountNumber,
+    });
+    await _linkService.createAndLink(
+      module: 'banks',
+      entityType: 'Bank',
+      entityId: bankId.toString(),
+      entityName: name,
+      parentSystemCode: 'bank_default',
+    );
+    return bankId;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllBanks() async =>
+      _repository.getAllBanks();
+  Future<int> deleteBank(int id) async => _repository.deleteBank(id);
+
+  // الصناديق
+  Future<int> createCashBox({required String name}) async {
+    final cashBoxId = await _repository.insertCashBox({'name': name});
+    await _linkService.createAndLink(
+      module: 'cash_boxes',
+      entityType: 'CashBox',
+      entityId: cashBoxId.toString(),
+      entityName: name,
+      parentSystemCode: 'cash_default',
+    );
+    return cashBoxId;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllCashBoxes() async =>
+      _repository.getAllCashBoxes();
+  Future<int> deleteCashBox(int id) async => _repository.deleteCashBox(id);
+
+  // المحافظ
+  Future<int> createWallet({required String name, String? provider}) async {
+    final walletId = await _repository.insertWallet({
+      'name': name,
+      'provider': provider,
+    });
+    await _linkService.createAndLink(
+      module: 'wallets',
+      entityType: 'Wallet',
+      entityId: walletId.toString(),
+      entityName: name,
+      parentSystemCode: 'wallet_parent',
+    );
+    return walletId;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllWallets() async =>
+      _repository.getAllWallets();
+  Future<int> deleteWallet(int id) async => _repository.deleteWallet(id);
+
+  // شركات الصرافة
+  Future<int> createExchangeCompany({
+    required String name,
+    String? phone,
+  }) async {
+    final companyId = await _repository.insertExchangeCompany({
+      'name': name,
+      'phone': phone,
+    });
+    await _linkService.createAndLink(
+      module: 'exchange_companies',
+      entityType: 'ExchangeCompany',
+      entityId: companyId.toString(),
+      entityName: name,
+      parentSystemCode: 'exchange_parent',
+    );
+    return companyId;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllExchangeCompanies() async =>
+      _repository.getAllExchangeCompanies();
+  Future<int> deleteExchangeCompany(int id) async =>
+      _repository.deleteExchangeCompany(id);
+
+  Future<int?> getLinkedAccountId(
+    String module,
+    String entityType,
+    String entityId,
+  ) async => _linkService.getLinkedAccount(module, entityType, entityId);
+}
+
+
+----- FILE: lib/core/services/notifications/notification_service.dart -----
+import 'dart:async';
+
+class AppNotification {
+
+  AppNotification({
+    required this.title,
+    required this.message,
+    required this.type,
+    DateTime? timestamp,
+    this.isRead = false,
+  }) : timestamp = timestamp ?? DateTime.now();
+  final String title;
+  final String message;
+  final NotificationType type;
+  final DateTime timestamp;
+  final bool isRead;
+}
+
+enum NotificationType {
+  success,
+  warning,
+  info,
+  achievement,
+  deadline,
+  motivational,
+}
+
+class NotificationService {
+  final List<AppNotification> _notifications = [];
+  final _controller = StreamController<List<AppNotification>>.broadcast();
+
+  Stream<List<AppNotification>> get notifications => _controller.stream;
+
+  List<AppNotification> get unread =>
+      _notifications.where((n) => !n.isRead).toList();
+
+  int get unreadCount => unread.length;
+
+  List<AppNotification> get all => List.unmodifiable(_notifications);
+
+  void add({
+    required String title,
+    required String message,
+    required NotificationType type,
+  }) {
+    _notifications.insert(0, AppNotification(
+      title: title,
+      message: message,
+      type: type,
+    ));
+    _controller.add(all);
+  }
+
+  void markAllRead() {
+    for (var n in _notifications) {
+      n = AppNotification(
+        title: n.title,
+        message: n.message,
+        type: n.type,
+        timestamp: n.timestamp,
+        isRead: true,
+      );
+    }
+    _controller.add(all);
+  }
+
+  // إشعارات ذكية تلقائية
+  void checkTargetAchievement(double achieved, double target, String period) {
+    final percentage = (achieved / target * 100);
+    if (percentage >= 100) {
+      add(
+        title: '🎉 هدف محقق!',
+        message: 'حققت $percentage% من هدفك ال$period. أداء رائع!',
+        type: NotificationType.achievement,
+      );
+    } else if (percentage >= 80) {
+      add(
+        title: '🔥 اقتربت من الهدف!',
+        message: 'تبقى ${(target - achieved).toStringAsFixed(0)} ريال لتحقيق هدفك ال$period',
+        type: NotificationType.motivational,
+      );
+    } else if (percentage >= 50) {
+      add(
+        title: '💪 أنت في منتصف الطريق',
+        message: 'أنجزت $percentage% من هدفك. استمر!',
+        type: NotificationType.motivational,
+      );
+    }
+  }
+
+  void checkDeadlines() {
+    final now = DateTime.now();
+    // تنبيهات نهاية الشهر
+    if (now.day >= 25) {
+      add(
+        title: '📅 تنبيه نهاية الشهر',
+        message: 'تبقى ${DateTime(now.year, now.month + 1, 0).day - now.day} أيام على نهاية الشهر',
+        type: NotificationType.deadline,
+      );
+    }
+  }
+
+  void lowStockAlert(String itemName, double quantity) {
+    add(
+      title: '⚠️ مخزون منخفض',
+      message: 'الصنف "$itemName" أوشك على النفاد (الكمية: $quantity)',
+      type: NotificationType.warning,
+    );
+  }
+
+  void paymentReminder(String customerName, double amount, int daysLeft) {
+    add(
+      title: '💳 دفعة مستحقة',
+      message: 'العميل "$customerName" عليه دفعة ${amount.toStringAsFixed(0)} ريال خلال $daysLeft يوم',
+      type: NotificationType.deadline,
+    );
+  }
+
+  void dispose() {
+    _controller.close();
+  }
+}
+
+
+----- FILE: lib/core/services/numbering/number_generator.dart -----
+import '../../database/app_database.dart';
+import 'package:drift/drift.dart';
+
+class NumberGenerator {
+
+  NumberGenerator(this._db);
+  final AppDatabase _db;
+
+  Future<String> generate(String type, {DateTime? date}) async {
+    final operationDate = date ?? DateTime.now();
+    final year = operationDate.year;
+    final prefix = _getPrefix(type);
+    final pattern = '$prefix-$year-';
+
+    final entries = await (_db.select(
+      _db.journalEntries,
+    )..where((t) => t.entryNumber.like('$pattern%'))).get();
+
+    var maxSequence = 0;
+
+    for (final entry in entries) {
+      if (!entry.entryNumber.startsWith(pattern)) continue;
+
+      final suffix = entry.entryNumber.substring(pattern.length);
+      final sequence = int.tryParse(suffix);
+
+      if (sequence != null && sequence > maxSequence) {
+        maxSequence = sequence;
+      }
+    }
+
+    final nextSequence = maxSequence + 1;
+
+    return '$pattern${nextSequence.toString().padLeft(6, '0')}';
+  }
+
+  String _getPrefix(String type) {
+    switch (type.toLowerCase()) {
+      case 'receipt':
+        return 'RC';
+      case 'payment':
+        return 'PV';
+      case 'sale':
+        return 'SI';
+      case 'purchase':
+        return 'PI';
+      case 'journal':
+        return 'JV';
+      case 'transfer':
+        return 'TR';
+      case 'inventory':
+        return 'INV';
+      default:
+        return 'TX';
+    }
+  }
+}
+
+
+----- FILE: lib/core/services/operations/operation_service.dart -----
+import 'package:get_it/get_it.dart';
+import 'package:drift/drift.dart';
+import '../accounting/system_account_resolver.dart';
+
+import '../../errors/result.dart';
+import '../accounting/system_account_resolver.dart';
+import '../../errors/app_exception.dart';
+import '../accounting/system_account_resolver.dart';
+import '../../database/app_database.dart';
+import '../accounting/system_account_resolver.dart';
+import '../../engine/accounting/accounting_engine.dart';
+import '../accounting/system_account_resolver.dart';
+import '../../engine/accounting/transaction_context.dart';
+import '../accounting/system_account_resolver.dart';
+import '../../engine/accounting/transaction_result.dart';
+import '../accounting/system_account_resolver.dart';
+import '../master_data/master_data_service.dart';
+import '../accounting/system_account_resolver.dart';
+import '../inventory/item_movement_service.dart';
+import '../accounting/system_account_resolver.dart';
+import '../inventory/inventory_movement_engine.dart';
+import '../accounting/system_account_resolver.dart';
+import '../../repositories/ledger_repository.dart';
+import '../accounting/system_account_resolver.dart';
+
+class OperationService {
+  OperationService(
+    this._engine,
+    this._dataService,
+    this._movementService,
+    this._inventoryMovementEngine,
+    this._db,
+    this._ledgerRepo,
+    this._systemResolver,
+  );
+  final AccountingEngine _engine;
+  final MasterDataService _dataService;
+  final ItemMovementService _movementService;
+  final InventoryMovementEngine _inventoryMovementEngine;
+  final AppDatabase _db;
+  final LedgerRepository _ledgerRepo;
+  final SystemAccountResolver _systemResolver;
+
+  Future<Result<TransactionResult>> execute({
+    SystemAccountResolver? systemResolver,
+    required TransactionType type,
+    required DateTime date,
+    required List<JournalItem> items,
+    String? reference,
+    String? currencyCode,
+    double exchangeRate = 1.0,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final resolver = systemResolver ?? GetIt.I<SystemAccountResolver>();
+    for (final item in items) {
+      if (item.accountId <= 0) {
+        return const Failure(ValidationException('يجب اختيار جميع الحسابات'));
+      }
+    }
+
+    double totalDebit = 0;
+    double totalCredit = 0;
+
+    for (final item in items) {
+      totalDebit += item.debit;
+      totalCredit += item.credit;
+    }
+
+    if ((totalDebit - totalCredit).abs() > 0.001) {
+      return const Failure(ValidationException('القيد غير متوازن'));
+    }
+
+    final context = TransactionContext(
+      type: type,
+      date: date,
+      items: items,
+      reference: reference,
+      currencyCode: currencyCode ?? 'YER',
+      exchangeRate: exchangeRate,
+      metadata: metadata,
+    );
+
+    try {
+      return await _db.transaction(() async {
+        final result = await _engine.execute(context);
+
+        if (result is! Success<TransactionResult>) {
+          return result;
+        }
+
+        if (metadata != null && metadata.containsKey('items')) {
+          await _recordInventoryMovements(
+            type: type,
+            date: date,
+            metadata: metadata,
+          );
+        }
+
+        return result;
+      });
+    } on AppException catch (e) {
+      return Failure(e);
+    } catch (e) {
+      return Failure(
+        AppException('فشل ترحيل العملية وإلغاء جميع التغييرات: $e'),
+      );
+    }
+  }
+
+  Future<void> _recordInventoryMovements({
+    required TransactionType type,
+    required DateTime date,
+    required Map<String, dynamic> metadata,
+  }) async {
+    final rawItems = metadata['items'];
+
+    if (rawItems is! List) {
+      throw const ValidationException('بيانات أصناف العملية غير صحيحة');
+    }
+
+    for (final rawItem in rawItems) {
+      if (rawItem is! Map) {
+        throw const ValidationException('بيانات أحد أصناف العملية غير صحيحة');
+      }
+
+      final itemId = int.tryParse(rawItem['id']?.toString() ?? '');
+
+      final quantity =
+          double.tryParse(rawItem['quantity']?.toString() ?? '') ?? 0;
+
+      final price = double.tryParse(rawItem['price']?.toString() ?? '') ?? 0;
+
+      if (itemId == null || itemId <= 0) {
+        throw const ValidationException('معرف الصنف غير صحيح');
+      }
+
+      if (quantity <= 0) {
+        throw const ValidationException('كمية الصنف يجب أن تكون أكبر من صفر');
+      }
+
+      final reference = metadata['reference']?.toString();
+
+      switch (type) {
+        case TransactionType.sale:
+          final isReturn = metadata['isReturn'] == true;
+
+          if (isReturn) {
+            final cost = await _getCurrentItemCost(itemId);
+
+            await _inventoryMovementEngine.recordSaleReturn(
+              itemId: itemId,
+              quantity: quantity,
+              cost: cost,
+              reference: reference,
+              date: date,
+            );
+          } else {
+            await _inventoryMovementEngine.recordSale(
+              itemId: itemId,
+              quantity: quantity,
+              price: price,
+              reference: reference,
+              date: date,
+            );
+          }
+          break;
+
+        case TransactionType.purchase:
+          final isReturn = metadata['isReturn'] == true;
+
+          if (isReturn) {
+            final cost = await _getCurrentItemCost(itemId);
+
+            await _inventoryMovementEngine.recordPurchaseReturn(
+              itemId: itemId,
+              quantity: quantity,
+              cost: cost,
+              reference: reference,
+              date: date,
+            );
+          } else {
+            await _inventoryMovementEngine.recordPurchase(
+              itemId: itemId,
+              quantity: quantity,
+              price: price,
+              reference: reference,
+              date: date,
+            );
+          }
+          break;
+
+        case TransactionType.inventory:
+          final inventoryIn = metadata['isInventoryIn'] == true;
+
+          final inventoryOut = metadata['isInventoryOut'] == true;
+
+          if (inventoryIn) {
+            await _inventoryMovementEngine.recordInventoryIn(
+              itemId: itemId,
+              quantity: quantity,
+              cost: price,
+              reference: reference,
+              date: date,
+            );
+          } else if (inventoryOut) {
+            final cost = await _getCurrentItemCost(itemId);
+
+            await _inventoryMovementEngine.recordInventoryOut(
+              itemId: itemId,
+              quantity: quantity,
+              cost: cost,
+              reference: reference,
+              date: date,
+            );
+          }
+          break;
+
+        default:
+          break;
+      }
+    }
+  }
+
+  Future<double> _getCurrentItemCost(int itemId) async {
+    final rows = await (_db.select(
+      _db.inventoryTransactions,
+    )..where((t) => t.itemId.equals(itemId))).get();
+
+    double quantity = 0;
+    double value = 0;
+
+    for (final row in rows) {
+      final qty = double.tryParse(row.quantity) ?? 0;
+
+      final price = double.tryParse(row.price ?? '0') ?? 0;
+
+      switch (row.type.toLowerCase()) {
+        case 'purchase':
+        case 'inventory_in':
+        case 'return_sale':
+          quantity += qty;
+          value += qty * price;
+          break;
+
+        case 'sale':
+        case 'inventory_out':
+        case 'return_purchase':
+          if (quantity > 0) {
+            final average = value / quantity;
+            value -= qty * average;
+            quantity -= qty;
+          }
+          break;
+      }
+    }
+
+    if (quantity <= 0) {
+      return 0;
+    }
+
+    return value / quantity;
+  }
+
+  Future<double> getAccountBalance(int accountId) async =>
+      _ledgerRepo.getBalance(accountId);
+
+  Future<List<Map<String, dynamic>>> getAccountStatement(
+    int accountId, {
+    DateTime? from,
+    DateTime? to,
+  }) async =>
+      _ledgerRepo.getAccountStatement(accountId: accountId, from: from, to: to);
+
+  Future<List<Map<String, dynamic>>> getAccounts() =>
+      _dataService.getAllAccounts();
+
+  Future<List<Map<String, dynamic>>> getCustomers() =>
+      _dataService.getAllCustomers();
+
+  Future<List<Map<String, dynamic>>> getSuppliers() =>
+      _dataService.getAllSuppliers();
+
+  Future<List<Map<String, dynamic>>> getItems() => _dataService.getAllItems();
+
+  Future<List<Map<String, dynamic>>> getBanks() => _dataService.getAllBanks();
+
+  Future<List<Map<String, dynamic>>> getCashBoxes() =>
+      _dataService.getAllCashBoxes();
+
+  Future<List<Map<String, dynamic>>> getWallets() =>
+      _dataService.getAllWallets();
+
+  Future<List<Map<String, dynamic>>> getExchangeCompanies() =>
+      _dataService.getAllExchangeCompanies();
+}
+
+extension OperationServiceDraft on OperationService {
+  Future<Result<TransactionResult>> saveDraft({
+    required TransactionType type,
+    required DateTime date,
+    required List<JournalItem> items,
+    String? reference,
+    String? currencyCode,
+    double exchangeRate = 1.0,
+  }) async {
+    final context = TransactionContext(
+      type: type,
+      date: date,
+      items: items,
+      reference: reference,
+      currencyCode: currencyCode,
+      exchangeRate: exchangeRate,
+    );
+
+    return _engine.saveAsDraft(context);
+  }
+}
+
+
+----- FILE: lib/core/services/pdf/pdf_service.dart -----
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'dart:typed_data';
+
+class PdfService {
+  /// طباعة فاتورة
+  Future<void> printInvoice({
+    required String title,
+    required String number,
+    required String date,
+    required String customerName,
+    required List<Map<String, dynamic>> items,
+    required double total,
+    double? discount,
+    double? tax,
+    String? notes,
+  }) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Center(child: pw.Text('المحاسب الذكي', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
+              pw.Center(child: pw.Text(title, style: const pw.TextStyle(fontSize: 18))),
+              pw.SizedBox(height: 16),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('رقم: $number'),
+                  pw.Text('التاريخ: $date'),
+                ],
+              ),
+              pw.SizedBox(height: 8),
+              if (customerName.isNotEmpty) pw.Text('العميل/المورد: $customerName'),
+              pw.SizedBox(height: 16),
+              pw.TableHelper.fromTextArray(
+                headers: ['الصنف', 'الوحدة', 'الكمية', 'السعر', 'الإجمالي'],
+                data: items.map((item) => [
+                  item['name'] ?? '',
+                  item['unit'] ?? '',
+                  item['quantity']?.toString() ?? '',
+                  item['price']?.toString() ?? '',
+                  ((item['quantity'] ?? 0) * (item['price'] ?? 0)).toStringAsFixed(2),
+                ]).toList(),
+                border: pw.TableBorder.all(),
+              ),
+              pw.SizedBox(height: 16),
+              if (discount != null) pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('الخصم'), pw.Text(discount.toStringAsFixed(2))]),
+              if (tax != null) pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('الضريبة'), pw.Text(tax.toStringAsFixed(2))]),
+              pw.Divider(),
+              pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+                pw.Text('الإجمالي', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                pw.Text(total.toStringAsFixed(2), style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              ]),
+              if (notes != null) pw.Text('ملاحظات: $notes'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  }
+
+  /// مشاركة PDF
+  Future<Uint8List> generateInvoicePdf({
+    required String title,
+    required String number,
+    required String date,
+    required String customerName,
+    required List<Map<String, dynamic>> items,
+    required double total,
+  }) async {
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Column(
+            children: [
+              pw.Text('المحاسب الذكي', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.Text(title),
+              pw.SizedBox(height: 16),
+              pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('رقم: $number'), pw.Text('التاريخ: $date')]),
+              pw.SizedBox(height: 16),
+              pw.TableHelper.fromTextArray(
+                headers: ['الصنف', 'الكمية', 'السعر', 'الإجمالي'],
+                data: items.map((item) => [item['name'] ?? '', item['quantity']?.toString() ?? '', item['price']?.toString() ?? '', ((item['quantity'] ?? 0) * (item['price'] ?? 0)).toStringAsFixed(2)]).toList(),
+              ),
+              pw.SizedBox(height: 16),
+              pw.Text('الإجمالي: $total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            ],
+          ),
+        ),
+      ),
+    );
+    return pdf.save();
+  }
+
+  /// طباعة تقرير
+  Future<void> printReport({
+    required String reportTitle,
+    required List<String> headers,
+    required List<List<String>> rows,
+  }) async {
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Center(child: pw.Text('المحاسب الذكي', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
+              pw.Center(child: pw.Text(reportTitle, style: const pw.TextStyle(fontSize: 18))),
+              pw.SizedBox(height: 16),
+              pw.TableHelper.fromTextArray(
+                headers: headers,
+                data: rows,
+                border: pw.TableBorder.all(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  }
+}
+
+
+----- FILE: lib/core/services/reports/report_service.dart -----
+import '../../repositories/master_data_repository.dart';
+import '../../repositories/ledger_repository.dart';
+import '../inventory/item_movement_service.dart';
+import '../inventory/inventory_cost_service.dart';
+
+class ReportService {
+
+  ReportService(
+    this._repository,
+    this._movementService,
+    this._inventoryCostService,
+    this._ledgerRepo,
+  );
+  final MasterDataRepository _repository;
+  final ItemMovementService _movementService;
+  final InventoryCostService _inventoryCostService;
+  final LedgerRepository _ledgerRepo;
+
+  Future<List<Map<String, dynamic>>> generalLedger({
+    required int accountId,
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) {
+    return _ledgerRepo.getAccountStatement(
+      accountId: accountId,
+      from: from,
+      to: to,
+      currencyCode: currencyCode,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> trialBalance(
+    DateTime asOf, {
+    String? currencyCode,
+  }) async {
+    final accounts = await _repository.getAllAccounts();
+    final result = <Map<String, dynamic>>[];
+
+    double totalDebit = 0;
+    double totalCredit = 0;
+
+    for (final account in accounts) {
+      final id = _int(account['id']);
+      if (id == null) continue;
+
+      final totals = await _ledgerRepo.getTotals(
+        id,
+        to: asOf,
+        currencyCode: currencyCode,
+      );
+
+      final debit = totals['debit'] ?? 0;
+      final credit = totals['credit'] ?? 0;
+      final balance = debit - credit;
+
+      if (debit == 0 && credit == 0) continue;
+
+      totalDebit += debit;
+      totalCredit += credit;
+
+      result.add({
+        'account_id': id,
+        'account_number': account['number'],
+        'account_name': account['name_ar'] ?? account['name_en'] ?? '',
+        'type': account['type'],
+        'debit': debit,
+        'credit': credit,
+        'balance': balance,
+      });
+    }
+
+    result.add({
+      'is_total': true,
+      'account_name': 'الإجمالي',
+      'debit': totalDebit,
+      'credit': totalCredit,
+      'balance': totalDebit - totalCredit,
+    });
+
+    return result;
+  }
+
+  Future<Map<String, dynamic>> incomeStatement({
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) async {
+    double revenues = 0;
+    double expenses = 0;
+
+    final revenueAccounts = <Map<String, dynamic>>[];
+    final expenseAccounts = <Map<String, dynamic>>[];
+
+    final accounts = await _repository.getAllAccounts();
+
+    for (final account in accounts) {
+      final id = _int(account['id']);
+      if (id == null) continue;
+
+      final type = _type(account['type']);
+
+      if (type != 'revenue' && type != 'expense') {
+        continue;
+      }
+
+      final totals = await _ledgerRepo.getTotals(
+        id,
+        from: from,
+        to: to,
+        currencyCode: currencyCode,
+      );
+
+      final debit = totals['debit'] ?? 0;
+      final credit = totals['credit'] ?? 0;
+
+      double amount;
+
+      if (type == 'revenue') {
+        amount = credit - debit;
+        revenues += amount;
+      } else {
+        amount = debit - credit;
+        expenses += amount;
+      }
+
+      final row = {
+        'account_id': id,
+        'account_number': account['number'],
+        'account_name': account['name_ar'] ?? account['name_en'] ?? '',
+        'debit': debit,
+        'credit': credit,
+        'amount': amount,
+      };
+
+      if (type == 'revenue') {
+        revenueAccounts.add(row);
+      } else {
+        expenseAccounts.add(row);
+      }
+    }
+
+    return {
+      'from': from,
+      'to': to,
+      'revenues': revenues,
+      'expenses': expenses,
+      'net_income': revenues - expenses,
+      'revenue_accounts': revenueAccounts,
+      'expense_accounts': expenseAccounts,
+    };
+  }
+
+  Future<Map<String, dynamic>> balanceSheet(
+    DateTime asOf, {
+    String? currencyCode,
+  }) async {
+    double assets = 0;
+    double liabilities = 0;
+
+    final assetAccounts = <Map<String, dynamic>>[];
+    final liabilityAccounts = <Map<String, dynamic>>[];
+
+    final accounts = await _repository.getAllAccounts();
+
+    for (final account in accounts) {
+      final id = _int(account['id']);
+      if (id == null) continue;
+
+      final type = _type(account['type']);
+
+      if (type != 'asset' && type != 'liability') {
+        continue;
+      }
+
+      final balance = await _ledgerRepo.getBalance(
+        id,
+        asOf: asOf,
+        currencyCode: currencyCode,
+      );
+
+      final row = {
+        'account_id': id,
+        'account_number': account['number'],
+        'account_name': account['name_ar'] ?? account['name_en'] ?? '',
+        'balance': balance,
+      };
+
+      if (type == 'asset') {
+        assets += balance;
+        assetAccounts.add(row);
+      } else {
+        liabilities += -balance;
+        liabilityAccounts.add(row);
+      }
+    }
+
+    /*
+     * حقوق الملكية الاقتصادية:
+     *
+     * Equity = Assets - Liabilities
+     *
+     * وهذا يعكس أيضًا نتيجة الأعمال المتراكمة
+     * من واقع القيود، بدلاً من وضع رقم افتراضي.
+     */
+    final equity = assets - liabilities;
+
+    return {
+      'as_of': asOf,
+      'assets': assets,
+      'liabilities': liabilities,
+      'equity': equity,
+      'asset_accounts': assetAccounts,
+      'liability_accounts': liabilityAccounts,
+      'balanced': (assets - (liabilities + equity)).abs() < 0.001,
+    };
+  }
+
+  Future<Map<String, dynamic>> cashFlow({
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) async {
+    /*
+     * التدفق النقدي الحقيقي:
+     *
+     * نبحث عن الحسابات النقدية الفعلية من شجرة الحسابات.
+     * لا توجد أرقام ثابتة.
+     *
+     * التصنيف التفصيلي operating/investing/financing
+     * يحتاج إلى ربط حسابات النظام بالتصنيف.
+     * لذلك لا نخترع تصنيفًا إذا لم يكن الربط موجودًا.
+     */
+
+    final accounts = await _repository.getAllAccounts();
+
+    double openingCash = 0;
+    double closingCash = 0;
+    double periodDebit = 0;
+    double periodCredit = 0;
+
+    final cashAccounts = <Map<String, dynamic>>[];
+
+    for (final account in accounts) {
+      final id = _int(account['id']);
+      if (id == null) continue;
+
+      final number = '${account['number'] ?? ''}'.toLowerCase();
+      final name = '${account['name_ar'] ?? account['name_en'] ?? ''}'
+          .toLowerCase();
+
+      final isCashLike =
+          name.contains('نقد') ||
+          name.contains('خزينة') ||
+          name.contains('صندوق') ||
+          name.contains('بنك') ||
+          name.contains('محفظ') ||
+          name.contains('cash') ||
+          name.contains('bank') ||
+          name.contains('wallet') ||
+          number.startsWith('1101') ||
+          number.startsWith('1102') ||
+          number.startsWith('1103') ||
+          number.startsWith('1104');
+
+      if (!isCashLike) continue;
+
+      final opening = await _ledgerRepo.getBalance(
+        id,
+        asOf: from.subtract(const Duration(microseconds: 1)),
+        currencyCode: currencyCode,
+      );
+
+      final closing = await _ledgerRepo.getBalance(
+        id,
+        asOf: to,
+        currencyCode: currencyCode,
+      );
+
+      final totals = await _ledgerRepo.getTotals(
+        id,
+        from: from,
+        to: to,
+        currencyCode: currencyCode,
+      );
+
+      openingCash += opening;
+      closingCash += closing;
+      periodDebit += totals['debit'] ?? 0;
+      periodCredit += totals['credit'] ?? 0;
+
+      cashAccounts.add({
+        'account_id': id,
+        'account_number': account['number'],
+        'account_name': account['name_ar'] ?? account['name_en'] ?? '',
+        'opening': opening,
+        'debit': totals['debit'] ?? 0,
+        'credit': totals['credit'] ?? 0,
+        'closing': closing,
+      });
+    }
+
+    return {
+      'from': from,
+      'to': to,
+      'opening_cash': openingCash,
+      'cash_in': periodDebit,
+      'cash_out': periodCredit,
+      'net_cash_flow': closingCash - openingCash,
+      'closing_cash': closingCash,
+      'accounts': cashAccounts,
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> customerStatement({
+    required int customerId,
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) {
+    return _ledgerRepo.getAccountStatement(
+      accountId: customerId,
+      from: from,
+      to: to,
+      currencyCode: currencyCode,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> supplierStatement({
+    required int supplierId,
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) {
+    return _ledgerRepo.getAccountStatement(
+      accountId: supplierId,
+      from: from,
+      to: to,
+      currencyCode: currencyCode,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> bankStatement({
+    required int bankId,
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) {
+    return _ledgerRepo.getAccountStatement(
+      accountId: bankId,
+      from: from,
+      to: to,
+      currencyCode: currencyCode,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> cashBoxStatement({
+    required int cashBoxId,
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) {
+    return _ledgerRepo.getAccountStatement(
+      accountId: cashBoxId,
+      from: from,
+      to: to,
+      currencyCode: currencyCode,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> walletStatement({
+    required int walletId,
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) {
+    return _ledgerRepo.getAccountStatement(
+      accountId: walletId,
+      from: from,
+      to: to,
+      currencyCode: currencyCode,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> exchangeCompanyStatement({
+    required int companyId,
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) {
+    return _ledgerRepo.getAccountStatement(
+      accountId: companyId,
+      from: from,
+      to: to,
+      currencyCode: currencyCode,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> inventoryReport() async {
+    final items = await _repository.getAllItems();
+    final result = <Map<String, dynamic>>[];
+
+    for (final item in items) {
+      final itemId = _int(item['id']);
+      if (itemId == null || itemId <= 0) continue;
+
+      final cost = await _inventoryCostService.calculateItemCost(itemId);
+
+      result.add({
+        'item_id': itemId,
+        'item': item['name'] ?? '',
+        'quantity': cost.quantity,
+        'average_cost': cost.averageCost,
+        'total_value': cost.stockValue,
+        'cost_of_goods_sold': cost.costOfGoodsSold,
+      });
+    }
+
+    return result;
+  }
+
+  Future<Map<String, dynamic>> profitReport({
+    required DateTime from,
+    required DateTime to,
+    String? currencyCode,
+  }) async {
+    final income = await incomeStatement(
+      from: from,
+      to: to,
+      currencyCode: currencyCode,
+    );
+
+    return {
+      'from': from,
+      'to': to,
+      'total_revenues': income['revenues'],
+      'total_expenses': income['expenses'],
+      'net_profit': income['net_income'],
+      'revenue_accounts': income['revenue_accounts'],
+      'expense_accounts': income['expense_accounts'],
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> itemMovementReport({
+    required int itemId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final movements = await _movementService.getMovementsForItem(
+      itemId.toString(),
+      from: from,
+      to: to,
+    );
+
+    return movements.map((e) {
+      final total = e.quantity * e.price;
+
+      return {
+        'date': e.date,
+        'item_id': e.itemId,
+        'item_name': e.itemName,
+        'type': e.operationType,
+        'quantity': e.quantity,
+        'price': e.price,
+        'total': total,
+        'reference': e.reference,
+      };
+    }).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getAccounts() async {
+    return _repository.getAllAccounts();
+  }
+
+  Future<List<Map<String, dynamic>>> getCustomers() async {
+    return _repository.getAllCustomers();
+  }
+
+  Future<List<Map<String, dynamic>>> getSuppliers() async {
+    return _repository.getAllSuppliers();
+  }
+
+  Future<List<Map<String, dynamic>>> getBanks() async {
+    return _repository.getAllBanks();
+  }
+
+  Future<List<Map<String, dynamic>>> getCashBoxes() async {
+    return _repository.getAllCashBoxes();
+  }
+
+  Future<List<Map<String, dynamic>>> getItems() async {
+    return _repository.getAllItems();
+  }
+
+  int? _int(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    return int.tryParse(value.toString());
+  }
+
+  String _type(dynamic value) {
+    return value?.toString().trim().toLowerCase() ?? '';
+  }
+}
+
+
+----- FILE: lib/core/services/subscription/anti_tamper_service.dart -----
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class AntiTamperService {
+  final _storage = const FlutterSecureStorage();
+  static const _lastKnownTimeKey = 'last_known_time';
+  static const _tamperDetectedKey = 'tamper_detected';
+
+  // حفظ آخر وقت معروف
+  Future<void> recordTime() async {
+    await _storage.write(
+      key: _lastKnownTimeKey,
+      value: DateTime.now().toIso8601String(),
+    );
+  }
+
+  // التحقق من التلاعب
+  Future<bool> checkTampering() async {
+    final lastStr = await _storage.read(key: _lastKnownTimeKey);
+    if (lastStr == null) {
+      await recordTime();
+      return false;
+    }
+
+    final lastTime = DateTime.parse(lastStr);
+    final now = DateTime.now();
+
+    // إذا رجع الوقت للخلف أكثر من ساعة = تلاعب
+    if (now.isBefore(lastTime.subtract(const Duration(hours: 1)))) {
+      await _storage.write(key: _tamperDetectedKey, value: 'true');
+      return true;
+    }
+
+    await recordTime();
+    return false;
+  }
+
+  Future<bool> wasTampered() async {
+    return await _storage.read(key: _tamperDetectedKey) == 'true';
+  }
+
+  Future<void> resetTamperFlag() async {
+    await _storage.delete(key: _tamperDetectedKey);
+  }
+}
+
+
+----- FILE: lib/core/services/subscription/subscription_service.dart -----
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+enum SubscriptionType { trial, semiAnnual, annual, lifetime }
+
+class SubscriptionService {
+
+  SubscriptionService() {
+    _load();
+  }
+  final _storage = const FlutterSecureStorage();
+  static const _startKey = 'subscription_start';
+  static const _typeKey = 'subscription_type';
+  static const _activationCodeKey = 'activation_code';
+
+  SubscriptionType _type = SubscriptionType.trial;
+  DateTime? _startDate;
+  String? _activationCode;
+
+  Future<void> _load() async {
+    final startStr = await _storage.read(key: _startKey);
+    if (startStr != null) {
+      _startDate = DateTime.parse(startStr);
+    } else {
+      _startDate = DateTime.now();
+      await _storage.write(key: _startKey, value: _startDate!.toIso8601String());
+    }
+
+    final typeStr = await _storage.read(key: _typeKey);
+    if (typeStr != null) {
+      _type = SubscriptionType.values.firstWhere((e) => e.name == typeStr, orElse: () => SubscriptionType.trial);
+    }
+
+    _activationCode = await _storage.read(key: _activationCodeKey);
+  }
+
+  Future<void> _save() async {
+    if (_startDate != null) {
+      await _storage.write(key: _startKey, value: _startDate!.toIso8601String());
+    }
+    await _storage.write(key: _typeKey, value: _type.name);
+  }
+
+  SubscriptionType get type => _type;
+  String? get activationCode => _activationCode;
+
+  int get totalDays {
+    switch (_type) {
+      case SubscriptionType.trial: return 90;
+      case SubscriptionType.semiAnnual: return 180;
+      case SubscriptionType.annual: return 365;
+      case SubscriptionType.lifetime: return 36500; // 100 سنة
+    }
+  }
+
+  DateTime? get expiryDate {
+    if (_startDate == null) return null;
+    return _startDate!.add(Duration(days: totalDays));
+  }
+
+  bool get isActive {
+    if (_type == SubscriptionType.lifetime) return true;
+    if (expiryDate == null) return false;
+    return DateTime.now().isBefore(expiryDate!);
+  }
+
+  int get daysLeft {
+    if (!isActive) return 0;
+    if (expiryDate == null) return 0;
+    return expiryDate!.difference(DateTime.now()).inDays;
+  }
+
+  int get daysUsed {
+    if (_startDate == null) return 0;
+    return DateTime.now().difference(_startDate!).inDays;
+  }
+
+  double get usagePercentage {
+    if (totalDays == 0) return 100;
+    return (daysUsed / totalDays * 100).clamp(0, 100);
+  }
+
+  bool get shouldWarn {
+    return isActive && daysLeft <= 7 && _type != SubscriptionType.lifetime;
+  }
+
+  String get warningMessage {
+    if (!shouldWarn) return '';
+    if (daysLeft <= 1) return '⏰ تنبيه: اشتراكك سينتهي غداً! قم بالتجديد الآن.';
+    if (daysLeft <= 7) return '⚠️ تنبيه: متبقي $daysLeft أيام على انتهاء الاشتراك.';
+    return '';
+  }
+
+  // تفعيل برمز
+  Future<bool> activate(String code) async {
+    // يمكن ربطه بخادم خارجي للتحقق
+    if (code.length < 6) return false;
+
+    if (code.startsWith('SEMI')) {
+      _type = SubscriptionType.semiAnnual;
+    } else if (code.startsWith('ANNUAL')) {
+      _type = SubscriptionType.annual;
+    } else if (code.startsWith('LIFE')) {
+      _type = SubscriptionType.lifetime;
+    } else {
+      return false;
+    }
+
+    _startDate = DateTime.now();
+    _activationCode = code;
+    await _storage.write(key: _activationCodeKey, value: code);
+    await _save();
+    return true;
+  }
+
+  // توليد رمز (للمالك فقط)
+  static String generateCode(SubscriptionType type, String secret) {
+    final prefix = type == SubscriptionType.semiAnnual ? 'SEMI' : type == SubscriptionType.annual ? 'ANNUAL' : 'LIFE';
+    final hash = (secret + DateTime.now().millisecondsSinceEpoch.toString()).hashCode.abs().toString().padLeft(6, '0');
+    return '$prefix-${hash.substring(0, 8)}';
+  }
+}
+
+
+----- FILE: lib/core/services/targets/target_service.dart -----
+class SalesTarget {
+
+  SalesTarget({
+    required this.id,
+    required this.name,
+    this.monthlyTarget = 0,
+    this.yearlyTarget = 0,
+    this.achievedMonth = 0,
+    this.achievedYear = 0,
+    this.salespersonId,
+    this.salespersonName,
+  });
+  final String id;
+  final String name;
+  final double monthlyTarget;
+  final double yearlyTarget;
+  final double achievedMonth;
+  final double achievedYear;
+  final String? salespersonId;
+  final String? salespersonName;
+
+  double get monthPercentage =>
+      monthlyTarget > 0 ? (achievedMonth / monthlyTarget * 100) : 0;
+  double get yearPercentage =>
+      yearlyTarget > 0 ? (achievedYear / yearlyTarget * 100) : 0;
+  double get monthRemaining => monthlyTarget - achievedMonth;
+  double get yearRemaining => yearlyTarget - achievedYear;
+  int get monthDaysLeft =>
+      DateTime(DateTime.now().year, DateTime.now().month + 1, 0)
+          .difference(DateTime.now())
+          .inDays;
+}
+
+class TargetService {
+  final List<SalesTarget> _targets = [];
+
+  List<SalesTarget> get allTargets => List.unmodifiable(_targets);
+
+  void setTarget(SalesTarget target) {
+    final index = _targets.indexWhere((t) => t.id == target.id);
+    if (index >= 0) {
+      _targets[index] = target;
+    } else {
+      _targets.add(target);
+    }
+  }
+
+  SalesTarget? getTarget(String id) {
+    try {
+      return _targets.firstWhere((t) => t.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // الهدف العام (كل المندوبين)
+  SalesTarget get overallTarget {
+    double totalMonthTarget = 0, totalYearTarget = 0;
+    double totalMonthAchieved = 0, totalYearAchieved = 0;
+
+    for (var t in _targets) {
+      totalMonthTarget += t.monthlyTarget;
+      totalYearTarget += t.yearlyTarget;
+      totalMonthAchieved += t.achievedMonth;
+      totalYearAchieved += t.achievedYear;
+    }
+
+    return SalesTarget(
+      id: 'overall',
+      name: 'الهدف العام',
+      monthlyTarget: totalMonthTarget,
+      yearlyTarget: totalYearTarget,
+      achievedMonth: totalMonthAchieved,
+      achievedYear: totalYearAchieved,
+    );
+  }
+
+  List<SalesTarget> get topPerformers {
+    final sorted = List<SalesTarget>.from(_targets)
+      ..sort((a, b) => b.monthPercentage.compareTo(a.monthPercentage));
+    return sorted.take(5).toList();
+  }
+}
+
+
+----- FILE: lib/core/services/templates/activity_templates.dart -----
+
+class ActivityTemplates {
+
+  ActivityTemplates();
+
+  Map<String, Map<String, dynamic>> get templates => {
+    'general': {
+      'name': 'دليل محاسبي عام',
+      'icon': 'account_balance',
+      'description': 'مناسب لجميع الأنشطة',
+    },
+    'commercial': {
+      'name': 'نشاط تجاري',
+      'icon': 'store',
+      'description': 'بيع وشراء البضائع',
+    },
+    'supermarket': {
+      'name': 'سوبر ماركت',
+      'icon': 'shopping_cart',
+      'description': 'تجارة التجزئة والمواد الغذائية',
+    },
+    'pharmacy': {
+      'name': 'صيدلية',
+      'icon': 'medical_services',
+      'description': 'بيع الأدوية والمستلزمات الطبية',
+    },
+    'exchange': {
+      'name': 'شركة صرافة',
+      'icon': 'currency_exchange',
+      'description': 'تحويل العملات والحوالات',
+    },
+    'contracting': {
+      'name': 'مقاولات',
+      'icon': 'construction',
+      'description': 'مشاريع البناء والتشييد',
+    },
+    'services': {
+      'name': 'خدمات',
+      'icon': 'miscellaneous_services',
+      'description': 'تقديم الخدمات المهنية والاستشارية',
+    },
+    'restaurant': {
+      'name': 'مطعم',
+      'icon': 'restaurant',
+      'description': 'المطاعم والوجبات',
+    },
+    'factory': {
+      'name': 'مصنع',
+      'icon': 'factory',
+      'description': 'الإنتاج والتصنيع',
+    },
+  };
+
+  Future<void> applyTemplate(String templateKey) async {
+    // البذور الأساسية موجودة مسبقاً، نضيف حسابات إضافية حسب النشاط
+    switch (templateKey) {
+      case 'commercial':
+      case 'supermarket':
+        await _addCommercialAccounts();
+        break;
+      case 'pharmacy':
+        await _addPharmacyAccounts();
+        break;
+      case 'exchange':
+        await _addExchangeAccounts();
+        break;
+      case 'restaurant':
+        await _addRestaurantAccounts();
+        break;
+      case 'factory':
+        await _addFactoryAccounts();
+        break;
+      case 'contracting':
+        await _addContractingAccounts();
+        break;
+      case 'services':
+        await _addServicesAccounts();
+        break;
+      default:
+        break; // عام = لا إضافات
+    }
+  }
+
+  Future<void> _addCommercialAccounts() async {
+    // إضافة أصناف تجارية شائعة
+    // يمكن إضافة حسابات فرعية هنا
+  }
+
+  Future<void> _addPharmacyAccounts() async {}
+  Future<void> _addExchangeAccounts() async {}
+  Future<void> _addRestaurantAccounts() async {}
+  Future<void> _addFactoryAccounts() async {}
+  Future<void> _addContractingAccounts() async {}
+  Future<void> _addServicesAccounts() async {}
+}
+
+
+----- FILE: lib/core/services/transaction_manager.dart -----
+import '../errors/result.dart';
+import '../errors/app_exception.dart';
+import '../event_bus/event_bus.dart';
+import '../audit/audit_entry.dart';
+import '../audit/audit_service.dart';
+import '../logging/logger.dart';
+
+class TransactionManager {
+
+  TransactionManager(this._audit, this._eventBus);
+  final AuditService _audit;
+  final AppEventBus _eventBus;
+
+  Future<Result<T>> execute<T>({
+    required Future<T> Function() operation,
+    required String action,
+    required String entityType,
+    String? entityId,
+    String? description,
+  }) async {
+    try {
+      final result = await operation();
+      await _recordAudit(action, entityType, entityId, description, success: true);
+      _eventBus.fire(TransactionCompleted(result));
+      return Success(result);
+    } on AppException catch (e) {
+      AppLogger.error('Transaction failed: $e');
+      await _recordAudit(action, entityType, entityId, description, success: false);
+      return Failure(e);
+    } catch (e, stack) {
+      AppLogger.error('Unexpected transaction error', error: e, stackTrace: stack);
+      await _recordAudit(action, entityType, entityId, description, success: false);
+      return Failure(AppException('Unexpected error: $e'));
+    }
+  }
+
+  Future<void> _recordAudit(String action, St

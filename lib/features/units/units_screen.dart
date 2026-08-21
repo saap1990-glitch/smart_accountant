@@ -267,7 +267,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
-        leading: CircleAvatar(child: const Icon(Icons.straighten)),
+        leading: const CircleAvatar(child: Icon(Icons.straighten)),
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(
           abbreviation.isEmpty ? 'بدون اختصار' : 'الاختصار: $abbreviation',

@@ -1,11 +1,4 @@
 class AuditEntry {
-  final String id;
-  final String action;
-  final String entityType;
-  final String? entityId;
-  final DateTime timestamp;
-  final String? description;
-  final String? performedBy;
 
   const AuditEntry({
     required this.id,
@@ -16,4 +9,11 @@ class AuditEntry {
     this.description,
     this.performedBy,
   });
+  final String id;
+  final String action;
+  final String entityType;
+  final String? entityId;
+  final DateTime timestamp;
+  final String? description;
+  final String? performedBy;
 }

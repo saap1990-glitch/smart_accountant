@@ -17,10 +17,6 @@ enum UserIntent {
 }
 
 class DetectedIntent {
-  final UserIntent intent;
-  final Map<String, dynamic> entities;
-  final double confidence;
-  final String? followUpQuestion;
 
   DetectedIntent({
     required this.intent,
@@ -28,6 +24,10 @@ class DetectedIntent {
     this.confidence = 0.0,
     this.followUpQuestion,
   });
+  final UserIntent intent;
+  final Map<String, dynamic> entities;
+  final double confidence;
+  final String? followUpQuestion;
 }
 
 class IntentAnalyzer {

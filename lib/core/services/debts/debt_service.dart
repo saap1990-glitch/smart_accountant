@@ -1,13 +1,13 @@
 import 'dart:async';
 
 class DebtRecord {
+
+  DebtRecord({required this.customerName, required this.amount, required this.dueDate, this.isPaid = false, this.notes});
   final String customerName;
   final double amount;
   final DateTime dueDate;
   final bool isPaid;
   final String? notes;
-
-  DebtRecord({required this.customerName, required this.amount, required this.dueDate, this.isPaid = false, this.notes});
 }
 
 class DebtService {

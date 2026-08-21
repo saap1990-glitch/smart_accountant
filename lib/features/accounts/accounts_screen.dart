@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../../core/di/service_locator.dart';
+import 'package:get_it/get_it.dart';
 import '../../core/services/master_data/master_data_service.dart';
+import '../../core/repositories/ledger_repository.dart';
 import 'account_detail_screen.dart';
 
 class AccountsScreen extends StatefulWidget {
@@ -12,10 +12,12 @@ class AccountsScreen extends StatefulWidget {
 }
 
 class _AccountsScreenState extends State<AccountsScreen> {
-  final MasterDataService _service = sl<MasterDataService>();
-  final TextEditingController _search = TextEditingController();
+  final _service = GetIt.I<MasterDataService>();
+  final _ledgerRepo = GetIt.I<LedgerRepository>();
+  final _search = TextEditingController();
 
   List<Map<String, dynamic>> _accounts = [];
+  Map<int, double> _balances = {};
   bool _loading = true;
   String _type = 'all';
   String _status = 'all';
@@ -34,21 +36,25 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-
     try {
       final data = await _service.getAllAccounts();
-
+      // جلب الأرصدة للحسابات النهائية
+      final balances = <int, double>{};
+      for (final account in data) {
+        final id = int.tryParse('${account['id']}');
+        if (id != null) {
+          balances[id] = await _ledgerRepo.getBalance(id);
+        }
+      }
       if (!mounted) return;
-
       setState(() {
         _accounts = data;
+        _balances = balances;
         _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
-
       setState(() => _loading = false);
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('تعذر تحميل الحسابات: $e')));
@@ -57,7 +63,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final q = _search.text.trim().toLowerCase();
-
     return _accounts.where((a) {
       final number = '${a['number'] ?? ''}'.toLowerCase();
       final name = '${a['name_ar'] ?? a['name_en'] ?? ''}'.toLowerCase();
@@ -65,14 +70,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
       final active = a['is_active'] != false;
 
       final searchOk = q.isEmpty || number.contains(q) || name.contains(q);
-
       final typeOk = _type == 'all' || type == _type;
-
       final statusOk =
           _status == 'all' ||
           (_status == 'active' && active) ||
           (_status == 'inactive' && !active);
-
       return searchOk && typeOk && statusOk;
     }).toList();
   }
@@ -112,24 +114,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
       context,
       MaterialPageRoute(builder: (_) => AccountDetailScreen(account: account)),
     );
-
-    if (mounted) {
-      await _load();
-    }
+    if (mounted) await _load();
   }
 
   @override
   Widget build(BuildContext context) {
     final accounts = _filtered;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('دليل الحسابات'),
         actions: [
-          IconButton(
-            onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh),
-          ),
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -187,7 +182,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _type,
+                  initialValue: _type,
                   decoration: const InputDecoration(
                     labelText: 'النوع',
                     border: OutlineInputBorder(),
@@ -213,7 +208,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _status,
+                  initialValue: _status,
                   decoration: const InputDecoration(
                     labelText: 'الحالة',
                     border: OutlineInputBorder(),
@@ -238,20 +233,29 @@ class _AccountsScreenState extends State<AccountsScreen> {
   Widget _accountTile(Map<String, dynamic> account) {
     final type = '${account['type'] ?? ''}';
     final active = account['is_active'] != false;
-    final level = account['level'] ?? '';
+    final level = int.tryParse('${account['level'] ?? 1}') ?? 1;
+    final id = int.tryParse('${account['id']}');
+    final balance = id != null ? _balances[id] ?? 0 : 0;
+    final number = '${account['number'] ?? ''}';
+    final name = '${account['name_ar'] ?? account['name_en'] ?? ''}';
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         onTap: () => _open(account),
-        leading: CircleAvatar(child: Icon(_icon(type))),
+        contentPadding: EdgeInsets.only(left: 16, right: 8 + level * 8),
+        leading: Icon(_icon(type)),
         title: Text(
-          '${account['number'] ?? ''}  ${account['name_ar'] ?? ''}',
+          '$number  $name',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Text(
-          '${_typeName(type)} • المستوى $level'
-          '${account['accepts_posting'] == true ? ' • قابل للترحيل' : ' • تجميعي'}',
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${_typeName(type)} • المستوى $level'),
+            if (id != null && account['accepts_posting'] == true)
+              Text('الرصيد: ${balance.toStringAsFixed(2)} ريال'),
+          ],
         ),
         trailing: Icon(
           active ? Icons.check_circle_outline : Icons.pause_circle_outline,

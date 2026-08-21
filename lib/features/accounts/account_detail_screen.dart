@@ -4,9 +4,9 @@ import '../../core/di/service_locator.dart';
 import '../../core/services/master_data/master_data_service.dart';
 
 class AccountDetailScreen extends StatefulWidget {
-  final Map<String, dynamic>? account;
 
   const AccountDetailScreen({super.key, this.account});
+  final Map<String, dynamic>? account;
 
   @override
   State<AccountDetailScreen> createState() => _AccountDetailScreenState();
@@ -323,7 +323,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
             const SizedBox(height: 14),
             if (!_editing)
               DropdownButtonFormField<int?>(
-                value: _parentId,
+                initialValue: _parentId,
                 decoration: const InputDecoration(
                   labelText: 'الحساب الأب',
                   border: OutlineInputBorder(),
@@ -377,7 +377,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              value: _nature,
+              initialValue: _nature,
               decoration: const InputDecoration(
                 labelText: 'طبيعة الحساب',
                 border: OutlineInputBorder(),
@@ -396,7 +396,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _currency,
+              initialValue: _currency,
               decoration: const InputDecoration(
                 labelText: 'العملة',
                 border: OutlineInputBorder(),
@@ -457,7 +457,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _openingNature,
+              initialValue: _openingNature,
               decoration: const InputDecoration(
                 labelText: 'طبيعة الرصيد الافتتاحي',
                 border: OutlineInputBorder(),

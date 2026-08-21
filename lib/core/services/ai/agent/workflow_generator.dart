@@ -1,11 +1,11 @@
 import 'intent_analyzer.dart';
 
 class WorkflowStep {
+
+  WorkflowStep({required this.description, required this.action, this.data});
   final String description;
   final String action;
   final Map<String, dynamic>? data;
-
-  WorkflowStep({required this.description, required this.action, this.data});
 }
 
 class WorkflowGenerator {

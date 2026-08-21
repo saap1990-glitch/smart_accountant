@@ -1,0 +1,1453 @@
+ring entityType,
+      String? entityId, String? description,
+      {required bool success}) async {
+    final entry = AuditEntry(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      action: success ? action : '$action (FAILED)',
+      entityType: entityType,
+      entityId: entityId,
+      timestamp: DateTime.now(),
+      description: description,
+    );
+    await _audit.record(entry);
+  }
+}
+
+class TransactionCompleted {
+  const TransactionCompleted(this.result);
+  final dynamic result;
+}
+
+
+----- FILE: lib/core/theme/app_theme.dart -----
+import 'package:flutter/material.dart';
+
+class AppTheme {
+  // الألوان الأساسية
+  static const Color primaryLight = Color(0xFF006D5B);
+  static const Color primaryDark = Color(0xFF4ED9B2);
+  static const Color secondaryLight = Color(0xFF4A635E);
+  static const Color secondaryDark = Color(0xFFB0CCC5);
+  
+  // ألوان مساعدة
+  static const Color surfaceLight = Color(0xFFF8FBF9);
+  static const Color surfaceDark = Color(0xFF1A1C1B);
+  static const Color backgroundLight = Color(0xFFF0F4F2);
+  static const Color backgroundDark = Color(0xFF0F1412);
+  
+  // ألوان الحالة
+  static const Color success = Color(0xFF2E7D32);
+  static const Color warning = Color(0xFFF57F17);
+  static const Color error = Color(0xFFD32F2F);
+  static const Color info = Color(0xFF1976D2);
+  
+  // ألوان الحسابات
+  static const Color assetColor = Color(0xFF2E7D32);
+  static const Color liabilityColor = Color(0xFFC62828);
+  static const Color expenseColor = Color(0xFFE65100);
+  static const Color revenueColor = Color(0xFF1565C0);
+
+  static ThemeData lightTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    colorSchemeSeed: primaryLight,
+    scaffoldBackgroundColor: backgroundLight,
+    fontFamily: 'Cairo',
+    appBarTheme: const AppBarTheme(
+      backgroundColor: primaryLight,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+      ),
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: surfaceLight,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primaryLight,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: primaryLight,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        side: const BorderSide(color: primaryLight),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: primaryLight, width: 2),
+      ),
+      contentPadding: const EdgeInsets.all(16),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: Colors.white,
+      selectedItemColor: primaryLight,
+      unselectedItemColor: Colors.grey,
+      type: BottomNavigationBarType.fixed,
+      elevation: 8,
+    ),
+  );
+
+  static ThemeData darkTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorSchemeSeed: primaryDark,
+    scaffoldBackgroundColor: backgroundDark,
+    fontFamily: 'Cairo',
+    appBarTheme: const AppBarTheme(
+      backgroundColor: surfaceDark,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+      ),
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: surfaceDark,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primaryDark,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: primaryDark,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        side: const BorderSide(color: primaryDark),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: surfaceDark,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade800),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: primaryDark, width: 2),
+      ),
+      contentPadding: const EdgeInsets.all(16),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: surfaceDark,
+      selectedItemColor: primaryDark,
+      unselectedItemColor: Colors.grey,
+      type: BottomNavigationBarType.fixed,
+      elevation: 8,
+    ),
+  );
+}
+
+
+----- FILE: lib/core/utils/result.dart -----
+sealed class Result<T> {
+  const Result();
+}
+
+final class Success<T> extends Result<T> {
+
+  const Success(this.value);
+  final T value;
+}
+
+final class Error<T> extends Result<T> {
+
+  const Error(
+    this.message, {
+    this.cause,
+  });
+  final String message;
+  final Object? cause;
+}
+
+
+----- FILE: lib/features/accounts/account_detail_screen.dart -----
+import 'package:flutter/material.dart';
+
+import '../../core/di/service_locator.dart';
+import '../../core/services/master_data/master_data_service.dart';
+
+class AccountDetailScreen extends StatefulWidget {
+
+  const AccountDetailScreen({super.key, this.account});
+  final Map<String, dynamic>? account;
+
+  @override
+  State<AccountDetailScreen> createState() => _AccountDetailScreenState();
+}
+
+class _AccountDetailScreenState extends State<AccountDetailScreen> {
+  final MasterDataService _service = sl<MasterDataService>();
+
+  final _formKey = GlobalKey<FormState>();
+
+  final _nameAr = TextEditingController();
+  final _nameEn = TextEditingController();
+  final _notes = TextEditingController();
+  final _openingBalance = TextEditingController(text: '0');
+
+  List<Map<String, dynamic>> _accounts = [];
+
+  int? _parentId;
+  String _nature = 'debit';
+  String _currency = 'YER';
+  String _openingNature = 'debit';
+
+  bool _acceptsPosting = false;
+  bool _active = true;
+  bool _loading = true;
+  bool _saving = false;
+
+  bool get _editing => widget.account != null;
+
+  int get _level {
+    if (_parentId == null) return 1;
+
+    final parent = _accounts.cast<Map<String, dynamic>?>().firstWhere(
+      (a) => a?['id'] == _parentId,
+      orElse: () => null,
+    );
+
+    if (parent == null) return 1;
+
+    return (int.tryParse('${parent['level']}') ?? 0) + 1;
+  }
+
+  String get _type {
+    if (_parentId == null) {
+      return widget.account?['type']?.toString() ?? 'asset';
+    }
+
+    final parent = _accounts.cast<Map<String, dynamic>?>().firstWhere(
+      (a) => a?['id'] == _parentId,
+      orElse: () => null,
+    );
+
+    return parent?['type']?.toString() ?? 'asset';
+  }
+
+  Map<String, dynamic>? get _selectedParent {
+    if (_parentId == null) return null;
+
+    return _accounts.cast<Map<String, dynamic>?>().firstWhere(
+      (a) => a?['id'] == _parentId,
+      orElse: () => null,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _nameAr.dispose();
+    _nameEn.dispose();
+    _notes.dispose();
+    _openingBalance.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final accounts = await _service.getAllAccounts();
+
+      if (!mounted) return;
+
+      setState(() {
+        _accounts = accounts;
+
+        if (_editing) {
+          final a = widget.account!;
+
+          _nameAr.text = '${a['name_ar'] ?? ''}';
+          _nameEn.text = '${a['name_en'] ?? ''}';
+          _notes.text = '${a['notes'] ?? ''}';
+
+          _parentId = a['parent_id'] as int?;
+
+          _nature = '${a['nature'] ?? 'debit'}';
+          _currency = '${a['currency_code'] ?? 'YER'}';
+          _openingNature = '${a['opening_balance_nature'] ?? 'debit'}';
+
+          _acceptsPosting = a['accepts_posting'] == true;
+          _active = a['is_active'] != false;
+
+          _openingBalance.text = '${a['opening_balance'] ?? '0'}';
+        }
+
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('تعذر تحميل الحسابات: $e')));
+    }
+  }
+
+  List<Map<String, dynamic>> get _parentOptions {
+    return _accounts.where((a) {
+      final level = int.tryParse('${a['level']}') ?? 0;
+      final active = a['is_active'] != false;
+
+      if (!active) return false;
+      if (level >= 5) return false;
+
+      if (_editing && a['id'] == widget.account!['id']) {
+        return false;
+      }
+
+      return true;
+    }).toList();
+  }
+
+  String _typeName(String type) {
+    switch (type) {
+      case 'asset':
+        return 'الأصول';
+      case 'liability':
+        return 'الخصوم';
+      case 'expense':
+        return 'المصروفات';
+      case 'revenue':
+        return 'الإيرادات';
+      default:
+        return type;
+    }
+  }
+
+  String _parentTitle(Map<String, dynamic> account) {
+    return '${account['number'] ?? ''} - '
+        '${account['name_ar'] ?? ''}';
+  }
+
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'اسم الحساب مطلوب';
+    }
+
+    return null;
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_editing && _level > 5) {
+      _showError('لا يمكن إنشاء مستوى يتجاوز المستوى الخامس');
+      return;
+    }
+
+    if (!_editing && _level > 1 && _parentId == null) {
+      _showError('يجب اختيار الحساب الأب');
+      return;
+    }
+
+    if (_level < 5 && _acceptsPosting) {
+      _showError('الحسابات من المستوى الأول إلى الرابع حسابات تجميعية');
+      return;
+    }
+
+    final balance = double.tryParse(_openingBalance.text.trim()) ?? 0;
+
+    if (balance < 0) {
+      _showError('الرصيد الافتتاحي لا يمكن أن يكون سالبًا');
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    try {
+      if (_editing) {
+        await _service.updateAccount(
+          widget.account!['id'] as int,
+          nameAr: _nameAr.text.trim(),
+          nameEn: _nameEn.text.trim().isEmpty ? null : _nameEn.text.trim(),
+          isActive: _active,
+          currencyCode: _currency,
+          notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+          openingBalance: balance,
+          openingBalanceNature: _openingNature,
+        );
+      } else {
+        await _service.createAccount(
+          nameAr: _nameAr.text.trim(),
+          nameEn: _nameEn.text.trim().isEmpty ? null : _nameEn.text.trim(),
+          type: _type,
+          nature: _nature,
+          parentId: _parentId,
+          isActive: _active,
+          currencyCode: _currency,
+          notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+          openingBalance: balance,
+          openingBalanceNature: _openingNature,
+        );
+      }
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      _showError(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: Text(_editing ? 'تعديل الحساب' : 'إضافة حساب')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildHierarchyCard(),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _nameAr,
+              validator: _validateName,
+              decoration: const InputDecoration(
+                labelText: 'اسم الحساب بالعربي *',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _nameEn,
+              decoration: const InputDecoration(
+                labelText: 'اسم الحساب بالإنجليزية',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildAccountInfo(),
+            const SizedBox(height: 16),
+            _buildPostingCard(),
+            const SizedBox(height: 16),
+            _buildBalanceCard(),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _notes,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'ملاحظات',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save),
+              label: Text(_editing ? 'حفظ التعديلات' : 'إنشاء الحساب'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHierarchyCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'التسلسل المحاسبي',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 14),
+            if (!_editing)
+              DropdownButtonFormField<int?>(
+                initialValue: _parentId,
+                decoration: const InputDecoration(
+                  labelText: 'الحساب الأب',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    child: Text('حساب رئيسي - المستوى الأول'),
+                  ),
+                  ..._parentOptions.map(
+                    (a) => DropdownMenuItem<int?>(
+                      value: a['id'] as int,
+                      child: Text(_parentTitle(a)),
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _parentId = value;
+
+                    if (_level < 5) {
+                      _acceptsPosting = false;
+                    }
+                  });
+                },
+              )
+            else
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('الحساب الأب'),
+                subtitle: Text(
+                  _selectedParent == null
+                      ? 'حساب رئيسي'
+                      : _parentTitle(_selectedParent!),
+                ),
+              ),
+            const SizedBox(height: 12),
+            _infoRow('المستوى', '$_level من 5'),
+            _infoRow('نوع الحساب', _typeName(_type)),
+            if (_editing)
+              _infoRow('رقم الحساب', '${widget.account!['number'] ?? ''}'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountInfo() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _nature,
+              decoration: const InputDecoration(
+                labelText: 'طبيعة الحساب',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'debit', child: Text('مدين')),
+                DropdownMenuItem(value: 'credit', child: Text('دائن')),
+              ],
+              onChanged: _editing
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() => _nature = value);
+                      }
+                    },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _currency,
+              decoration: const InputDecoration(
+                labelText: 'العملة',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'YER', child: Text('ريال يمني YER')),
+                DropdownMenuItem(value: 'SAR', child: Text('ريال سعودي SAR')),
+                DropdownMenuItem(value: 'USD', child: Text('دولار أمريكي USD')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _currency = value);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostingCard() {
+    final canPost = _level == 5;
+
+    return Card(
+      child: SwitchListTile(
+        title: const Text('حساب قابل للترحيل'),
+        subtitle: Text(
+          canPost
+              ? 'يسمح بتسجيل القيود مباشرة على هذا الحساب'
+              : 'الحسابات قبل المستوى الخامس تجميعية ولا تستقبل قيودًا',
+        ),
+        value: canPost && _acceptsPosting,
+        onChanged: canPost
+            ? (value) {
+                setState(() => _acceptsPosting = value);
+              }
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _openingBalance,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'الرصيد الافتتاحي',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _openingNature,
+              decoration: const InputDecoration(
+                labelText: 'طبيعة الرصيد الافتتاحي',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'debit', child: Text('مدين')),
+                DropdownMenuItem(value: 'credit', child: Text('دائن')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _openingNature = value);
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('الحساب نشط'),
+              value: _active,
+              onChanged: (value) {
+                setState(() => _active = value);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Text('$title: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/accounts/accounts_screen.dart -----
+import 'package:flutter/material.dart';
+
+import '../../core/di/service_locator.dart';
+import '../../core/services/master_data/master_data_service.dart';
+import 'account_detail_screen.dart';
+
+class AccountsScreen extends StatefulWidget {
+  const AccountsScreen({super.key});
+
+  @override
+  State<AccountsScreen> createState() => _AccountsScreenState();
+}
+
+class _AccountsScreenState extends State<AccountsScreen> {
+  final MasterDataService _service = sl<MasterDataService>();
+  final TextEditingController _search = TextEditingController();
+
+  List<Map<String, dynamic>> _accounts = [];
+  bool _loading = true;
+  String _type = 'all';
+  String _status = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllAccounts();
+
+      if (!mounted) return;
+
+      setState(() {
+        _accounts = data;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('تعذر تحميل الحسابات: $e')));
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _search.text.trim().toLowerCase();
+
+    return _accounts.where((a) {
+      final number = '${a['number'] ?? ''}'.toLowerCase();
+      final name = '${a['name_ar'] ?? a['name_en'] ?? ''}'.toLowerCase();
+      final type = '${a['type'] ?? ''}'.toLowerCase();
+      final active = a['is_active'] != false;
+
+      final searchOk = q.isEmpty || number.contains(q) || name.contains(q);
+
+      final typeOk = _type == 'all' || type == _type;
+
+      final statusOk =
+          _status == 'all' ||
+          (_status == 'active' && active) ||
+          (_status == 'inactive' && !active);
+
+      return searchOk && typeOk && statusOk;
+    }).toList();
+  }
+
+  String _typeName(String type) {
+    switch (type) {
+      case 'asset':
+        return 'الأصول';
+      case 'liability':
+        return 'الخصوم';
+      case 'expense':
+        return 'المصروفات';
+      case 'revenue':
+        return 'الإيرادات';
+      default:
+        return type;
+    }
+  }
+
+  IconData _icon(String type) {
+    switch (type) {
+      case 'asset':
+        return Icons.account_balance;
+      case 'liability':
+        return Icons.payments;
+      case 'expense':
+        return Icons.trending_down;
+      case 'revenue':
+        return Icons.trending_up;
+      default:
+        return Icons.account_tree;
+    }
+  }
+
+  Future<void> _open([Map<String, dynamic>? account]) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => AccountDetailScreen(account: account)),
+    );
+
+    if (mounted) {
+      await _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accounts = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('دليل الحسابات'),
+        actions: [
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _open(),
+        icon: const Icon(Icons.add),
+        label: const Text('حساب جديد'),
+      ),
+      body: Column(
+        children: [
+          _filters(),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : accounts.isEmpty
+                ? const Center(child: Text('لا توجد حسابات مطابقة'))
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 90),
+                      itemCount: accounts.length,
+                      itemBuilder: (_, i) => _accountTile(accounts[i]),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filters() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          TextField(
+            controller: _search,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: 'بحث برقم أو اسم الحساب',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        _search.clear();
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.clear),
+                    ),
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _type,
+                  decoration: const InputDecoration(
+                    labelText: 'النوع',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('كل الأنواع')),
+                    DropdownMenuItem(value: 'asset', child: Text('الأصول')),
+                    DropdownMenuItem(value: 'liability', child: Text('الخصوم')),
+                    DropdownMenuItem(
+                      value: 'expense',
+                      child: Text('المصروفات'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'revenue',
+                      child: Text('الإيرادات'),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) setState(() => _type = v);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _status,
+                  decoration: const InputDecoration(
+                    labelText: 'الحالة',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('الكل')),
+                    DropdownMenuItem(value: 'active', child: Text('نشطة')),
+                    DropdownMenuItem(value: 'inactive', child: Text('موقوفة')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) setState(() => _status = v);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _accountTile(Map<String, dynamic> account) {
+    final type = '${account['type'] ?? ''}';
+    final active = account['is_active'] != false;
+    final level = account['level'] ?? '';
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: ListTile(
+        onTap: () => _open(account),
+        leading: CircleAvatar(child: Icon(_icon(type))),
+        title: Text(
+          '${account['number'] ?? ''}  ${account['name_ar'] ?? ''}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          '${_typeName(type)} • المستوى $level'
+          '${account['accepts_posting'] == true ? ' • قابل للترحيل' : ' • تجميعي'}',
+        ),
+        trailing: Icon(
+          active ? Icons.check_circle_outline : Icons.pause_circle_outline,
+        ),
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/admin/admin_panel_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/services/subscription/subscription_service.dart';
+import '../../core/services/subscription/anti_tamper_service.dart';
+import '../../core/services/targets/target_service.dart';
+import '../../core/services/admin/owner_auth_service.dart';
+
+class AdminPanelScreen extends StatefulWidget {
+  const AdminPanelScreen({super.key});
+
+  @override
+  State<AdminPanelScreen> createState() => _AdminPanelScreenState();
+}
+
+class _AdminPanelScreenState extends State<AdminPanelScreen> {
+  final _sub = GetIt.I<SubscriptionService>();
+  final _antiTamper = GetIt.I<AntiTamperService>();
+  final _targets = GetIt.I<TargetService>();
+  final _ownerAuth = GetIt.I<OwnerAuthService>();
+
+  final _codeCtrl = TextEditingController();
+  bool _authenticated = false;
+  String? _generatedCode;
+  bool _tampered = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkTamper();
+  }
+
+  Future<void> _checkTamper() async {
+    final tampered = await _antiTamper.wasTampered();
+    if (mounted) setState(() => _tampered = tampered);
+  }
+
+  void _login() {
+    if (_codeCtrl.text == 'smart2026admin' || _codeCtrl.text == 'admin') {
+      setState(() { _authenticated = true; _error = null; });
+    } else {
+      setState(() => _error = 'رمز غير صحيح');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_authenticated) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('لوحة تحكم المالك')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.admin_panel_settings, size: 70, color: Colors.purple),
+              const SizedBox(height: 16),
+              const Text('دخول المالك', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextField(controller: _codeCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'رمز المالك', hintText: 'admin', border: OutlineInputBorder())),
+              if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: const TextStyle(color: Colors.red))),
+              const SizedBox(height: 16),
+              ElevatedButton(onPressed: _login, child: const Text('دخول')),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('لوحة تحكم المالك'), actions: [IconButton(icon: const Icon(Icons.logout), onPressed: () => setState(() => _authenticated = false))]),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('🔑 توليد رموز التفعيل', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: ElevatedButton(onPressed: () => setState(() => _generatedCode = SubscriptionService.generateCode(SubscriptionType.semiAnnual, 'admin')), child: const Text('نصف سنوي'))),
+            const SizedBox(width: 8),
+            Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), onPressed: () => setState(() => _generatedCode = SubscriptionService.generateCode(SubscriptionType.annual, 'admin')), child: const Text('سنوي'))),
+            const SizedBox(width: 8),
+            Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.purple), onPressed: () => setState(() => _generatedCode = SubscriptionService.generateCode(SubscriptionType.lifetime, 'admin')), child: const Text('مدى الحياة'))),
+          ]),
+          if (_generatedCode != null) ...[
+            const SizedBox(height: 16),
+            Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.green)), child: Text(_generatedCode!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2))),
+          ],
+        ]))),
+        const SizedBox(height: 12),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('🛡️ الأمان: ${_tampered ? '⚠️ تلاعب مكتشف' : '✅ آمن'}', style: TextStyle(fontWeight: FontWeight.bold, color: _tampered ? Colors.red : Colors.green)),
+          if (_tampered) ElevatedButton(onPressed: () async { await _antiTamper.resetTamperFlag(); setState(() => _tampered = false); }, child: const Text('إعادة تعيين')),
+        ]))),
+        const SizedBox(height: 12),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('📊 مندوبين: ${_targets.allTargets.length}', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('الهدف الشهري: ${_targets.overallTarget.monthlyTarget.toStringAsFixed(0)} ريال'),
+        ]))),
+        const SizedBox(height: 12),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('👑 الاشتراك: ${_sub.isActive ? 'نشط (${_sub.daysLeft} يوم)' : 'منتهي'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('النوع: ${_sub.type.name}'),
+        ]))),
+      ]),
+    );
+  }
+}
+
+
+----- FILE: lib/features/ai/ai_assistant_screen.dart -----
+import '../../core/errors/result.dart';
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/services/ai/ai_service.dart';
+import '../../core/services/operations/operation_service.dart';
+import '../../core/services/reports/report_service.dart';
+import '../../core/engine/accounting/transaction_context.dart';
+
+class AiAssistantScreen extends StatefulWidget {
+  const AiAssistantScreen({super.key});
+
+  @override
+  State<AiAssistantScreen> createState() => _AiAssistantScreenState();
+}
+
+class _AiAssistantScreenState extends State<AiAssistantScreen> {
+  final _aiService = GetIt.I<AiService>();
+  final _opService = GetIt.I<OperationService>();
+  final _reportService = GetIt.I<ReportService>();
+
+  final _textCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
+  bool _isProcessing = false;
+  final List<Map<String, String>> _messages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _addMessage('assistant', 'مرحباً! أنا مساعدك المحاسبي. جرب:\n• "أنشئ فاتورة بيع بمبلغ 5000"\n• "اعرض تقرير الأرباح"\n• "كم رصيد الصندوق؟"');
+  }
+
+  void _addMessage(String role, String content) {
+    setState(() => _messages.add({'role': role, 'text': content}));
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollCtrl.hasClients) _scrollCtrl.animateTo(_scrollCtrl.position.maxScrollExtent, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    });
+  }
+
+  Future<void> _send(String text) async {
+    if (text.trim().isEmpty || _isProcessing) return;
+    _addMessage('user', text);
+    _textCtrl.clear();
+    setState(() => _isProcessing = true);
+
+    final reply = await _processCommand(text);
+
+    _addMessage('assistant', reply);
+    setState(() => _isProcessing = false);
+  }
+
+  Future<String> _processCommand(String command) async {
+    final lower = command.toLowerCase().trim();
+
+    // تقارير
+    if (lower.contains('رصيد') || lower.contains('الرصيد')) {
+      final balance = await _reportService.balanceSheet(DateTime.now());
+      return '📊 الأصول: ${balance['assets']}\n📋 الخصوم: ${balance['liabilities']}\n💎 حقوق الملكية: ${balance['equity']}';
+    }
+    if (lower.contains('ربح') || lower.contains('أرباح') || lower.contains('دخل')) {
+      final profit = await _reportService.profitReport(from: DateTime(DateTime.now().year, 1, 1), to: DateTime.now());
+      return '💰 المبيعات: ${profit['total_sales']}\n📦 المشتريات: ${profit['total_purchases']}\n⭐ صافي الربح: ${profit['net_profit']}';
+    }
+
+    // عمليات
+    if (lower.contains('بيع') || lower.contains('فاتورة')) {
+      final amount = _extractAmount(command) ?? 1000;
+      final items = [JournalItem(accountId: 1, debit: amount), JournalItem(accountId: 2, credit: amount)];
+      final result = await _opService.execute(type: TransactionType.sale, date: DateTime.now(), items: items, reference: 'فاتورة (ذكاء اصطناعي)');
+      return result is Success ? '✅ تم إنشاء الفاتورة برقم ${(result as Success).data}' : '❌ ${(result as Failure).exception.message}';
+    }
+    if (lower.contains('قبض')) {
+      final amount = _extractAmount(command) ?? 500;
+      final items = [JournalItem(accountId: 1, debit: amount), JournalItem(accountId: 2, credit: amount)];
+      final result = await _opService.execute(type: TransactionType.receipt, date: DateTime.now(), items: items, reference: 'سند قبض (ذكاء اصطناعي)');
+      return result is Success ? '✅ تم إنشاء السند' : '❌ ${(result as Failure).exception.message}';
+    }
+    if (lower.contains('صرف') || lower.contains('دفع')) {
+      final amount = _extractAmount(command) ?? 300;
+      final items = [JournalItem(accountId: 1, debit: amount), JournalItem(accountId: 2, credit: amount)];
+      final result = await _opService.execute(type: TransactionType.payment, date: DateTime.now(), items: items, reference: 'سند صرف (ذكاء اصطناعي)');
+      return result is Success ? '✅ تم إنشاء السند' : '❌ ${(result as Failure).exception.message}';
+    }
+
+    return '❓ لم أفهم طلبك. جرب:\n• "أنشئ فاتورة بيع بمبلغ 5000"\n• "اعرض تقرير الأرباح"\n• "كم رصيد الصندوق؟"';
+  }
+
+  double? _extractAmount(String text) {
+    final match = RegExp(r'(\d+)').firstMatch(text);
+    return match != null ? double.tryParse(match.group(1)!) : null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('المساعد الذكي')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollCtrl,
+              padding: const EdgeInsets.all(12),
+              itemCount: _messages.length + (_isProcessing ? 1 : 0),
+              itemBuilder: (ctx, index) {
+                if (_isProcessing && index == _messages.length) {
+                  return const Align(alignment: Alignment.centerLeft, child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()));
+                }
+                final msg = _messages[index];
+                final isUser = msg['role'] == 'user';
+                return Align(
+                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.all(12),
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+                    decoration: BoxDecoration(color: isUser ? Colors.teal : Colors.grey.shade200, borderRadius: BorderRadius.circular(14)),
+                    child: Text(msg['text']!, style: TextStyle(fontSize: 15, color: isUser ? Colors.white : Colors.black)),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(children: [
+              Expanded(child: TextField(controller: _textCtrl, decoration: const InputDecoration(hintText: 'اكتب أمراً...', border: OutlineInputBorder()), onSubmitted: _send)),
+              const SizedBox(width: 8),
+              IconButton(icon: const Icon(Icons.send, color: Colors.teal), onPressed: () => _send(_textCtrl.text)),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/auth/login_screen.dart -----
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/auth/auth_service.dart';
+import '../dashboard/main_screen.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _auth = GetIt.I<AuthService>();
+  final _pinCtrl = TextEditingController();
+  final _recCtrl = TextEditingController();
+  final _newCtrl = TextEditingController();
+
+  bool _loading = true;
+  bool _firstTime = true;
+  bool _showPin = false;
+  bool _recovery = false;
+  bool _remember = true;
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+  String _error = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final hasPin = await _auth.hasPin();
+    final remembered = await _auth.isSessionRemembered();
+    final bioAvailable = await _auth.isBiometricAvailable();
+    final bioEnabled = await _auth.isBiometricEnabled();
+
+    if (remembered && hasPin) {
+      if (bioEnabled && bioAvailable) {
+        final ok = await _auth.authenticateWithBiometric();
+        if (ok && mounted) { _goMain(); return; }
+      }
+      if (mounted) { _goMain(); return; }
+    }
+
+    setState(() {
+      _firstTime = !hasPin;
+      _showPin = hasPin;
+      _biometricAvailable = bioAvailable;
+      _biometricEnabled = bioEnabled;
+      _loading = false;
+    });
+  }
+
+  void _goMain() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+
+  String _genCode() => List.generate(8, (_) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Random().nextInt(36)]).join();
+
+  Future<void> _biometricLogin() async {
+    final ok = await _auth.authenticateWithBiometric();
+    if (ok && mounted) _goMain();
+  }
+
+  Future<void> _submit() async {
+    final pin = _pinCtrl.text;
+    if (pin.length < 4) { setState(() => _error = 'أدخل 4 أرقام على الأقل'); return; }
+    if (_firstTime) {
+      await _auth.setPin(pin);
+      final code = _genCode();
+      await _auth.setRecoveryCode(code);
+      if (_biometricAvailable) {
+        await _auth.enableBiometric(true);
+      }
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('رمز الاسترداد'),
+          content: Text(code, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 4)),
+          actions: [ElevatedButton(onPressed: () { Navigator.pop(c); _goMain(); }, child: const Text('تم'))],
+        ),
+      );
+    } else {
+      if (await _auth.verifyPin(pin)) {
+        if (_remember) await _auth.rememberSession(true);
+        _goMain();
+      } else {
+        setState(() { _error = 'الرقم غير صحيح'; _pinCtrl.clear(); });
+      }
+    }
+  }
+
+  Future<void> _reset() async {
+    if (_newCtrl.text.length < 4) { setState(() => _error = 'أدخل 4 أرقام'); return; }
+    if (await _auth.resetPinWithRecovery(_recCtrl.text.trim(), _newCtrl.text)) {
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم'))); setState(() { _recovery = false; _showPin = true; _error = ''; }); }
+    } else {
+      setState(() => _error = 'رمز خطأ');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF00796B),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.account_balance, size: 64, color: Colors.white),
+              const SizedBox(height: 8),
+              const Text('المحاسب الذكي', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                child: _recovery ? _buildRecovery() : _buildLogin(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogin() {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      // أيقونة البصمة (إذا متاحة ومفعلة)
+      if (!_showPin && _biometricAvailable && !_firstTime)
+        GestureDetector(
+          onTap: _biometricLogin,
+          child: Container(
+            width: 60, height: 60,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.teal.shade100),
+            child: const Icon(Icons.fingerprint, size: 36, color: Color(0xFF00796B)),
+          ),
+        ),
+      // زر البصمة (إذا الشاشة تظهر الرقم)
+      if (_showPin && _biometricAvailable && !_firstTime)
+        TextButton.icon(
+          icon: const Icon(Icons.fingerprint, color: Color(0xFF00796B)),
+          label: const Text('الدخول بالبصمة'),
+          onPressed: _biometricLogin,
+        ),
+      const SizedBox(height: 8),
+      Text(_firstTime ? 'إنشاء رقم سري' : 'أدخل الرقم السري', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 16),
+      TextField(
+        controller: _pinCtrl,
+        obscureText: true,
+        keyboardType: TextInputType.number,
+        maxLength: 6,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 28, letterSpacing: 10),
+        decoration: InputDecoration(counterText: '', hintText: '••••••', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), contentPadding: const EdgeInsets.symmetric(vertical: 10)),
+        onChanged: (_) => setState(() => _error = ''),
+      ),
+      if (_error.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(_error, style: const TextStyle(color: Colors.red))),
+      const SizedBox(height: 10),
+      Row(children: [SizedBox(width: 24, child: Checkbox(value: _remember, onChanged: (v) => setState(() => _remember = v!), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap)), const Text('تذكرني', style: TextStyle(fontSize: 14))]),
+      const SizedBox(height: 10),
+      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _submit, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00796B), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)), child: Text(_firstTime ? 'حفظ' : 'دخول'))),
+      if (!_firstTime) TextButton(onPressed: () => setState(() => _recovery = true), child: const Text('نسيت كلمة السر؟')),
+    ]);
+  }
+
+  Widget _buildRecovery() {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      const Icon(Icons.lock_reset, size: 32, color: Color(0xFF00796B)),
+      const SizedBox(height: 4),
+      const Text('استعادة', style: TextStyle(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 12),
+      TextField(controller: _recCtrl, decoration: InputDecoration(labelText: 'رمز الاسترداد', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), contentPadding: const EdgeInsets.all(12))),
+      const SizedBox(height: 8),
+      TextField(controller: _newCtrl, obscureText: true, keyboardType: TextInputType.number, maxLength: 6, textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, letterSpacing: 6), decoration: InputDecoration(labelText: 'الرقم الجديد', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), counterText: '', contentPadding: const EdgeInsets.all(12))),
+      if (_error.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(_error, style: const TextStyle(color: Colors.red))),
+      const SizedBox(height: 12),
+      Row(children: [Expanded(child: OutlinedButton(onPressed: () => setState(() { _recovery = false; _error = ''; }), child: const Text('رجوع'))), const SizedBox(width: 8), Expanded(child: ElevatedButton(onPressed: _reset, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00796B), foregroundColor: Colors.white), child: const Text('تعيين')))]),
+    ]);
+  }
+
+  @override
+  void dispose() {
+    _pinCtrl.dispose();
+    _recCtrl.dispose();
+    _newCtrl.dispose();
+    super.dispose();
+  }
+}
+
+
+----- FILE: lib/features/banks/banks_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class BanksScreen extends StatefulWidget {
+  const BanksScreen({super.key});
+
+  @override
+  State<BanksScreen> createState() => _BanksScreenState();
+}
+
+class _BanksScreenState extends State<BanksScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _search = TextEditingController();
+
+  List<Map<String, dynamic>> _banks = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllBanks();
+
+      if (!mounted) return;
+
+      se

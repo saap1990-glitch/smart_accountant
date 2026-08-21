@@ -38,7 +38,7 @@ class _YearCloseScreenState extends State<YearCloseScreen> {
             children: [
               const Icon(Icons.calendar_month, size: 80, color: Colors.teal),
               const SizedBox(height: 16),
-              Text('الإغلاق السنوي ${DateTime.now().year}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text('الإغلاق السنوي ${DateTime.now().year}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Text('سيتم تصفير حسابات الإيرادات والمصروفات وترحيل النتيجة إلى الأرباح المحتجزة', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 24),

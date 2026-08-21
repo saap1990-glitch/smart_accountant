@@ -1,0 +1,1025 @@
+        hintText: 'مثال: قطعة، كرتون، كيلو',
+                      prefixIcon: Icon(Icons.straighten),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: abbreviation,
+                    decoration: const InputDecoration(
+                      labelText: 'الاختصار',
+                      hintText: 'مثال: كجم، م، حبة',
+                      prefixIcon: Icon(Icons.short_text),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  if (name.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('اسم الوحدة مطلوب')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    await _service.createUnit(
+                      name: name.text.trim(),
+                      abbreviation: abbreviation.text.trim().isEmpty
+                          ? null
+                          : abbreviation.text.trim(),
+                    );
+
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext, true);
+                    }
+                  } catch (_) {
+                    if (!dialogContext.mounted) return;
+
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('تعذر حفظ الوحدة')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.save),
+                label: const Text('حفظ'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      name.dispose();
+      abbreviation.dispose();
+    }
+  }
+
+  Future<void> _deleteUnit(Map<String, dynamic> unit) async {
+    final id = unit['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف الوحدة'),
+        content: Text('هل تريد حذف "${unit['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteUnit(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يمكن حذف الوحدة لأنها مستخدمة في بيانات أخرى'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final units = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('وحدات القياس'),
+        actions: [
+          IconButton(
+            onPressed: _load,
+            tooltip: 'تحديث',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addUnit,
+        icon: const Icon(Icons.add),
+        label: const Text('إضافة وحدة'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث ذكي',
+                hintText: 'اسم الوحدة أو الاختصار...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _search.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : units.isEmpty
+                ? _emptyState()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: units.length,
+                      itemBuilder: (_, index) {
+                        return _unitCard(units[index]);
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _unitCard(Map<String, dynamic> unit) {
+    final name = '${unit['name'] ?? ''}';
+    final abbreviation = '${unit['abbreviation'] ?? ''}';
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.straighten)),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(
+          abbreviation.isEmpty ? 'بدون اختصار' : 'الاختصار: $abbreviation',
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'delete') {
+              _deleteUnit(unit);
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'delete', child: Text('حذف')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.straighten,
+            size: 64,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'لا توجد وحدات قياس',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          const Text('أضف الوحدات التي تستخدمها في الأصناف'),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _addUnit,
+            icon: const Icon(Icons.add),
+            label: const Text('إضافة أول وحدة'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/wallets/wallets_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class WalletsScreen extends StatefulWidget {
+  const WalletsScreen({super.key});
+
+  @override
+  State<WalletsScreen> createState() => _WalletsScreenState();
+}
+
+class _WalletsScreenState extends State<WalletsScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _search = TextEditingController();
+
+  List<Map<String, dynamic>> _wallets = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllWallets();
+
+      if (!mounted) return;
+
+      setState(() {
+        _wallets = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تعذر تحميل المحافظ')));
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _search.text.trim().toLowerCase();
+
+    if (q.isEmpty) return _wallets;
+
+    return _wallets.where((wallet) {
+      final name = '${wallet['name'] ?? ''}'.toLowerCase();
+      return name.contains(q);
+    }).toList();
+  }
+
+  Future<void> _addWallet() async {
+    final controller = TextEditingController();
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('إضافة محفظة إلكترونية'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'اسم المحفظة *',
+              hintText: 'مثال: جوالي',
+              prefixIcon: Icon(Icons.account_balance_wallet),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                final name = controller.text.trim();
+
+                if (name.isEmpty) return;
+
+                await _service.createWallet(name: name);
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, true);
+                }
+              },
+              icon: const Icon(Icons.save),
+              label: const Text('حفظ'),
+            ),
+          ],
+        ),
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  Future<void> _deleteWallet(Map<String, dynamic> wallet) async {
+    final id = wallet['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف المحفظة'),
+        content: Text('هل تريد حذف "${wallet['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteWallet(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكن حذف المحفظة المرتبطة بعمليات')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final wallets = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('المحافظ الإلكترونية'),
+        actions: [
+          IconButton(
+            onPressed: _load,
+            tooltip: 'تحديث',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addWallet,
+        icon: const Icon(Icons.add),
+        label: const Text('إضافة محفظة'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث في المحافظ',
+                hintText: 'مثال: جوالي أو فلوسك...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _search.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : wallets.isEmpty
+                ? _empty()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: wallets.length,
+                      itemBuilder: (_, index) {
+                        final wallet = wallets[index];
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              child: Icon(Icons.account_balance_wallet),
+                            ),
+                            title: Text(
+                              '${wallet['name'] ?? ''}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: const Text('محفظة إلكترونية'),
+                            trailing: IconButton(
+                              tooltip: 'حذف',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _deleteWallet(wallet),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _empty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.account_balance_wallet_outlined, size: 64),
+          const SizedBox(height: 12),
+          const Text(
+            'لا توجد محافظ إلكترونية',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _addWallet,
+            icon: const Icon(Icons.add),
+            label: const Text('إضافة أول محفظة'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/warehouses/warehouses_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class WarehousesScreen extends StatefulWidget {
+  const WarehousesScreen({super.key});
+
+  @override
+  State<WarehousesScreen> createState() => _WarehousesScreenState();
+}
+
+class _WarehousesScreenState extends State<WarehousesScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _search = TextEditingController();
+
+  List<Map<String, dynamic>> _warehouses = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllWarehouses();
+
+      if (!mounted) return;
+
+      setState(() {
+        _warehouses = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تعذر تحميل المستودعات')));
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _search.text.trim().toLowerCase();
+
+    if (q.isEmpty) return _warehouses;
+
+    return _warehouses.where((w) {
+      return [
+        w['name'],
+        w['code'],
+        w['location'],
+        w['address'],
+      ].any((v) => '${v ?? ''}'.toLowerCase().contains(q));
+    }).toList();
+  }
+
+  Future<void> _showForm({Map<String, dynamic>? existing}) async {
+    final name = TextEditingController(text: '${existing?['name'] ?? ''}');
+    final code = TextEditingController(text: '${existing?['code'] ?? ''}');
+    final location = TextEditingController(
+      text: '${existing?['location'] ?? ''}',
+    );
+    final address = TextEditingController(
+      text: '${existing?['address'] ?? ''}',
+    );
+    final notes = TextEditingController(text: '${existing?['notes'] ?? ''}');
+
+    bool active = existing?['is_active'] != false;
+
+    try {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: Text(
+                  existing == null ? 'إضافة مستودع' : 'تعديل المستودع',
+                ),
+                content: SingleChildScrollView(
+                  child: SizedBox(
+                    width: 480,
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: name,
+                          decoration: const InputDecoration(
+                            labelText: 'اسم المستودع *',
+                            prefixIcon: Icon(Icons.warehouse),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: code,
+                          decoration: const InputDecoration(
+                            labelText: 'رمز المستودع',
+                            prefixIcon: Icon(Icons.tag),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: location,
+                          decoration: const InputDecoration(
+                            labelText: 'الموقع',
+                            prefixIcon: Icon(Icons.location_on_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: address,
+                          decoration: const InputDecoration(
+                            labelText: 'العنوان',
+                            prefixIcon: Icon(Icons.place_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: notes,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            labelText: 'ملاحظات',
+                            prefixIcon: Icon(Icons.notes),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('المستودع نشط'),
+                          value: active,
+                          onChanged: (v) {
+                            setDialogState(() => active = v);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: const Text('إلغاء'),
+                  ),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.save),
+                    label: const Text('حفظ'),
+                    onPressed: () async {
+                      if (name.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('اسم المستودع مطلوب')),
+                        );
+                        return;
+                      }
+
+                      try {
+                        if (existing == null) {
+                          await _service.createWarehouse(
+                            name: name.text.trim(),
+                            code: code.text.trim().isEmpty
+                                ? null
+                                : code.text.trim(),
+                            location: location.text.trim().isEmpty
+                                ? null
+                                : location.text.trim(),
+                            address: address.text.trim().isEmpty
+                                ? null
+                                : address.text.trim(),
+                            notes: notes.text.trim().isEmpty
+                                ? null
+                                : notes.text.trim(),
+                            isActive: active,
+                          );
+                        } else {
+                          await _service.updateWarehouse(
+                            existing['id'] as int,
+                            name: name.text.trim(),
+                            code: code.text.trim().isEmpty
+                                ? null
+                                : code.text.trim(),
+                            location: location.text.trim().isEmpty
+                                ? null
+                                : location.text.trim(),
+                            address: address.text.trim().isEmpty
+                                ? null
+                                : address.text.trim(),
+                            notes: notes.text.trim().isEmpty
+                                ? null
+                                : notes.text.trim(),
+                            isActive: active,
+                          );
+                        }
+
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, true);
+                        }
+                      } catch (_) {
+                        if (!dialogContext.mounted) return;
+
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('تعذر حفظ المستودع')),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (result == true && mounted) {
+        await _load();
+      }
+    } finally {
+      name.dispose();
+      code.dispose();
+      location.dispose();
+      address.dispose();
+      notes.dispose();
+    }
+  }
+
+  Future<void> _delete(Map<String, dynamic> warehouse) async {
+    final id = warehouse['id'];
+
+    if (id is! int) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف المستودع'),
+        content: Text('هل تريد حذف "${warehouse['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    try {
+      await _service.deleteWarehouse(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يمكن حذف المستودع لأنه مرتبط ببيانات أخرى'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final warehouses = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('إدارة المستودعات'),
+        actions: [
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showForm(),
+        icon: const Icon(Icons.add),
+        label: const Text('إضافة مستودع'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث ذكي',
+                hintText: 'اسم، رمز، موقع أو عنوان...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _search.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : warehouses.isEmpty
+                ? const Center(child: Text('لا توجد مستودعات'))
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: warehouses.length,
+                      itemBuilder: (_, index) {
+                        return _warehouseCard(warehouses[index]);
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _warehouseCard(Map<String, dynamic> warehouse) {
+    final active = warehouse['is_active'] != false;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: CircleAvatar(
+          child: Icon(active ? Icons.warehouse : Icons.warehouse_outlined),
+        ),
+        title: Text(
+          '${warehouse['name'] ?? ''}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          '${warehouse['code'] ?? 'بدون رمز'}'
+          '${warehouse['location'] == null ? '' : ' • ${warehouse['location']}'}'
+          '\n${active ? 'نشط' : 'متوقف'}',
+        ),
+        isThreeLine: true,
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit') {
+              _showForm(existing: warehouse);
+            } else {
+              _delete(warehouse);
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'edit', child: Text('تعديل')),
+            PopupMenuItem(value: 'delete', child: Text('حذف')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/main.dart -----
+import 'package:flutter/material.dart';
+import 'core/services/accounting/system_account_resolver.dart';
+import 'core/di/service_locator.dart';
+import 'core/services/accounting/accounting_link_service.dart';
+import 'core/theme/app_theme.dart';
+import 'features/auth/login_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await setupServiceLocator();
+    // تهيئة الحسابات النظامية
+    final systemResolver = sl<SystemAccountResolver>();
+    await systemResolver.ensureAll();
+    final systemResolver = sl<SystemAccountResolver>();
+    await systemResolver.ensureAll();
+    final linkService = sl<AccountingLinkService>();
+    await linkService.seedDefaultAccounts();
+  } catch (e) {
+    debugPrint('Init error: $e');
+  }
+
+  runApp(const SmartAccountantApp());
+}
+
+class SmartAccountantApp extends StatelessWidget {
+  const SmartAccountantApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'المحاسب الذكي',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      home: const LoginScreen(),
+    );
+  }
+}
+
+
+----- FILE: pubspec.yaml -----
+name: smart_accountant
+description: "Smart Accountant Enterprise - Professional Accounting System"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.5+1
+  fl_chart: ^1.2.0
+  pdf: ^3.12.0
+  printing: ^5.14.3
+  uuid: ^4.6.0
+  google_fonts: ^8.2.1
+  share_plus: ^13.3.0
+  intl: ^0.20.2
+  flutter_riverpod: ^2.6.1
+  get_it: ^9.2.1
+  injectable: ^3.0.0
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
+  sqlite3: ^3.5.0
+  path_provider: ^2.1.6
+  path: ^1.9.1
+  equatable: ^2.1.0
+  logger: ^2.7.0
+  dio: ^5.11.0
+  flutter_secure_storage: ^10.3.1
+  speech_to_text: ^7.4.0
+  flutter_tts: ^4.2.5
+  excel: ^4.0.6
+  url_launcher: ^6.3.2
+  file_picker: ^12.0.0
+  local_auth: ^3.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.15.1
+  freezed: ^3.2.5
+  json_serializable: ^6.14.1
+  injectable_generator: ^3.0.2
+  drift_dev: ^2.34.0
+  test: ^1.31.0
+  mocktail: ^1.0.5
+
+flutter:
+  uses-material-design: true
+
+----- FILE: analysis_options.yaml -----
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    missing_return: error
+    dead_code: warning
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+
+linter:
+  rules:
+    - always_declare_return_types
+    - prefer_single_quotes
+    - unawaited_futures
+    - avoid_print
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - sort_constructors_first
+    - require_trailing_commas
+
+----- FILE: README.md -----
+# smart_accountant
+
+A new Flutter project.
+
+## Getting Started
+
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
+- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
+

@@ -2,9 +2,9 @@ import '../../engine/accounting/transaction_context.dart';
 import 'inventory_cost_service.dart';
 
 class InventoryJournalService {
-  final InventoryCostService _costService;
 
   InventoryJournalService(this._costService);
+  final InventoryCostService _costService;
 
   Future<List<JournalItem>> buildSaleLines({
     required List<Map<String, dynamic>> items,

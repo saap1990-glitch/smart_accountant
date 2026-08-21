@@ -56,7 +56,10 @@ class _PrintSettingsScreenState extends State<PrintSettingsScreen> {
             onChanged: (v) => setState(() => _showCredit = v),
           ),
           const Divider(),
-          const Text('ترويسة وتذييل', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'ترويسة وتذييل',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _headerCtrl,

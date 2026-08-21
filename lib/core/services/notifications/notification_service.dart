@@ -1,11 +1,6 @@
 import 'dart:async';
 
 class AppNotification {
-  final String title;
-  final String message;
-  final NotificationType type;
-  final DateTime timestamp;
-  final bool isRead;
 
   AppNotification({
     required this.title,
@@ -14,6 +9,11 @@ class AppNotification {
     DateTime? timestamp,
     this.isRead = false,
   }) : timestamp = timestamp ?? DateTime.now();
+  final String title;
+  final String message;
+  final NotificationType type;
+  final DateTime timestamp;
+  final bool isRead;
 }
 
 enum NotificationType {

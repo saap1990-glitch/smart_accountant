@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "184309691738",
+    "project_id": "smartaccountant-786cf",
+    "storage_bucket": "smartaccountant-786cf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:184309691738:android:b99c22ec6f6b448d0e2f63",
+        "android_client_info": {
+          "package_name": "smart_accountant.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoO_yI7rE0J1doGTVh5iA1cIuoQVFsHfs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

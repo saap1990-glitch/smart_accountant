@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
 
 class ItemCardEntry {
-  String? itemId;
-  String itemName;
-  String? unit;
-  double quantity;
-  double price;
-  double freeQuantity;
-  double discount;
 
   ItemCardEntry({
     this.itemId,
@@ -18,14 +11,16 @@ class ItemCardEntry {
     this.freeQuantity = 0,
     this.discount = 0,
   });
+  String? itemId;
+  String itemName;
+  String? unit;
+  double quantity;
+  double price;
+  double freeQuantity;
+  double discount;
 }
 
 class ItemCardWidget extends StatefulWidget {
-  final List<ItemCardEntry> items;
-  final List<Map<String, dynamic>> availableItems;
-  final bool showPriceColumn;
-  final bool showFreeColumn;
-  final ValueChanged<List<ItemCardEntry>> onChanged;
 
   const ItemCardWidget({
     super.key,
@@ -35,6 +30,11 @@ class ItemCardWidget extends StatefulWidget {
     this.showFreeColumn = true,
     required this.onChanged,
   });
+  final List<ItemCardEntry> items;
+  final List<Map<String, dynamic>> availableItems;
+  final bool showPriceColumn;
+  final bool showFreeColumn;
+  final ValueChanged<List<ItemCardEntry>> onChanged;
 
   @override
   State<ItemCardWidget> createState() => _ItemCardWidgetState();
@@ -117,7 +117,7 @@ class _ItemCardWidgetState extends State<ItemCardWidget> {
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 4),
               child: ListTile(
-                leading: CircleAvatar(backgroundColor: Colors.teal.withOpacity(0.1), child: const Icon(Icons.inventory, color: Colors.teal)),
+                leading: CircleAvatar(backgroundColor: Colors.teal.withValues(alpha: 0.1), child: const Icon(Icons.inventory, color: Colors.teal)),
                 title: Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text('الكمية: ${item.quantity} | السعر: ${item.price} | الإجمالي: ${(item.quantity * item.price - item.discount).toStringAsFixed(2)}'),
                 trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () { widget.items.removeAt(idx); widget.onChanged(widget.items); setState(() {}); }),

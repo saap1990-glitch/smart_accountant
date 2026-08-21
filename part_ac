@@ -1,0 +1,1680 @@
+,
+    
+    'لماذا لا يحفظ القيد؟':
+        'تأكد من:\n'
+        '- تساوي مجموع المدين والدائن\n'
+        '- عدم استخدام حسابات رئيسية (لها أبناء)\n'
+        '- الترحيل فقط للحسابات النهائية',
+    
+    'كيف أضيف عميل جديد؟':
+        '1. اذهب إلى البيانات الأساسية > العملاء\n'
+        '2. اضغط + لإضافة عميل\n'
+        '3. سيتم إنشاء حساب محاسبي للعميل تلقائياً',
+  };
+
+  String? findAnswer(String question) {
+    final lower = question.toLowerCase().trim();
+    for (var entry in _faq.entries) {
+      final keyWords = entry.key.replaceAll('؟', '').split(' ');
+      final matchCount = keyWords.where((w) => lower.contains(w)).length;
+      if (matchCount >= keyWords.length * 0.6) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  List<String> get suggestions => [
+    'أنشئ فاتورة بيع للعميل أحمد',
+    'كم رصيد الصندوق الرئيسي؟',
+    'اعرض تقرير الأرباح الشهري',
+    'أرسل كشف حساب العميل محمد',
+    'كيف أضيف صنف جديد؟',
+  ];
+}
+
+
+----- FILE: lib/core/services/ai/agent/workflow_generator.dart -----
+import 'intent_analyzer.dart';
+
+class WorkflowStep {
+
+  WorkflowStep({required this.description, required this.action, this.data});
+  final String description;
+  final String action;
+  final Map<String, dynamic>? data;
+}
+
+class WorkflowGenerator {
+  List<WorkflowStep> generate(DetectedIntent intent) {
+    switch (intent.intent) {
+      case UserIntent.createSale:
+        return [
+          WorkflowStep(description: 'التحقق من العميل', action: 'verify_customer'),
+          WorkflowStep(description: 'التحقق من الأصناف والكميات', action: 'verify_items'),
+          WorkflowStep(description: 'حساب الإجمالي والضرائب', action: 'calculate_totals'),
+          WorkflowStep(description: 'إنشاء القيود المحاسبية', action: 'create_entries'),
+          WorkflowStep(description: 'حفظ الفاتورة', action: 'save_invoice'),
+          WorkflowStep(description: 'عرض المعاينة للمستخدم', action: 'show_preview'),
+        ];
+      case UserIntent.createReceipt:
+        return [
+          WorkflowStep(description: 'تحديد جهة القبض', action: 'identify_source'),
+          WorkflowStep(description: 'إنشاء القيد', action: 'create_entries'),
+          WorkflowStep(description: 'حفظ السند', action: 'save_receipt'),
+          WorkflowStep(description: 'عرض المعاينة', action: 'show_preview'),
+        ];
+      case UserIntent.queryBalance:
+        return [
+          WorkflowStep(description: 'تحديد الحساب', action: 'identify_account'),
+          WorkflowStep(description: 'جلب الرصيد', action: 'fetch_balance'),
+          WorkflowStep(description: 'عرض النتيجة', action: 'display_result'),
+        ];
+      case UserIntent.sendDocument:
+        return [
+          WorkflowStep(description: 'تحديد المستند', action: 'identify_document'),
+          WorkflowStep(description: 'تحديد المستلم', action: 'identify_recipient'),
+          WorkflowStep(description: 'إنشاء الملف', action: 'generate_file'),
+          WorkflowStep(description: 'معاينة قبل الإرسال', action: 'preview_send'),
+          WorkflowStep(description: 'إرسال', action: 'send'),
+        ];
+      default:
+        return [
+          WorkflowStep(description: 'تحليل الطلب', action: 'analyze'),
+          WorkflowStep(description: 'تنفيذ العملية', action: 'execute'),
+        ];
+    }
+  }
+}
+
+
+----- FILE: lib/core/services/ai/ai_service.dart -----
+import '../../errors/result.dart';
+import '../../engine/accounting/transaction_context.dart';
+import '../operations/operation_service.dart';
+import '../reports/report_service.dart';
+import 'agent/conversation_memory.dart';
+import 'agent/intent_analyzer.dart';
+import 'agent/knowledge_base.dart';
+import 'agent/workflow_generator.dart';
+
+class AiService {
+
+  AiService(this._operationService, this._reportService)
+      : _memory = ConversationMemory(),
+        _analyzer = IntentAnalyzer(),
+        _knowledgeBase = KnowledgeBase(),
+        _workflow = WorkflowGenerator();
+  final OperationService _operationService;
+  final ReportService _reportService;
+  final ConversationMemory _memory;
+  final IntentAnalyzer _analyzer;
+  final KnowledgeBase _knowledgeBase;
+  final WorkflowGenerator _workflow;
+
+  List<String> get suggestions => _knowledgeBase.suggestions;
+  ConversationMemory get memory => _memory;
+  List<ConversationMessage> get history => _memory.history;
+
+  Future<String> processCommand(String command) async {
+    _memory.addUserMessage(command);
+
+    // 1. تحقق من قاعدة المعرفة أولاً
+    final faqAnswer = _knowledgeBase.findAnswer(command);
+    if (faqAnswer != null) {
+      _memory.addAssistantMessage(faqAnswer);
+      return faqAnswer;
+    }
+
+    // 2. تحليل النية
+    final intent = _analyzer.analyze(command);
+
+    // 3. إذا لم يفهم، اطلب توضيحاً
+    if (intent.intent == UserIntent.unknown || intent.followUpQuestion != null) {
+      final reply = intent.followUpQuestion ?? 'عذراً، لم أفهم. جرب: ${_knowledgeBase.suggestions.first}';
+      _memory.addAssistantMessage(reply);
+      return reply;
+    }
+
+    // 4. توليد خطة العمل
+
+    // 5. تنفيذ العملية حسب النية
+    String reply;
+    switch (intent.intent) {
+      case UserIntent.createSale:
+        reply = await _createSale(intent);
+        break;
+      case UserIntent.createReceipt:
+        reply = await _createReceipt(intent);
+        break;
+      case UserIntent.createPayment:
+        reply = await _createPayment(intent);
+        break;
+      case UserIntent.queryBalance:
+        reply = await _queryBalance(intent);
+        break;
+      case UserIntent.queryReport:
+        reply = await _showReport(intent);
+        break;
+      case UserIntent.help:
+        reply = 'يمكنني مساعدتك في:\n'
+            '📝 إنشاء الفواتير والسندات\n'
+            '📊 عرض التقارير والأرباح\n'
+            '🔍 الاستعلام عن الأرصدة\n'
+            '📤 إرسال المستندات\n'
+            '❓ الإجابة عن أسئلة الاستخدام\n\n'
+            'جرب: "${_knowledgeBase.suggestions.first}"';
+        break;
+      default:
+        reply = 'جاري تطوير هذه الميزة. يمكنك تجربة: ${_knowledgeBase.suggestions.first}';
+    }
+
+    _memory.addAssistantMessage(reply);
+    return reply;
+  }
+
+  Future<String> _createSale(DetectedIntent intent) async {
+    final amount = (intent.entities['amount'] as double?) ?? 1000.0;
+    final items = [
+      JournalItem(accountId: 1, debit: amount),
+      JournalItem(accountId: 41, credit: amount),
+    ];
+
+    final result = await _operationService.execute(
+      type: TransactionType.sale,
+      date: DateTime.now(),
+      items: items,
+      reference: 'فاتورة بيع (مساعد ذكي)',
+    );
+
+    switch (result) {
+      case Success(data: final res):
+        return '✅ تم إنشاء فاتورة البيع برقم ${res.entryNumber}\n'
+            'المبلغ: ${amount.toStringAsFixed(0)} ريال\n'
+            'الحالة: ${res.status.name}';
+      case Failure(exception: final e):
+        return '❌ فشل إنشاء الفاتورة: ${e.message}';
+    }
+  }
+
+  Future<String> _createReceipt(DetectedIntent intent) async {
+    final amount = (intent.entities['amount'] as double?) ?? 500.0;
+    final items = [
+      JournalItem(accountId: 112, debit: amount),
+      JournalItem(accountId: 1, credit: amount),
+    ];
+
+    final result = await _operationService.execute(
+      type: TransactionType.receipt,
+      date: DateTime.now(),
+      items: items,
+      reference: 'سند قبض (مساعد ذكي)',
+    );
+
+    switch (result) {
+      case Success(data: final res):
+        return '✅ تم إنشاء سند القبض برقم ${res.entryNumber}\nالمبلغ: ${amount.toStringAsFixed(0)} ريال';
+      case Failure(exception: final e):
+        return '❌ فشل إنشاء سند القبض: ${e.message}';
+    }
+  }
+
+  Future<String> _createPayment(DetectedIntent intent) async {
+    final amount = (intent.entities['amount'] as double?) ?? 300.0;
+    final items = [
+      JournalItem(accountId: 2, debit: amount),
+      JournalItem(accountId: 112, credit: amount),
+    ];
+
+    final result = await _operationService.execute(
+      type: TransactionType.payment,
+      date: DateTime.now(),
+      items: items,
+      reference: 'سند صرف (مساعد ذكي)',
+    );
+
+    switch (result) {
+      case Success(data: final res):
+        return '✅ تم إنشاء سند الصرف برقم ${res.entryNumber}\nالمبلغ: ${amount.toStringAsFixed(0)} ريال';
+      case Failure(exception: final e):
+        return '❌ فشل إنشاء سند الصرف: ${e.message}';
+    }
+  }
+
+  Future<String> _queryBalance(DetectedIntent intent) async {
+    final report = await _reportService.balanceSheet(DateTime.now());
+    return '📊 الملخص المالي:\n'
+        '💰 الأصول: ${report['assets']} ريال\n'
+        '📋 الخصوم: ${report['liabilities']} ريال\n'
+        '📈 حقوق الملكية: ${report['equity']} ريال';
+  }
+
+  Future<String> _showReport(DetectedIntent intent) async {
+    final report = await _reportService.profitReport(
+      from: DateTime(DateTime.now().year, 1, 1),
+      to: DateTime.now(),
+    );
+    return '📊 تقرير الأرباح:\n'
+        '🟢 المبيعات: ${report['total_sales']} ريال\n'
+        '🔴 المشتريات: ${report['total_purchases']} ريال\n'
+        '💎 مجمل الربح: ${report['gross_profit']} ريال\n'
+        '⭐ صافي الربح: ${report['net_profit']} ريال';
+  }
+}
+
+// Extension للصوت
+extension AiServiceVoice on AiService {
+  Future<String> processVoiceCommand(String recognizedText) async {
+    return processCommand(recognizedText);
+  }
+}
+
+
+----- FILE: lib/core/services/backup/backup_service.dart -----
+import 'package:drift/drift.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../database/app_database.dart';
+import 'package:get_it/get_it.dart';
+
+class BackupService {
+  final _storage = const FlutterSecureStorage();
+
+  Future<bool> get autoBackupEnabled async => await _storage.read(key: 'auto_backup') == 'true';
+  Future<void> setAutoBackup(bool value) async => await _storage.write(key: 'auto_backup', value: value.toString());
+  Future<String?> get backupPath async => await _storage.read(key: 'backup_path');
+  Future<void> setBackupPath(String path) async => await _storage.write(key: 'backup_path', value: path);
+  Future<String?> get backupTime async => await _storage.read(key: 'backup_time');
+  Future<void> setBackupTime(String time) async => await _storage.write(key: 'backup_time', value: time);
+
+  /// تصدير نسخة احتياطية كاملة من قاعدة البيانات
+  Future<File> exportBackup() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/backup_${DateTime.now().millisecondsSinceEpoch}.json');
+
+    final db = GetIt.I<AppDatabase>();
+
+    // جمع جميع البيانات
+    final accounts = await db.select(db.accounts).get();
+    final customers = await db.select(db.customers).get();
+    final suppliers = await db.select(db.suppliers).get();
+    final items = await db.select(db.items).get();
+    final banks = await db.select(db.banks).get();
+    final cashBoxes = await db.select(db.cashBoxes).get();
+    final wallets = await db.select(db.wallets).get();
+    final exchangeCompanies = await db.select(db.exchangeCompanies).get();
+    final currencies = await db.select(db.currencies).get();
+    final warehouses = await db.select(db.warehouses).get();
+    final journalEntries = await db.select(db.journalEntries).get();
+    final journalLines = await db.select(db.journalLines).get();
+    final ledger = await db.select(db.ledger).get();
+
+    final data = {
+      'version': '1.0',
+      'date': DateTime.now().toIso8601String(),
+      'accounts': accounts.map((a) => {'number': a.number, 'name_ar': a.nameAr, 'name_en': a.nameEn, 'type': a.type, 'nature': a.nature, 'parent_id': a.parentId, 'level': a.level}).toList(),
+      'customers': customers.map((c) => {'name': c.name, 'phone': c.phone, 'address': c.address}).toList(),
+      'suppliers': suppliers.map((s) => {'name': s.name, 'phone': s.phone, 'address': s.address}).toList(),
+      'items': items.map((i) => {'name': i.name, 'unit': i.unit, 'cost': i.cost, 'price': i.price}).toList(),
+      'banks': banks.map((b) => {'name': b.name, 'account_number': b.accountNumber}).toList(),
+      'cash_boxes': cashBoxes.map((c) => {'name': c.name}).toList(),
+      'wallets': wallets.map((w) => {'name': w.name, 'provider': w.provider}).toList(),
+      'exchange_companies': exchangeCompanies.map((e) => {'name': e.name, 'phone': e.phone}).toList(),
+      'currencies': currencies.map((c) => {'code': c.code, 'name': c.name, 'exchange_rate': c.exchangeRate, 'is_default': c.isDefault}).toList(),
+      'warehouses': warehouses.map((w) => {'name': w.name, 'location': w.location}).toList(),
+      'journal_count': journalEntries.length,
+      'journal_lines_count': journalLines.length,
+      'ledger_count': ledger.length,
+    };
+
+    await file.writeAsString(jsonEncode(data));
+    return file;
+  }
+
+  /// مشاركة النسخة الاحتياطية
+  Future<void> shareBackup() async {
+    final file = await exportBackup();
+    await Share.shareXFiles([XFile(file.path)], text: 'نسخة احتياطية من المحاسب الذكي');
+  }
+
+  /// استيراد نسخة احتياطية
+  Future<bool> importBackup(String filePath) async {
+    try {
+      final content = await File(filePath).readAsString();
+      final data = jsonDecode(content) as Map<String, dynamic>;
+
+      final db = GetIt.I<AppDatabase>();
+
+      // استعادة البيانات
+      if (data['customers'] != null) {
+        for (var c in data['customers'] as List) {
+          await db.into(db.customers).insert(CustomersCompanion(name: Value(c['name']), phone: Value(c['phone']), address: Value(c['address'])));
+        }
+      }
+      if (data['suppliers'] != null) {
+        for (var s in data['suppliers'] as List) {
+          await db.into(db.suppliers).insert(SuppliersCompanion(name: Value(s['name']), phone: Value(s['phone']), address: Value(s['address'])));
+        }
+      }
+      if (data['items'] != null) {
+        for (var i in data['items'] as List) {
+          await db.into(db.items).insert(ItemsCompanion(name: Value(i['name']), unit: Value(i['unit']), cost: Value(double.tryParse(i['cost']?.toString() ?? '0') ?? 0), price: Value(double.tryParse(i['price']?.toString() ?? '0') ?? 0)));
+        }
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+}
+
+
+----- FILE: lib/core/services/debts/debt_service.dart -----
+import 'dart:async';
+
+class DebtRecord {
+
+  DebtRecord({required this.customerName, required this.amount, required this.dueDate, this.isPaid = false, this.notes});
+  final String customerName;
+  final double amount;
+  final DateTime dueDate;
+  final bool isPaid;
+  final String? notes;
+}
+
+class DebtService {
+  final List<DebtRecord> _debts = [];
+  final _controller = StreamController<List<DebtRecord>>.broadcast();
+
+  Stream<List<DebtRecord>> get debts => _controller.stream;
+  List<DebtRecord> get allDebts => List.unmodifiable(_debts);
+  List<DebtRecord> get unpaidDebts => _debts.where((d) => !d.isPaid).toList();
+  List<DebtRecord> get overdueDebts => _debts.where((d) => !d.isPaid && DateTime.now().isAfter(d.dueDate)).toList();
+  double get totalUnpaid => unpaidDebts.fold(0, (sum, d) => sum + d.amount);
+  double get totalOverdue => overdueDebts.fold(0, (sum, d) => sum + d.amount);
+
+  void addDebt({required String customerName, required double amount, required DateTime dueDate, String? notes}) {
+    _debts.add(DebtRecord(customerName: customerName, amount: amount, dueDate: dueDate, notes: notes));
+    _controller.add(allDebts);
+  }
+
+  void markPaid(int index) {
+    if (index < _debts.length) {
+      _debts[index] = DebtRecord(customerName: _debts[index].customerName, amount: _debts[index].amount, dueDate: _debts[index].dueDate, isPaid: true, notes: _debts[index].notes);
+      _controller.add(allDebts);
+    }
+  }
+
+  String getDebtAlert() {
+    if (overdueDebts.isNotEmpty) return '⚠️ لديك ${overdueDebts.length} ديون متأخرة بقيمة ${totalOverdue.toStringAsFixed(0)} ريال';
+    return '';
+  }
+
+  void dispose() => _controller.close();
+}
+
+
+----- FILE: lib/core/services/encryption/encryption_service.dart -----
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class EncryptionService {
+  final _storage = const FlutterSecureStorage();
+
+  /// تشفير نص وحفظه
+  Future<void> saveSecure(String key, String value) async {
+    await _storage.write(key: key, value: value);
+  }
+
+  /// قراءة قيمة مشفرة
+  Future<String?> readSecure(String key) async {
+    return _storage.read(key: key);
+  }
+
+  /// حذف قيمة مشفرة
+  Future<void> deleteSecure(String key) async {
+    await _storage.delete(key: key);
+  }
+}
+
+
+----- FILE: lib/core/services/excel/excel_service.dart -----
+import 'package:excel/excel.dart';
+import 'dart:io';
+import 'package:share_plus/share_plus.dart';
+
+class ExcelService {
+  Future<void> exportToExcel({
+    required String title,
+    required List<String> headers,
+    required List<List<String>> rows,
+  }) async {
+    final excel = Excel.createExcel();
+    final sheet = excel['Sheet1'];
+    sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
+    for (var row in rows) {
+      sheet.appendRow(row.map((cell) => TextCellValue(cell)).toList());
+    }
+    final bytes = excel.encode();
+    if (bytes == null) return;
+    final file = File('${Directory.systemTemp.path}/$title.xlsx');
+    await file.writeAsBytes(bytes);
+    await Share.shareXFiles([XFile(file.path)], text: title);
+  }
+}
+
+
+----- FILE: lib/core/services/inventory/inventory_cost_service.dart -----
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class InventoryCostResult {
+
+  const InventoryCostResult({
+    required this.quantity,
+    required this.averageCost,
+    required this.stockValue,
+    required this.costOfGoodsSold,
+  });
+  final double quantity;
+  final double averageCost;
+  final double stockValue;
+  final double costOfGoodsSold;
+}
+
+class InventoryCostService {
+
+  InventoryCostService(this._db);
+  final AppDatabase _db;
+
+  Future<InventoryCostResult> calculateItemCost(int itemId) async {
+    final movements =
+        await (_db.select(_db.inventoryTransactions)
+              ..where((t) => t.itemId.equals(itemId))
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.date),
+                (t) => OrderingTerm.asc(t.id),
+              ]))
+            .get();
+
+    double quantity = 0;
+    double stockValue = 0;
+    double costOfGoodsSold = 0;
+
+    for (final movement in movements) {
+      final qty = double.tryParse(movement.quantity) ?? 0;
+      final price = double.tryParse(movement.price ?? '0') ?? 0;
+
+      if (qty <= 0) {
+        continue;
+      }
+
+      switch (_normalizeType(movement.type)) {
+        case 'purchase':
+        case 'inventory_in':
+        case 'return_sale':
+          quantity += qty;
+          stockValue += qty * price;
+          break;
+
+        case 'sale':
+        case 'inventory_out':
+        case 'return_purchase':
+          if (quantity <= 0) {
+            throw StateError('لا يمكن إخراج الصنف $itemId لأن رصيده غير كافٍ');
+          }
+
+          if (qty > quantity + 0.000001) {
+            throw StateError(
+              'الكمية المطلوبة للصنف $itemId أكبر من الرصيد المتاح',
+            );
+          }
+
+          final averageCost = stockValue / quantity;
+          final movementCost = qty * averageCost;
+
+          quantity -= qty;
+          stockValue -= movementCost;
+          costOfGoodsSold += movementCost;
+
+          if (quantity.abs() < 0.000001) {
+            quantity = 0;
+            stockValue = 0;
+          }
+          break;
+
+        case 'inventory':
+          final difference = qty * price;
+          quantity += qty;
+
+          if (difference >= 0) {
+            stockValue += difference;
+          } else {
+            final averageCost = quantity > 0 ? stockValue / quantity : 0.0;
+            final reduction = (-qty) * averageCost;
+            stockValue = (stockValue - reduction).clamp(0, double.infinity);
+          }
+          break;
+
+        default:
+          break;
+      }
+
+      if (stockValue < 0 && stockValue.abs() < 0.000001) {
+        stockValue = 0;
+      }
+    }
+
+    final averageCost = quantity > 0 ? stockValue / quantity : 0.0;
+
+    return InventoryCostResult(
+      quantity: quantity,
+      averageCost: averageCost.toDouble(),
+      stockValue: stockValue.toDouble(),
+      costOfGoodsSold: costOfGoodsSold.toDouble(),
+    );
+  }
+
+  Future<InventoryCostResult> calculateItemCostAt(
+    int itemId,
+    DateTime date,
+  ) async {
+    final movements =
+        await (_db.select(_db.inventoryTransactions)
+              ..where(
+                (t) =>
+                    t.itemId.equals(itemId) &
+                    t.date.isSmallerOrEqualValue(date),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.date),
+                (t) => OrderingTerm.asc(t.id),
+              ]))
+            .get();
+
+    double quantity = 0;
+    double stockValue = 0;
+    double costOfGoodsSold = 0;
+
+    for (final movement in movements) {
+      final qty = double.tryParse(movement.quantity) ?? 0;
+      final price = double.tryParse(movement.price ?? '0') ?? 0;
+
+      if (qty <= 0) {
+        continue;
+      }
+
+      switch (_normalizeType(movement.type)) {
+        case 'purchase':
+        case 'inventory_in':
+        case 'return_sale':
+          quantity += qty;
+          stockValue += qty * price;
+          break;
+
+        case 'sale':
+        case 'inventory_out':
+        case 'return_purchase':
+          if (quantity <= 0 || qty > quantity + 0.000001) {
+            throw StateError('رصيد المخزون غير كافٍ للصنف $itemId');
+          }
+
+          final averageCost = stockValue / quantity;
+          final movementCost = qty * averageCost;
+
+          quantity -= qty;
+          stockValue -= movementCost;
+          costOfGoodsSold += movementCost;
+
+          if (quantity.abs() < 0.000001) {
+            quantity = 0;
+            stockValue = 0;
+          }
+          break;
+
+        case 'inventory':
+          quantity += qty;
+          stockValue += qty * price;
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    final averageCost = quantity > 0 ? stockValue / quantity : 0.0;
+
+    return InventoryCostResult(
+      quantity: quantity,
+      averageCost: averageCost.toDouble(),
+      stockValue: stockValue.toDouble(),
+      costOfGoodsSold: costOfGoodsSold.toDouble(),
+    );
+  }
+
+  String _normalizeType(String value) {
+    switch (value.toLowerCase().trim()) {
+      case 'purchase':
+      case 'purchases':
+        return 'purchase';
+
+      case 'sale':
+      case 'sales':
+        return 'sale';
+
+      case 'sale_return':
+      case 'sales_return':
+      case 'return_sale':
+        return 'return_sale';
+
+      case 'purchase_return':
+      case 'purchases_return':
+      case 'return_purchase':
+        return 'return_purchase';
+
+      case 'inventory_in':
+      case 'stock_in':
+        return 'inventory_in';
+
+      case 'inventory_out':
+      case 'stock_out':
+        return 'inventory_out';
+
+      case 'inventory':
+      case 'adjustment':
+        return 'inventory';
+
+      default:
+        return value.toLowerCase().trim();
+    }
+  }
+}
+
+
+----- FILE: lib/core/services/inventory/inventory_count_service.dart -----
+import '../../repositories/master_data_repository.dart';
+import '../../repositories/ledger_repository.dart';
+import '../../repositories/journal_repository.dart';
+import '../numbering/number_generator.dart';
+
+class InventoryCountService {
+
+  InventoryCountService(this._repo, this._ledgerRepo, this._journalRepo, this._numberGen);
+  final MasterDataRepository _repo;
+  final LedgerRepository _ledgerRepo;
+  final JournalRepository _journalRepo;
+  final NumberGenerator _numberGen;
+
+  /// إجراء جرد فعلي - تحديث أرصدة المخزون
+  Future<Map<String, dynamic>> performCount({
+    required int warehouseId,
+    required List<Map<String, dynamic>> items, // [{itemId, expectedQty, actualQty}]
+    String? notes,
+  }) async {
+    final adjustments = <Map<String, dynamic>>[];
+    double totalDifference = 0;
+
+    for (var item in items) {
+      final expected = double.tryParse(item['expectedQty']?.toString() ?? '0') ?? 0;
+      final actual = double.tryParse(item['actualQty']?.toString() ?? '0') ?? 0;
+      final difference = actual - expected;
+
+      if (difference != 0) {
+        adjustments.add({
+          'itemId': item['itemId'],
+          'difference': difference,
+          'type': difference > 0 ? 'increase' : 'decrease',
+        });
+        totalDifference += difference;
+      }
+    }
+
+    // إذا كانت هناك فروقات، أنشئ قيد تسوية
+    if (adjustments.isNotEmpty) {
+      final number = await _numberGen.generate('inventory');
+      // قيد التسوية: مخزون مدين/دائن مقابل حساب الفروقات
+      final items = <Map<String, dynamic>>[
+        {'accountId': 113, 'debit': totalDifference > 0 ? totalDifference : 0, 'credit': totalDifference < 0 ? -totalDifference : 0},
+        {'accountId': 4, 'debit': totalDifference < 0 ? -totalDifference : 0, 'credit': totalDifference > 0 ? totalDifference : 0},
+      ];
+
+      await _journalRepo.saveJournalEntry(
+        entryNumber: number,
+        entryDate: DateTime.now(),
+        operationType: 'inventory_count',
+        description: 'تسوية جرد - $notes',
+        referenceType: 'inventory',
+        referenceId: warehouseId.toString(),
+        currencyCode: 'YER',
+        exchangeRate: 1.0,
+        lines: items,
+      );
+    }
+
+    return {
+      'adjustments': adjustments.length,
+      'totalDifference': totalDifference,
+      'number': adjustments.isNotEmpty ? 'INV-${DateTime.now().year}' : null,
+    };
+  }
+
+  /// الإغلاق السنوي - تصفير حسابات الإيرادات والمصروفات
+  Future<Map<String, dynamic>> closeYear() async {
+    final accounts = await _repo.getAllAccounts();
+    final revenues = accounts.where((a) => a['type'] == 'revenue').toList();
+    final expenses = accounts.where((a) => a['type'] == 'expense').toList();
+
+    double totalRevenues = 0;
+    double totalExpenses = 0;
+
+    for (var acc in revenues) {
+      totalRevenues += await _ledgerRepo.getBalance(acc['id'] as int);
+    }
+    for (var acc in expenses) {
+      totalExpenses += (await _ledgerRepo.getBalance(acc['id'] as int)).abs();
+    }
+
+    final netIncome = totalRevenues - totalExpenses;
+    final number = await _numberGen.generate('year_close');
+
+    // إنشاء قيد الإغلاق
+    final lines = <Map<String, dynamic>>[];
+    for (var acc in revenues) {
+      final balance = await _ledgerRepo.getBalance(acc['id'] as int);
+      if (balance != 0) {
+        lines.add({'accountId': acc['id'], 'debit': balance, 'credit': 0});
+      }
+    }
+    for (var acc in expenses) {
+      final balance = (await _ledgerRepo.getBalance(acc['id'] as int)).abs();
+      if (balance != 0) {
+        lines.add({'accountId': acc['id'], 'debit': 0, 'credit': balance});
+      }
+    }
+    // حساب الأرباح المحتجزة
+    lines.add({'accountId': 2, 'debit': netIncome < 0 ? -netIncome : 0, 'credit': netIncome > 0 ? netIncome : 0});
+
+    await _journalRepo.saveJournalEntry(
+      entryNumber: number,
+      entryDate: DateTime(DateTime.now().year, 12, 31),
+      operationType: 'year_close',
+      description: 'الإغلاق السنوي ${DateTime.now().year}',
+      referenceType: 'year_close',
+      referenceId: DateTime.now().year.toString(),
+      currencyCode: 'YER',
+      exchangeRate: 1.0,
+      lines: lines,
+    );
+
+    return {
+      'totalRevenues': totalRevenues,
+      'totalExpenses': totalExpenses,
+      'netIncome': netIncome,
+      'number': number,
+    };
+  }
+}
+
+
+----- FILE: lib/core/services/inventory/inventory_journal_service.dart -----
+import '../../engine/accounting/transaction_context.dart';
+import 'inventory_cost_service.dart';
+
+class InventoryJournalService {
+
+  InventoryJournalService(this._costService);
+  final InventoryCostService _costService;
+
+  Future<List<JournalItem>> buildSaleLines({
+    required List<Map<String, dynamic>> items,
+    required int receivableAccountId,
+    required int salesAccountId,
+    required int inventoryAccountId,
+    required int cogsAccountId,
+    bool isReturn = false,
+  }) async {
+    double salesTotal = 0;
+    double cogsTotal = 0;
+
+    for (final item in items) {
+      final itemId = int.tryParse(item['id']?.toString() ?? '');
+      final quantity = (item['quantity'] as num?)?.toDouble() ?? 0;
+      final price = (item['price'] as num?)?.toDouble() ?? 0;
+      final discount = (item['discount'] as num?)?.toDouble() ?? 0;
+
+      if (itemId == null || quantity <= 0) {
+        continue;
+      }
+
+      salesTotal += (quantity * price) - discount;
+
+      final cost = await _costService.calculateItemCost(itemId);
+      cogsTotal += cost.averageCost * quantity;
+    }
+
+    if (salesTotal <= 0) {
+      throw StateError('إجمالي البيع يجب أن يكون أكبر من صفر');
+    }
+
+    if (cogsTotal < 0) {
+      cogsTotal = 0;
+    }
+
+    if (!isReturn) {
+      return [
+        JournalItem(
+          accountId: receivableAccountId,
+          debit: salesTotal,
+          description: 'قيمة المبيعات',
+        ),
+        JournalItem(
+          accountId: salesAccountId,
+          credit: salesTotal,
+          description: 'إيرادات المبيعات',
+        ),
+        if (cogsTotal > 0)
+          JournalItem(
+            accountId: cogsAccountId,
+            debit: cogsTotal,
+            description: 'تكلفة المبيعات',
+          ),
+        if (cogsTotal > 0)
+          JournalItem(
+            accountId: inventoryAccountId,
+            credit: cogsTotal,
+            description: 'إخراج تكلفة المخزون',
+          ),
+      ];
+    }
+
+    return [
+      JournalItem(
+        accountId: salesAccountId,
+        debit: salesTotal,
+        description: 'مرتجع مبيعات',
+      ),
+      JournalItem(
+        accountId: receivableAccountId,
+        credit: salesTotal,
+        description: 'عكس قيمة المبيعات',
+      ),
+      if (cogsTotal > 0)
+        JournalItem(
+          accountId: inventoryAccountId,
+          debit: cogsTotal,
+          description: 'إعادة تكلفة المخزون',
+        ),
+      if (cogsTotal > 0)
+        JournalItem(
+          accountId: cogsAccountId,
+          credit: cogsTotal,
+          description: 'عكس تكلفة المبيعات',
+        ),
+    ];
+  }
+
+  List<JournalItem> buildPurchaseLines({
+    required double total,
+    required int inventoryAccountId,
+    required int payableAccountId,
+    bool isReturn = false,
+  }) {
+    if (total <= 0) {
+      throw StateError('إجمالي الشراء يجب أن يكون أكبر من صفر');
+    }
+
+    if (!isReturn) {
+      return [
+        JournalItem(
+          accountId: inventoryAccountId,
+          debit: total,
+          description: 'إضافة إلى المخزون',
+        ),
+        JournalItem(
+          accountId: payableAccountId,
+          credit: total,
+          description: 'قيمة المشتريات',
+        ),
+      ];
+    }
+
+    return [
+      JournalItem(
+        accountId: payableAccountId,
+        debit: total,
+        description: 'مرتجع مشتريات',
+      ),
+      JournalItem(
+        accountId: inventoryAccountId,
+        credit: total,
+        description: 'إخراج قيمة المرتجع من المخزون',
+      ),
+    ];
+  }
+}
+
+
+----- FILE: lib/core/services/inventory/inventory_movement_engine.dart -----
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class InventoryMovementEngine {
+
+  InventoryMovementEngine(this._db);
+  final AppDatabase _db;
+
+  Future<void> record({
+    required int itemId,
+    required String type,
+    required double quantity,
+    double? price,
+    String? reference,
+    required DateTime date,
+  }) async {
+    if (itemId <= 0) {
+      throw ArgumentError('معرف الصنف غير صحيح');
+    }
+
+    if (quantity <= 0) {
+      throw ArgumentError('كمية حركة المخزون يجب أن تكون أكبر من صفر');
+    }
+
+    final normalizedType = _normalizeType(type);
+
+    if (normalizedType == 'inventory_out' ||
+        normalizedType == 'sale' ||
+        normalizedType == 'return_purchase') {
+      await _ensureAvailableStock(itemId: itemId, quantity: quantity);
+    }
+
+    await _db
+        .into(_db.inventoryTransactions)
+        .insert(
+          InventoryTransactionsCompanion.insert(
+            itemId: itemId,
+            type: normalizedType,
+            quantity: quantity.toString(),
+            price: Value(price?.toString()),
+            reference: Value(reference),
+            date: date,
+          ),
+        );
+  }
+
+  Future<void> recordSale({
+    required int itemId,
+    required double quantity,
+    required double price,
+    String? reference,
+    required DateTime date,
+  }) {
+    return record(
+      itemId: itemId,
+      type: 'sale',
+      quantity: quantity,
+      price: price,
+      reference: reference,
+      date: date,
+    );
+  }
+
+  Future<void> recordPurchase({
+    required int itemId,
+    required double quantity,
+    required double price,
+    String? reference,
+    required DateTime date,
+  }) {
+    return record(
+      itemId: itemId,
+      type: 'purchase',
+      quantity: quantity,
+      price: price,
+      reference: reference,
+      date: date,
+    );
+  }
+
+  Future<void> recordSaleReturn({
+    required int itemId,
+    required double quantity,
+    required double cost,
+    String? reference,
+    required DateTime date,
+  }) {
+    return record(
+      itemId: itemId,
+      type: 'return_sale',
+      quantity: quantity,
+      price: cost,
+      reference: reference,
+      date: date,
+    );
+  }
+
+  Future<void> recordPurchaseReturn({
+    required int itemId,
+    required double quantity,
+    required double cost,
+    String? reference,
+    required DateTime date,
+  }) {
+    return record(
+      itemId: itemId,
+      type: 'return_purchase',
+      quantity: quantity,
+      price: cost,
+      reference: reference,
+      date: date,
+    );
+  }
+
+  Future<void> recordInventoryIn({
+    required int itemId,
+    required double quantity,
+    double? cost,
+    String? reference,
+    required DateTime date,
+  }) {
+    return record(
+      itemId: itemId,
+      type: 'inventory_in',
+      quantity: quantity,
+      price: cost,
+      reference: reference,
+      date: date,
+    );
+  }
+
+  Future<void> recordInventoryOut({
+    required int itemId,
+    required double quantity,
+    double? cost,
+    String? reference,
+    required DateTime date,
+  }) {
+    return record(
+      itemId: itemId,
+      type: 'inventory_out',
+      quantity: quantity,
+      price: cost,
+      reference: reference,
+      date: date,
+    );
+  }
+
+  Future<void> _ensureAvailableStock({
+    required int itemId,
+    required double quantity,
+  }) async {
+    final rows = await (_db.select(
+      _db.inventoryTransactions,
+    )..where((t) => t.itemId.equals(itemId))).get();
+
+    double balance = 0;
+
+    for (final row in rows) {
+      final value = double.tryParse(row.quantity) ?? 0;
+
+      switch (_normalizeType(row.type)) {
+        case 'purchase':
+        case 'inventory_in':
+        case 'return_sale':
+          balance += value;
+          break;
+
+        case 'sale':
+        case 'inventory_out':
+        case 'return_purchase':
+          balance -= value;
+          break;
+      }
+    }
+
+    if (quantity > balance + 0.000001) {
+      throw StateError(
+        'الرصيد المخزني غير كافٍ للصنف $itemId. '
+        'المتاح: ${balance.toStringAsFixed(3)} '
+        'والمطلوب: ${quantity.toStringAsFixed(3)}',
+      );
+    }
+  }
+
+  String _normalizeType(String value) {
+    switch (value.toLowerCase().trim()) {
+      case 'purchase':
+      case 'purchases':
+        return 'purchase';
+
+      case 'sale':
+      case 'sales':
+        return 'sale';
+
+      case 'sale_return':
+      case 'sales_return':
+      case 'return_sale':
+        return 'return_sale';
+
+      case 'purchase_return':
+      case 'purchases_return':
+      case 'return_purchase':
+        return 'return_purchase';
+
+      case 'inventory_in':
+      case 'stock_in':
+        return 'inventory_in';
+
+      case 'inventory_out':
+      case 'stock_out':
+        return 'inventory_out';
+
+      default:
+        return value.toLowerCase().trim();
+    }
+  }
+}
+
+
+----- FILE: lib/core/services/inventory/item_movement_service.dart -----
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class ItemMovementRecord {
+
+  const ItemMovementRecord({
+    required this.itemId,
+    required this.itemName,
+    required this.quantity,
+    required this.price,
+    required this.operationType,
+    required this.date,
+    this.reference,
+  });
+  final String itemId;
+  final String itemName;
+  final double quantity;
+  final double price;
+  final String operationType;
+  final DateTime date;
+  final String? reference;
+}
+
+class ItemMovementService {
+
+  ItemMovementService(this._db);
+  final AppDatabase _db;
+
+  Future<void> recordMovement({
+    required String itemId,
+    required String itemName,
+    required double quantity,
+    required double price,
+    required String operationType,
+    String? reference,
+    DateTime? date,
+  }) async {
+    final parsedItemId = int.tryParse(itemId);
+
+    if (parsedItemId == null || parsedItemId <= 0) {
+      throw ArgumentError('معرف الصنف غير صحيح');
+    }
+
+    if (quantity <= 0) {
+      throw ArgumentError('كمية الحركة يجب أن تكون أكبر من صفر');
+    }
+
+    await _db
+        .into(_db.inventoryTransactions)
+        .insert(
+          InventoryTransactionsCompanion.insert(
+            itemId: parsedItemId,
+            type: operationType,
+            quantity: quantity.toString(),
+            price: Value(price.toString()),
+            reference: Value(reference),
+            date: date ?? DateTime.now(),
+          ),
+        );
+  }
+
+  Future<List<ItemMovementRecord>> getMovementsForItem(
+    String itemId, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final parsedItemId = int.tryParse(itemId);
+
+    if (parsedItemId == null || parsedItemId <= 0) {
+      return [];
+    }
+
+    final query = _db.select(_db.inventoryTransactions)
+      ..where((t) => t.itemId.equals(parsedItemId))
+      ..orderBy([
+        (t) => OrderingTerm.asc(t.date),
+        (t) => OrderingTerm.asc(t.id),
+      ]);
+
+    if (from != null) {
+      query.where((t) => t.date.isBiggerOrEqualValue(from));
+    }
+
+    if (to != null) {
+      query.where((t) => t.date.isSmallerOrEqualValue(to));
+    }
+
+    final rows = await query.get();
+
+    final item = await (_db.select(
+      _db.items,
+    )..where((t) => t.id.equals(parsedItemId))).getSingleOrNull();
+
+    final itemName = item?.name ?? '';
+
+    return rows.map((m) {
+      return ItemMovementRecord(
+        itemId: m.itemId.toString(),
+        itemName: itemName,
+        quantity: double.tryParse(m.quantity) ?? 0,
+        price: double.tryParse(m.price ?? '0') ?? 0,
+        operationType: m.type,
+        date: m.date,
+        reference: m.reference,
+      );
+    }).toList();
+  }
+
+  Future<Map<String, dynamic>> getItemCard(
+    String itemId, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final movements = await getMovementsForItem(itemId, from: from, to: to);
+
+    double purchases = 0;
+    double sales = 0;
+    double returns = 0;
+    double adjustments = 0;
+
+    double purchaseCost = 0;
+    double salesCost = 0;
+
+    for (final movement in movements) {
+      switch (movement.operationType) {
+        case 'purchase':
+          purchases += movement.quantity;
+          purchaseCost += movement.quantity * movement.price;
+          break;
+
+        case 'sale':
+          sales += movement.quantity;
+          salesCost += movement.quantity * movement.price;
+          break;
+
+        case 'return':
+        case 'sale_return':
+        case 'purchase_return':
+          returns += movement.quantity;
+          break;
+
+        case 'inventory':
+        case 'inventory_in':
+        case 'inventory_out':
+          adjustments += movement.quantity;
+          break;
+      }
+    }
+
+    final balance = purchases - sales + returns + adjustments;
+
+    final averageCost = purchases > 0 ? purchaseCost / purchases : 0.0;
+
+    return {
+      'item_id': itemId,
+      'item_name': movements.isNotEmpty ? movements.first.itemName : '',
+      'opening': 0.0,
+      'purchases': purchases,
+      'sales': sales,
+      'returns': returns,
+      'adjustments': adjustments,
+      'balance': balance,
+      'purchase_cost': purchaseCost,
+      'sales_cost': salesCost,
+      'average_cost': averageCost,
+      'stock_value': balance * averageCost,
+      'movements': movements,
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> getAllItemCards() async {
+    final items = await _db.select(_db.items).get();
+
+    final result = <Map<String, dynamic>>[];
+
+    for (final item in items) {
+      result.add(await getItemCard(item.id.toString()));
+    }
+
+    return result;
+  }
+
+  Future<double> getAvailableQuantity(String itemId) async {
+    final card = await getItemCard(itemId);
+    return (card['balance'] as num?)?.toDouble() ?? 0;
+  }
+
+  Future<double> getAverageCost(String itemId) async {
+    final card = await getItemCard(itemId);
+    return (card['average_cost'] as num?)?.toDouble() ?? 0;
+  }
+}
+
+
+----- FILE: lib/core/services/master_data/master_data_service.dart -----
+import '../../repositories/master_data_repository.dart';
+import '../accounting/accounting_link_service.dart';
+
+class MasterDataService {
+
+  MasterDataService(this._repository, this._linkService);
+  final MasterDataRepository _repository;
+  final AccountingLinkService _linkService;
+
+  // العملات
+  Future<int> createCurrency({
+    required String code,
+    required String name,
+    double exchangeRate = 1.0,
+    bool isDefault = false,
+  }) async => _repository.insertCurrency({
+    'code': code,
+    'name': name,
+    'exchange_rate': exchangeRate,
+    'is_default': isDefault,
+  });
+  Future<List<Map<String, dynamic>>> getAllCurrencies() async =>
+      _repository.getAllCurrencies();
+  Future<int> updateCurrency(
+    int id,
+    String code,
+    String name,
+    double exchangeRate, {
+    bool? isDefault,
+  }) async => _repository.updateCurrency(
+    id,
+    code,
+    name,
+    exchangeRate,
+    isDefault: isDefault,
+  );
+  Future<int> deleteCurrency(int id) async => _repository.deleteCurrency(id);
+  Future<int> setDefaultCurrency(int id) async =>
+      _repository.setDefaultCurrency(id);
+  Future<Map<String, dynamic>?> getDefaultCurrency() async =>
+      _repository.getDefaultCurrency();
+
+  // الحسابات
+  Future<int> createAccount({
+    required String nameAr,
+    String? nameEn,
+    required String type,
+    required String nature,
+    int? parentId,
+    bool isActive = true,
+    String currencyCode = 'YER',
+    String? notes,
+    double openingBalance = 0,
+    String openingBalanceNature = 'debit',
+  }) async {
+    final accounts = await _repository.getAllAccounts();
+
+    const allowedTypes = {'asset', 'liability', 'expense', 'revenue'};
+
+    if (!allowedTypes.contains(type)) {
+      throw ArgumentError('نوع الحساب غير صالح');
+    }
+
+    if (nameAr.trim().isEmpty) {
+      throw ArgumentError('اسم الحساب مطلوب');
+    }
+
+    if (openingBalance < 0) {
+      throw ArgumentError('الرصيد الافتتاحي لا يمكن أن يكون سالباً');
+    }
+
+    if (openingBalanceNature != 'debit' && openingBalanceNature != 'credit') {
+      throw ArgumentError('طبيعة الرصيد يجب أن تكون debit أو credit');
+    }
+
+    Map<String, dynamic>? parent;
+    int level;
+
+    if (parentId == null) {
+      level = 1;
+
+      final rootNumbers = {
+        'asset': '1',
+        'liability': '2',
+        'expense': '3',
+        'revenue': '4',
+      };
+
+      final rootNumber = rootNumbers[type]!;
+
+      if (accounts.any((a) => '${a['number']}' == rootNumber)) {
+        throw ArgumentError('الحساب الرئيسي موجود مسبقاً');
+      }
+
+      final rootNames = {
+        'asset': 'الأصول',
+        'liability': 'الخصوم',
+        'expense': 'المصروفات',
+        'revenue': 'الإيرادات',
+      };
+
+      return _repository.insertAccount({
+        'number': rootNumber,
+        'name_ar': rootNames[type],
+        'name_en': nameEn,
+        'type': type,
+        'nature': nature,
+        'parent_id': null,
+        'level': 1,
+        'accepts_posting': false,
+        'is_active': isActive,
+        'currency_code': currencyCode,
+        'notes': notes,
+        'opening_balance': openingBalance.toString(),
+        'opening_balance_nature': openingBalanceNature,
+      });
+    }
+
+    parent = accounts.firstWhere(
+      (a) => a['id'] == parentId,
+      orElse: () => <String, dynamic>{},
+    );
+
+    if (parent.isEmpty) {
+      throw ArgumentError('الحساب الأب غير موجود');
+    }
+
+    final parentLevel = int.tryParse('${parent['level']}') ?? 0;
+    level = parentLevel + 1;
+
+    if (level > 5) {
+      throw ArgumentError('لا يمكن إنشاء حساب بعد المستوى الخامس');
+    }
+
+    if (parent['accepts_posting'] == true) {
+      throw ArgumentError('لا يمكن إنشاء حساب تحت حساب يقبل القيود');
+    }
+
+    if (type != parent['type'] || nature != parent['nature']) {
+      throw ArgumentError('نوع وطبيعة الحساب يجب أن تطابق الحساب الأب');
+    }
+
+    final prefix = '${parent['number']}';
+
+    var next = 1;
+    late String number;
+
+    do {
+      number = '$prefix${next.toString().padLeft(2, '0')}';
+      next++;
+    } while (accounts.any((a) => '${a['number']}' == number));
+
+    return _repository.insertAccount({
+      'number': number,
+      'name_ar': nameAr.trim(),
+      'name_en': nameEn?.trim(),
+      'type': type,
+      'nature': nature,
+      'parent_id': parentId,
+      'level': level,
+      'accepts_posting': level == 5,
+      'is_active': isActive,
+      'currency_code': currencyCode,
+      'notes': notes,
+      'opening_balance': openingBalance.toString(),
+      'opening_balance_nature': openingBalanceNature,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getAllAccounts() async =>
+      _repository.getAllAccounts();
+
+  Future<int> updateAccount(
+    int id, {
+    required String nameAr,
+    String? nameEn,
+    bool? acceptsPosting,
+    bool? isActive,
+    String? currencyCode,
+    String? notes,
+    double? openingBalance,
+    String? openingBalanceNature,
+  }) async {
+    if (openingBalance != null && openingBalance < 0) {
+      throw ArgumentError('الرصيد الافتتاحي لا يمكن أن يكون سالبًا');
+    }
+
+    if (openingBalanceNature != null &&
+        openingBalanceNature != 'debit' &&
+        openingBalanceNature != 'credit') {
+      throw ArgumentError('طبيعة الرصيد الافتتاحي غير صحيحة');
+    }
+
+    return _repository.updateAccount(id, {
+      'name_ar': nameAr,
+      'name_en': nameEn,
+      'accepts_posting': ?acceptsPosting,
+      'is_active': ?isActive,
+      'currency_code': ?currencyCode,
+      'notes': ?notes,
+      if (openingBalance != null) 'opening_balance': openingBalance.toString(),
+      'opening_balance_nature': ?openingBalanceNature,
+    });
+  }
+
+  Future<int> deleteAccount(int id) async => _repository.deleteAccount(id);
+
+  // العملاء
+  Future<int> createCustomer({
+    required String name,
+    String? phone,
+    String? address,
+  }) async {
+    final customerId = await _repository.insertCustomer({
+      'name': name,
+      'phone': phone,
+      'address': address,
+    });
+    await _linkService.createAndLink(
+      module: 'customers',
+      entityType: 'Customer',
+      entityId: customerId.toString(),
+      entityName: name,
+      parentSystemCode: 'customer_parent',
+    );
+    return customerId;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllCustomers() async =>
+      _repository.getAllCustomers();
+  Future<int> updateCustomer(
+    int id, {
+    required String name,
+    String? phone,
+    String? address,
+  }) async => _repository.updateCustomer(id, {
+    'name': name,
+    'phone': phone,
+    'address': address,
+  });
+  Future<int> deleteCustomer(int id) async => _repository.deleteCustomer(id);
+
+  // الموردين
+  Future<int> createSupplier({
+    required String name,
+    String? phone,
+    String? address,
+  }) async {
+    final supplierId = await _repository.insertSupplier({
+      'name': name,
+      'phone': phone,
+      'address': address,
+    });
+    await _linkService.createAndLink(
+      module: 'suppliers',
+      entityType: 'Supplier',
+      entityId: supplierId.toString(),
+      entityName: name,
+      parentSystemCode: 'supplier_parent',
+    );
+    return supplierId;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllSuppliers() async =>
+      _repository.getAllSuppliers();
+  Future<int> updateSupplier(
+    int id, {
+    required String name,
+    String? phone,
+    String? address,
+  }) async => _repository.updateSupplier(id, {
+    'name': name,
+    'phone': phone,
+    'address': address,
+  });
+  Future<int> deleteSupplier(int id) async => _repository.deleteSupplier(id);
+
+  // الأصناف
+  Future<int> createItem({
+    required String name,
+    required String unit,
+    double cost = 0,
+    double price = 0,
+    String? nameEn,
+    String itemType = 'inventory',
+    String? category,
+    double openingQuantity = 0,
+    double minimumQuantity = 0,
+    double maximumQuantity = 0,
+    String? barcode,
+    String? sku,
+    String? description,
+    String? notes,
+    bool isActive = true,
+    bool isService = false,
+  }) async {
+    if (name.trim().isEmpty) {
+      throw ArgumentError('اسم الصنف مطلوب');
+    }
+
+    if

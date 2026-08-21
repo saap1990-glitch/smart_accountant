@@ -4,10 +4,6 @@ import '../inventory/item_movement_service.dart';
 import '../inventory/inventory_cost_service.dart';
 
 class ReportService {
-  final MasterDataRepository _repository;
-  final ItemMovementService _movementService;
-  final InventoryCostService _inventoryCostService;
-  final LedgerRepository _ledgerRepo;
 
   ReportService(
     this._repository,
@@ -15,6 +11,10 @@ class ReportService {
     this._inventoryCostService,
     this._ledgerRepo,
   );
+  final MasterDataRepository _repository;
+  final ItemMovementService _movementService;
+  final InventoryCostService _inventoryCostService;
+  final LedgerRepository _ledgerRepo;
 
   Future<List<Map<String, dynamic>>> generalLedger({
     required int accountId,

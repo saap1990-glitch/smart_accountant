@@ -2,9 +2,9 @@ import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 
 class JournalRepository {
-  final AppDatabase _db;
 
   JournalRepository(this._db);
+  final AppDatabase _db;
 
   /// حفظ قيد يومية كامل مع بنوده
   Future<int> saveJournalEntry({

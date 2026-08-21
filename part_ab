@@ -1,0 +1,1737 @@
+tBus>();
+}
+
+
+----- FILE: lib/core/events/event_bus.dart -----
+import 'dart:async';
+
+class EventBus {
+  final StreamController<Object> _controller =
+      StreamController<Object>.broadcast();
+
+  Stream<T> on<T>() {
+    return _controller.stream.where((event) => event is T).cast<T>();
+  }
+
+  void publish(Object event) {
+    if (!_controller.isClosed) {
+      _controller.add(event);
+    }
+  }
+
+  Future<void> dispose() async {
+    await _controller.close();
+  }
+}
+
+
+----- FILE: lib/core/localization/app_localizations.dart -----
+import 'package:flutter/material.dart';
+
+class AppLocalizations {
+  AppLocalizations(this.locale);
+  final Locale locale;
+
+  static const Map<String, Map<String, String>> _translations = {
+    'ar': {
+      'app_name': 'المحاسب الذكي',
+      'dashboard': 'لوحة التحكم',
+      'accounts': 'الحسابات',
+      'customers': 'العملاء',
+      'suppliers': 'الموردين',
+      'inventory': 'المخزون',
+      'sales': 'المبيعات',
+      'purchases': 'المشتريات',
+      'reports': 'التقارير',
+      'settings': 'الإعدادات',
+      'dark_mode': 'الوضع الليلي',
+      'light_mode': 'الوضع النهاري',
+      'language': 'اللغة',
+      'backup': 'نسخ احتياطي',
+      'restore': 'استعادة',
+      'privacy': 'سياسة الخصوصية',
+      'terms': 'شروط الاستخدام',
+      'subscription': 'الاشتراك',
+      'logout': 'تسجيل الخروج',
+    },
+    'en': {
+      'app_name': 'Smart Accountant',
+      'dashboard': 'Dashboard',
+      'accounts': 'Accounts',
+      'customers': 'Customers',
+      'suppliers': 'Suppliers',
+      'inventory': 'Inventory',
+      'sales': 'Sales',
+      'purchases': 'Purchases',
+      'reports': 'Reports',
+      'settings': 'Settings',
+      'dark_mode': 'Dark Mode',
+      'light_mode': 'Light Mode',
+      'language': 'Language',
+      'backup': 'Backup',
+      'restore': 'Restore',
+      'privacy': 'Privacy Policy',
+      'terms': 'Terms of Use',
+      'subscription': 'Subscription',
+      'logout': 'Logout',
+    },
+  };
+
+  String? get(String key) {
+    return _translations[locale.languageCode]?[key] ?? _translations['en']![key];
+  }
+
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+  }
+}
+
+class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+  const AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => ['ar', 'en'].contains(locale.languageCode);
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async {
+    return AppLocalizations(locale);
+  }
+
+  @override
+  bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) => false;
+}
+
+
+----- FILE: lib/core/logging/app_logger.dart -----
+export 'logger.dart';
+
+
+----- FILE: lib/core/logging/logger.dart -----
+import 'package:logger/logger.dart';
+
+class AppLogger {
+  static final Logger _logger = Logger(
+    printer: PrettyPrinter(methodCount: 1),
+  );
+
+  static void debug(dynamic message) => _logger.d(message);
+  static void info(dynamic message) => _logger.i(message);
+  static void warning(dynamic message) => _logger.w(message);
+  static void error(dynamic message, {Object? error, StackTrace? stackTrace}) {
+    _logger.e(message, error: error, stackTrace: stackTrace);
+  }
+}
+
+
+----- FILE: lib/core/repositories/journal_repository.dart -----
+import 'package:drift/drift.dart';
+import '../database/app_database.dart';
+
+class JournalRepository {
+
+  JournalRepository(this._db);
+  final AppDatabase _db;
+
+  /// حفظ قيد يومية كامل مع بنوده
+  Future<int> saveJournalEntry({
+    required String entryNumber,
+    required DateTime entryDate,
+    required String operationType,
+    required String? description,
+    required String? referenceType,
+    required String? referenceId,
+    required String currencyCode,
+    required double exchangeRate,
+    required List<Map<String, dynamic>> lines,
+  }) async {
+    // 1. حفظ رأس القيد
+    final entryId = await _db.into(_db.journalEntries).insert(
+      JournalEntriesCompanion(
+        entryNumber: Value(entryNumber),
+        entryDate: Value(entryDate),
+        operationType: Value(operationType),
+        status: const Value('posted'),
+        description: Value(description),
+        referenceType: Value(referenceType),
+        referenceId: Value(referenceId),
+        currencyCode: Value(currencyCode),
+        exchangeRate: Value(exchangeRate.toString()),
+        createdAt: Value(DateTime.now()),
+      ),
+    );
+
+    // 2. حفظ بنود القيد
+    for (final line in lines) {
+      await _db.into(_db.journalLines).insert(
+        JournalLinesCompanion(
+          journalEntryId: Value(entryId),
+          accountId: Value(line['accountId'] as int),
+          description: Value(line['description']?.toString()),
+          debit: Value((line['debit'] ?? 0).toString()),
+          credit: Value((line['credit'] ?? 0).toString()),
+          currencyCode: Value(currencyCode),
+          exchangeRate: Value(exchangeRate.toString()),
+          foreignDebit: Value(((line['debit'] ?? 0) * exchangeRate).toString()),
+          foreignCredit: Value(((line['credit'] ?? 0) * exchangeRate).toString()),
+        ),
+      );
+    }
+
+    return entryId;
+  }
+
+  /// جلب جميع القيود
+  Future<List<Map<String, dynamic>>> getAllEntries() async {
+    final entries = await _db.select(_db.journalEntries).get();
+    return entries.map((e) => {
+      'id': e.id,
+      'entry_number': e.entryNumber,
+      'entry_date': e.entryDate,
+      'operation_type': e.operationType,
+      'description': e.description,
+      'status': e.status,
+    }).toList();
+  }
+
+  /// جلب بنود قيد محدد
+  Future<List<Map<String, dynamic>>> getEntryLines(int entryId) async {
+    final lines = await (_db.select(_db.journalLines)
+      ..where((t) => t.journalEntryId.equals(entryId))).get();
+    return lines.map((l) => {
+      'id': l.id,
+      'account_id': l.accountId,
+      'debit': l.debit,
+      'credit': l.credit,
+      'description': l.description,
+    }).toList();
+  }
+}
+
+
+----- FILE: lib/core/repositories/ledger_repository.dart -----
+import 'package:drift/drift.dart';
+import '../database/app_database.dart';
+
+class LedgerRepository {
+
+  LedgerRepository(this._db);
+  final AppDatabase _db;
+
+  Future<void> addLedgerEntry({
+    required int journalEntryId,
+    required int journalLineId,
+    required int accountId,
+    required DateTime entryDate,
+    required double debit,
+    required double credit,
+    required String currencyCode,
+  }) async {
+    await _db
+        .into(_db.ledger)
+        .insert(
+          LedgerCompanion(
+            journalEntryId: Value(journalEntryId),
+            journalLineId: Value(journalLineId),
+            accountId: Value(accountId),
+            entryDate: Value(entryDate),
+            debit: Value(debit.toString()),
+            credit: Value(credit.toString()),
+            balance: const Value('0'),
+            currencyCode: Value(currencyCode),
+          ),
+        );
+  }
+
+  Future<List<Map<String, dynamic>>> getAccountStatement({
+    required int accountId,
+    DateTime? from,
+    DateTime? to,
+    String? currencyCode,
+  }) async {
+    var query = _db.select(_db.ledger)
+      ..where((t) => t.accountId.equals(accountId));
+
+    if (currencyCode != null) {
+      query = query..where((t) => t.currencyCode.equals(currencyCode));
+    }
+
+    if (from != null) {
+      query = query..where((t) => t.entryDate.isBiggerOrEqualValue(from));
+    }
+
+    if (to != null) {
+      query = query..where((t) => t.entryDate.isSmallerOrEqualValue(to));
+    }
+
+    query.orderBy([
+      (t) => OrderingTerm.asc(t.entryDate),
+      (t) => OrderingTerm.asc(t.id),
+    ]);
+
+    final rows = await query.get();
+
+    double runningBalance = 0;
+
+    if (from != null) {
+      runningBalance = await getBalance(
+        accountId,
+        asOf: from.subtract(const Duration(microseconds: 1)),
+        currencyCode: currencyCode,
+      );
+    }
+
+    return rows.map((r) {
+      final debit = _number(r.debit);
+      final credit = _number(r.credit);
+
+      runningBalance += debit - credit;
+
+      return {
+        'id': r.id,
+        'journal_entry_id': r.journalEntryId,
+        'journal_line_id': r.journalLineId,
+        'date': r.entryDate,
+        'description': 'رقم القيد: ${r.journalEntryId}',
+        'debit': debit,
+        'credit': credit,
+        'balance': runningBalance,
+        'currency_code': r.currencyCode,
+      };
+    }).toList();
+  }
+
+  Future<double> getBalance(
+    int accountId, {
+    DateTime? asOf,
+    String? currencyCode,
+  }) async {
+    var query = _db.select(_db.ledger)
+      ..where((t) => t.accountId.equals(accountId));
+
+    if (currencyCode != null) {
+      query = query..where((t) => t.currencyCode.equals(currencyCode));
+    }
+
+    if (asOf != null) {
+      query = query..where((t) => t.entryDate.isSmallerOrEqualValue(asOf));
+    }
+
+    final rows = await query.get();
+
+    double balance = 0;
+
+    for (final row in rows) {
+      balance += _number(row.debit) - _number(row.credit);
+    }
+
+    return balance;
+  }
+
+  Future<Map<String, double>> getTotals(
+    int accountId, {
+    DateTime? from,
+    DateTime? to,
+    String? currencyCode,
+  }) async {
+    var query = _db.select(_db.ledger)
+      ..where((t) => t.accountId.equals(accountId));
+
+    if (currencyCode != null) {
+      query = query..where((t) => t.currencyCode.equals(currencyCode));
+    }
+
+    if (from != null) {
+      query = query..where((t) => t.entryDate.isBiggerOrEqualValue(from));
+    }
+
+    if (to != null) {
+      query = query..where((t) => t.entryDate.isSmallerOrEqualValue(to));
+    }
+
+    final rows = await query.get();
+
+    double debit = 0;
+    double credit = 0;
+
+    for (final row in rows) {
+      debit += _number(row.debit);
+      credit += _number(row.credit);
+    }
+
+    return {'debit': debit, 'credit': credit, 'balance': debit - credit};
+  }
+
+  Future<List<Map<String, dynamic>>> getEntries({
+    DateTime? from,
+    DateTime? to,
+    String? currencyCode,
+  }) async {
+    var query = _db.select(_db.ledger);
+
+    if (currencyCode != null) {
+      query = query..where((t) => t.currencyCode.equals(currencyCode));
+    }
+
+    if (from != null) {
+      query = query..where((t) => t.entryDate.isBiggerOrEqualValue(from));
+    }
+
+    if (to != null) {
+      query = query..where((t) => t.entryDate.isSmallerOrEqualValue(to));
+    }
+
+    query.orderBy([
+      (t) => OrderingTerm.asc(t.entryDate),
+      (t) => OrderingTerm.asc(t.id),
+    ]);
+
+    final rows = await query.get();
+
+    return rows
+        .map(
+          (r) => {
+            'id': r.id,
+            'journal_entry_id': r.journalEntryId,
+            'journal_line_id': r.journalLineId,
+            'account_id': r.accountId,
+            'date': r.entryDate,
+            'debit': _number(r.debit),
+            'credit': _number(r.credit),
+            'balance': _number(r.balance),
+            'currency_code': r.currencyCode,
+          },
+        )
+        .toList();
+  }
+
+  double _number(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0;
+  }
+}
+
+
+----- FILE: lib/core/repositories/master_data_repository.dart -----
+import 'package:drift/drift.dart';
+import '../database/app_database.dart';
+
+class MasterDataRepository {
+  MasterDataRepository(this.db);
+  final AppDatabase db;
+
+  // العملات
+  Future<int> insertCurrency(Map<String, dynamic> data) => db
+      .into(db.currencies)
+      .insert(
+        CurrenciesCompanion(
+          code: Value(data['code']),
+          name: Value(data['name']),
+          exchangeRate: Value(data['exchange_rate']?.toString() ?? '1.0'),
+          isDefault: Value(data['is_default'] ?? false),
+        ),
+      );
+
+  Future<List<Map<String, dynamic>>> getAllCurrencies() async {
+    final rows = await db.select(db.currencies).get();
+    return rows
+        .map(
+          (r) => {
+            'id': r.id,
+            'code': r.code,
+            'name': r.name,
+            'exchange_rate': r.exchangeRate,
+            'is_default': r.isDefault,
+          },
+        )
+        .toList();
+  }
+
+  Future<int> updateCurrency(
+    int id,
+    String code,
+    String name,
+    double exchangeRate, {
+    bool? isDefault,
+  }) async {
+    return (db.update(db.currencies)..where((t) => t.id.equals(id))).write(
+      CurrenciesCompanion(
+        code: Value(code),
+        name: Value(name),
+        exchangeRate: Value(exchangeRate.toString()),
+        isDefault: isDefault != null ? Value(isDefault) : const Value.absent(),
+      ),
+    );
+  }
+
+  Future<int> deleteCurrency(int id) async =>
+      (db.delete(db.currencies)..where((t) => t.id.equals(id))).go();
+
+  Future<int> setDefaultCurrency(int id) async {
+    // إزالة الافتراضي من الكل
+    await (db.update(db.currencies)..where((t) => t.isDefault.equals(true)))
+        .write(const CurrenciesCompanion(isDefault: Value(false)));
+    // تعيين الجديد
+    return (db.update(db.currencies)..where((t) => t.id.equals(id))).write(
+      const CurrenciesCompanion(isDefault: Value(true)),
+    );
+  }
+
+  Future<Map<String, dynamic>?> getDefaultCurrency() async {
+    final row = await (db.select(
+      db.currencies,
+    )..where((t) => t.isDefault.equals(true))).getSingleOrNull();
+    if (row != null) {
+      return {
+        'id': row.id,
+        'code': row.code,
+        'name': row.name,
+        'exchange_rate': row.exchangeRate,
+      };
+    }
+    return null;
+  }
+
+  // الحسابات
+  Future<int> insertAccount(Map<String, dynamic> data) {
+    return db
+        .into(db.accounts)
+        .insert(
+          AccountsCompanion(
+            number: Value(data['number']),
+            nameAr: Value(data['name_ar']),
+            nameEn: Value(data['name_en']),
+            type: Value(data['type']),
+            nature: Value(data['nature']),
+            parentId: Value(data['parent_id']),
+            level: Value(data['level']),
+            acceptsPosting: Value(data['accepts_posting'] ?? false),
+          ),
+        );
+  }
+
+  Future<List<Map<String, dynamic>>> getAllAccounts() async {
+    final rows = await db.select(db.accounts).get();
+    return rows
+        .map(
+          (r) => {
+            'id': r.id,
+            'number': r.number,
+            'name_ar': r.nameAr,
+            'name_en': r.nameEn,
+            'type': r.type,
+            'nature': r.nature,
+            'parent_id': r.parentId,
+            'level': r.level,
+          },
+        )
+        .toList();
+  }
+
+  Future<int> updateAccount(int id, Map<String, dynamic> data) async =>
+      (db.update(db.accounts)..where((t) => t.id.equals(id))).write(
+        AccountsCompanion(
+          nameAr: Value(data['name_ar']),
+          nameEn: Value(data['name_en']),
+        ),
+      );
+  Future<Map<String, dynamic>?> getAccountById(int id) async {
+    final r = await (db.select(
+      db.accounts,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (r == null) return null;
+    return {
+      'id': r.id,
+      'number': r.number,
+      'name_ar': r.nameAr,
+      'name_en': r.nameEn,
+      'type': r.type,
+      'nature': r.nature,
+      'parent_id': r.parentId,
+      'level': r.level,
+      'accepts_posting': r.acceptsPosting,
+      'is_system': r.isSystem,
+      'is_active': r.isActive,
+    };
+  }
+
+  Future<Map<String, dynamic>?> getAccountByNumber(String number) async {
+    final r = await (db.select(
+      db.accounts,
+    )..where((t) => t.number.equals(number))).getSingleOrNull();
+    if (r == null) return null;
+    return {'id': r.id, 'number': r.number, 'level': r.level};
+  }
+
+  Future<List<Map<String, dynamic>>> getChildAccounts(int parentId) async {
+    final rows = await (db.select(
+      db.accounts,
+    )..where((t) => t.parentId.equals(parentId))).get();
+    return rows
+        .map((r) => {'id': r.id, 'number': r.number, 'parent_id': r.parentId})
+        .toList();
+  }
+
+  Future<int> deleteAccount(int id) async =>
+      (db.delete(db.accounts)..where((t) => t.id.equals(id))).go();
+
+  // العملاء
+  Future<int> insertCustomer(Map<String, dynamic> data) => db
+      .into(db.customers)
+      .insert(
+        CustomersCompanion(
+          name: Value(data['name']),
+          phone: Value(data['phone']),
+          address: Value(data['address']),
+        ),
+      );
+  Future<List<Map<String, dynamic>>> getAllCustomers() async {
+    final rows = await db.select(db.customers).get();
+    return rows
+        .map(
+          (r) => {
+            'id': r.id,
+            'name': r.name,
+            'phone': r.phone,
+            'address': r.address,
+          },
+        )
+        .toList();
+  }
+
+  Future<int> updateCustomer(int id, Map<String, dynamic> data) async =>
+      (db.update(db.customers)..where((t) => t.id.equals(id))).write(
+        CustomersCompanion(
+          name: Value(data['name']),
+          phone: Value(data['phone']),
+          address: Value(data['address']),
+        ),
+      );
+  Future<int> deleteCustomer(int id) async =>
+      (db.delete(db.customers)..where((t) => t.id.equals(id))).go();
+
+  // الموردين
+  Future<int> insertSupplier(Map<String, dynamic> data) => db
+      .into(db.suppliers)
+      .insert(
+        SuppliersCompanion(
+          name: Value(data['name']),
+          phone: Value(data['phone']),
+          address: Value(data['address']),
+        ),
+      );
+  Future<List<Map<String, dynamic>>> getAllSuppliers() async {
+    final rows = await db.select(db.suppliers).get();
+    return rows
+        .map(
+          (r) => {
+            'id': r.id,
+            'name': r.name,
+            'phone': r.phone,
+            'address': r.address,
+          },
+        )
+        .toList();
+  }
+
+  Future<int> updateSupplier(int id, Map<String, dynamic> data) async =>
+      (db.update(db.suppliers)..where((t) => t.id.equals(id))).write(
+        SuppliersCompanion(
+          name: Value(data['name']),
+          phone: Value(data['phone']),
+          address: Value(data['address']),
+        ),
+      );
+  Future<int> deleteSupplier(int id) async =>
+      (db.delete(db.suppliers)..where((t) => t.id.equals(id))).go();
+
+  // الأصناف
+  Future<int> insertItem(Map<String, dynamic> data) => db
+      .into(db.items)
+      .insert(
+        ItemsCompanion(
+          code: Value(data['code']),
+          name: Value(data['name']),
+          nameEn: Value(data['name_en']),
+          itemType: Value(data['item_type'] ?? 'inventory'),
+          category: Value(data['category']),
+          unit: Value(data['unit']),
+          cost: Value(data['cost'] ?? 0),
+          price: Value(data['price'] ?? 0),
+          openingQuantity: Value(data['opening_quantity'] ?? 0),
+          minimumQuantity: Value(data['minimum_quantity'] ?? 0),
+          maximumQuantity: Value(data['maximum_quantity'] ?? 0),
+          barcode: Value(data['barcode']),
+          sku: Value(data['sku']),
+          description: Value(data['description']),
+          notes: Value(data['notes']),
+          isActive: Value(data['is_active'] ?? true),
+          isService: Value(data['is_service'] ?? false),
+        ),
+      );
+
+  Future<List<Map<String, dynamic>>> getAllItems() async {
+    final rows = await db.select(db.items).get();
+
+    return rows
+        .map(
+          (r) => {
+            'id': r.id,
+            'code': r.code,
+            'name': r.name,
+            'name_en': r.nameEn,
+            'item_type': r.itemType,
+            'category': r.category,
+            'unit': r.unit,
+            'cost': r.cost,
+            'price': r.price,
+            'opening_quantity': r.openingQuantity,
+            'minimum_quantity': r.minimumQuantity,
+            'maximum_quantity': r.maximumQuantity,
+            'barcode': r.barcode,
+            'sku': r.sku,
+            'description': r.description,
+            'notes': r.notes,
+            'is_active': r.isActive,
+            'is_service': r.isService,
+            'created_at': r.createdAt,
+            'updated_at': r.updatedAt,
+          },
+        )
+        .toList();
+  }
+
+  Future<int> updateItem(int id, Map<String, dynamic> data) async =>
+      (db.update(db.items)..where((t) => t.id.equals(id))).write(
+        ItemsCompanion(
+          name: Value(data['name']),
+          nameEn: Value(data['name_en']),
+          itemType: Value(data['item_type']),
+          category: Value(data['category']),
+          unit: Value(data['unit']),
+          cost: Value(data['cost']),
+          price: Value(data['price']),
+          openingQuantity: Value(data['opening_quantity']),
+          minimumQuantity: Value(data['minimum_quantity']),
+          maximumQuantity: Value(data['maximum_quantity']),
+          barcode: Value(data['barcode']),
+          sku: Value(data['sku']),
+          description: Value(data['description']),
+          notes: Value(data['notes']),
+          isActive: Value(data['is_active']),
+          isService: Value(data['is_service']),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  Future<int> deleteItem(int id) async =>
+      (db.delete(db.items)..where((t) => t.id.equals(id))).go();
+
+  // الوحدات
+  Future<int> insertUnit(Map<String, dynamic> data) => db
+      .into(db.units)
+      .insert(
+        UnitsCompanion(
+          name: Value(data['name']),
+          abbreviation: Value(data['abbreviation']),
+        ),
+      );
+  Future<List<Map<String, dynamic>>> getAllUnits() async {
+    final rows = await db.select(db.units).get();
+    return rows
+        .map(
+          (r) => {'id': r.id, 'name': r.name, 'abbreviation': r.abbreviation},
+        )
+        .toList();
+  }
+
+  Future<int> deleteUnit(int id) async =>
+      (db.delete(db.units)..where((t) => t.id.equals(id))).go();
+
+  // المستودعات
+  Future<int> insertWarehouse(Map<String, dynamic> data) => db
+      .into(db.warehouses)
+      .insert(
+        WarehousesCompanion(
+          code: Value(data['code']),
+          name: Value(data['name']),
+          location: Value(data['location']),
+          address: Value(data['address']),
+          notes: Value(data['notes']),
+          isActive: Value(data['is_active'] ?? true),
+        ),
+      );
+
+  Future<List<Map<String, dynamic>>> getAllWarehouses() async {
+    final rows = await db.select(db.warehouses).get();
+
+    return rows
+        .map(
+          (r) => {
+            'id': r.id,
+            'code': r.code,
+            'name': r.name,
+            'location': r.location,
+            'address': r.address,
+            'notes': r.notes,
+            'is_active': r.isActive,
+          },
+        )
+        .toList();
+  }
+
+  Future<int> updateWarehouse(int id, Map<String, dynamic> data) =>
+      (db.update(db.warehouses)..where((t) => t.id.equals(id))).write(
+        WarehousesCompanion(
+          code: Value(data['code']),
+          name: Value(data['name']),
+          location: Value(data['location']),
+          address: Value(data['address']),
+          notes: Value(data['notes']),
+          isActive: Value(data['is_active'] ?? true),
+        ),
+      );
+
+  Future<int> deleteWarehouse(int id) async =>
+      (db.delete(db.warehouses)..where((t) => t.id.equals(id))).go();
+
+  // البنوك
+  Future<int> insertBank(Map<String, dynamic> data) => db
+      .into(db.banks)
+      .insert(
+        BanksCompanion(
+          name: Value(data['name']),
+          accountNumber: Value(data['account_number']),
+        ),
+      );
+  Future<List<Map<String, dynamic>>> getAllBanks() async {
+    final rows = await db.select(db.banks).get();
+    return rows
+        .map(
+          (r) => {
+            'id': r.id,
+            'name': r.name,
+            'account_number': r.accountNumber,
+          },
+        )
+        .toList();
+  }
+
+  Future<int> deleteBank(int id) async =>
+      (db.delete(db.banks)..where((t) => t.id.equals(id))).go();
+
+  // الصناديق
+  Future<int> insertCashBox(Map<String, dynamic> data) => db
+      .into(db.cashBoxes)
+      .insert(CashBoxesCompanion(name: Value(data['name'])));
+  Future<List<Map<String, dynamic>>> getAllCashBoxes() async {
+    final rows = await db.select(db.cashBoxes).get();
+    return rows.map((r) => {'id': r.id, 'name': r.name}).toList();
+  }
+
+  Future<int> deleteCashBox(int id) async =>
+      (db.delete(db.cashBoxes)..where((t) => t.id.equals(id))).go();
+
+  // المحافظ
+  Future<int> insertWallet(Map<String, dynamic> data) => db
+      .into(db.wallets)
+      .insert(
+        WalletsCompanion(
+          name: Value(data['name']),
+          provider: Value(data['provider']),
+        ),
+      );
+  Future<List<Map<String, dynamic>>> getAllWallets() async {
+    final rows = await db.select(db.wallets).get();
+    return rows
+        .map((r) => {'id': r.id, 'name': r.name, 'provider': r.provider})
+        .toList();
+  }
+
+  Future<int> deleteWallet(int id) async =>
+      (db.delete(db.wallets)..where((t) => t.id.equals(id))).go();
+
+  // شركات الصرافة
+  Future<int> insertExchangeCompany(Map<String, dynamic> data) => db
+      .into(db.exchangeCompanies)
+      .insert(
+        ExchangeCompaniesCompanion(
+          name: Value(data['name']),
+          phone: Value(data['phone']),
+        ),
+      );
+  Future<List<Map<String, dynamic>>> getAllExchangeCompanies() async {
+    final rows = await db.select(db.exchangeCompanies).get();
+    return rows
+        .map((r) => {'id': r.id, 'name': r.name, 'phone': r.phone})
+        .toList();
+  }
+
+  Future<int> deleteExchangeCompany(int id) async =>
+      (db.delete(db.exchangeCompanies)..where((t) => t.id.equals(id))).go();
+}
+
+
+----- FILE: lib/core/security/security_manager.dart -----
+class SecurityManager {
+  bool _initialized = false;
+
+  bool get isInitialized => _initialized;
+
+  Future<void> initialize() async {
+    _initialized = true;
+  }
+
+  Future<void> dispose() async {
+    _initialized = false;
+  }
+}
+
+
+----- FILE: lib/core/services/accounting/accounting_link_service.dart -----
+import 'package:drift/drift.dart';
+
+import '../../database/app_database.dart';
+
+class AccountingLinkService {
+
+  AccountingLinkService(this._db);
+  final AppDatabase _db;
+
+  Future<int> createAndLink({
+    required String module,
+    required String entityType,
+    required String entityId,
+    required String entityName,
+    required String parentSystemCode,
+  }) async {
+    return createLink(
+      module: module,
+      entityType: entityType,
+      entityId: entityId,
+      entityName: entityName,
+      parentSystemCode: parentSystemCode,
+    );
+  }
+
+  Future<int> createLink({
+    required String module,
+    required String entityType,
+    required String entityId,
+    required String entityName,
+    required String parentSystemCode,
+  }) async {
+    final existing = await getLinkedAccount(module, entityType, entityId);
+
+    if (existing != null) {
+      return existing;
+    }
+
+    final parentId = await _ensureParentExists(parentSystemCode);
+
+    final parent = await (_db.select(
+      _db.accounts,
+    )..where((t) => t.id.equals(parentId))).getSingle();
+
+    final parentLevel = parent.level;
+
+    if (parentLevel >= 5) {
+      throw StateError('لا يمكن إنشاء حساب فرعي تحت المستوى الخامس');
+    }
+
+    final children = await (_db.select(
+      _db.accounts,
+    )..where((t) => t.parentId.equals(parentId))).get();
+
+    var nextSequence = 1;
+
+    for (final child in children) {
+      final number = child.number;
+
+      if (number.startsWith(parent.number) &&
+          number.length == parent.number.length + 2) {
+        final suffix = int.tryParse(number.substring(parent.number.length));
+
+        if (suffix != null && suffix >= nextSequence) {
+          nextSequence = suffix + 1;
+        }
+      }
+    }
+
+    if (nextSequence > 99) {
+      throw StateError('تم الوصول إلى الحد الأقصى للحسابات الفرعية');
+    }
+
+    final nextNumber =
+        '${parent.number}${nextSequence.toString().padLeft(2, '0')}';
+
+    final accountId = await _db
+        .into(_db.accounts)
+        .insert(
+          AccountsCompanion(
+            number: Value(nextNumber),
+            nameAr: Value(entityName),
+            nameEn: Value(entityName),
+            type: Value(parent.type),
+            nature: Value(parent.nature),
+            parentId: Value(parentId),
+            level: Value(parentLevel + 1),
+            acceptsPosting: Value(parentLevel + 1 == 5),
+            isSystem: const Value(false),
+            isActive: const Value(true),
+          ),
+        );
+
+    await _db
+        .into(_db.accountLinks)
+        .insert(
+          AccountLinksCompanion(
+            module: Value(module),
+            entityType: Value(entityType),
+            entityId: Value(entityId),
+            accountId: Value(accountId),
+          ),
+        );
+
+    return accountId;
+  }
+
+  Future<int> _ensureParentExists(String systemCode) async {
+    String number;
+
+    switch (systemCode) {
+      case 'customer_parent':
+        number = '1105';
+        break;
+
+      case 'supplier_parent':
+        number = '2101';
+        break;
+
+      case 'bank_default':
+        number = '1102';
+        break;
+
+      case 'cash_default':
+        number = '1101';
+        break;
+
+      case 'wallet_parent':
+        number = '1104';
+        break;
+
+      case 'exchange_parent':
+        number = '1103';
+        break;
+
+      case 'inventory_default':
+        number = '1106';
+        break;
+
+      case 'sales_default':
+        number = '4101';
+        break;
+
+      case 'expense_default':
+        number = '3102';
+        break;
+
+      default:
+        throw ArgumentError('رمز الحساب النظامي غير معروف: $systemCode');
+    }
+
+    return _getByNumber(number);
+  }
+
+  Future<int> _getByNumber(String number) async {
+    final account = await (_db.select(
+      _db.accounts,
+    )..where((t) => t.number.equals(number))).getSingleOrNull();
+
+    if (account == null) {
+      throw StateError(
+        'الحساب النظامي $number غير موجود. '
+        'يجب تشغيل تهيئة دليل الحسابات أولًا.',
+      );
+    }
+
+    return account.id;
+  }
+
+  Future<int?> getLinkedAccount(
+    String module,
+    String entityType,
+    String entityId,
+  ) async {
+    final link =
+        await (_db.select(_db.accountLinks)
+              ..where((t) => t.module.equals(module))
+              ..where((t) => t.entityType.equals(entityType))
+              ..where((t) => t.entityId.equals(entityId)))
+            .getSingleOrNull();
+
+    return link?.accountId;
+  }
+
+  Future<void> seedDefaultAccounts() async {
+    final a1 = await _ensureAccount(
+      number: '1',
+      nameAr: 'الأصول',
+      nameEn: 'Assets',
+      type: 'asset',
+      nature: 'debit',
+      parentId: null,
+      level: 1,
+    );
+    final a2 = await _ensureAccount(
+      number: '2',
+      nameAr: 'الخصوم',
+      nameEn: 'Liabilities',
+      type: 'liability',
+      nature: 'credit',
+      parentId: null,
+      level: 1,
+    );
+    final a3 = await _ensureAccount(
+      number: '3',
+      nameAr: 'المصروفات',
+      nameEn: 'Expenses',
+      type: 'expense',
+      nature: 'debit',
+      parentId: null,
+      level: 1,
+    );
+    final a4 = await _ensureAccount(
+      number: '4',
+      nameAr: 'الإيرادات',
+      nameEn: 'Revenues',
+      type: 'revenue',
+      nature: 'credit',
+      parentId: null,
+      level: 1,
+    );
+
+    final a11 = await _ensureAccount(
+      number: '11',
+      nameAr: 'الأصول المتداولة',
+      nameEn: 'Current Assets',
+      type: 'asset',
+      nature: 'debit',
+      parentId: a1,
+      level: 2,
+    );
+    final a12 = await _ensureAccount(
+      number: '12',
+      nameAr: 'الأصول غير المتداولة',
+      nameEn: 'Non-current Assets',
+      type: 'asset',
+      nature: 'debit',
+      parentId: a1,
+      level: 2,
+    );
+    final a21 = await _ensureAccount(
+      number: '21',
+      nameAr: 'الخصوم المتداولة',
+      nameEn: 'Current Liabilities',
+      type: 'liability',
+      nature: 'credit',
+      parentId: a2,
+      level: 2,
+    );
+    final a22 = await _ensureAccount(
+      number: '22',
+      nameAr: 'الخصوم طويلة الأجل',
+      nameEn: 'Long-term Liabilities',
+      type: 'liability',
+      nature: 'credit',
+      parentId: a2,
+      level: 2,
+    );
+    final a31 = await _ensureAccount(
+      number: '31',
+      nameAr: 'المصروفات التشغيلية',
+      nameEn: 'Operating Expenses',
+      type: 'expense',
+      nature: 'debit',
+      parentId: a3,
+      level: 2,
+    );
+    final a41 = await _ensureAccount(
+      number: '41',
+      nameAr: 'الإيرادات التشغيلية',
+      nameEn: 'Operating Revenues',
+      type: 'revenue',
+      nature: 'credit',
+      parentId: a4,
+      level: 2,
+    );
+
+    await _default3(
+      '1101',
+      'النقدية والصناديق',
+      'Cash and Cash Boxes',
+      a11,
+      'asset',
+      'debit',
+    );
+    await _default3('1102', 'البنوك', 'Banks', a11, 'asset', 'debit');
+    await _default3(
+      '1103',
+      'شركات الصرافة',
+      'Exchange Companies',
+      a11,
+      'asset',
+      'debit',
+    );
+    await _default3(
+      '1104',
+      'المحافظ الإلكترونية',
+      'E-Wallets',
+      a11,
+      'asset',
+      'debit',
+    );
+    await _default3('1105', 'العملاء', 'Customers', a11, 'asset', 'debit');
+    await _default3('1106', 'المخزون', 'Inventory', a11, 'asset', 'debit');
+    await _default3('1201', 'الأراضي', 'Land', a12, 'asset', 'debit');
+    await _default3('1202', 'المباني', 'Buildings', a12, 'asset', 'debit');
+    await _default3('1203', 'السيارات', 'Vehicles', a12, 'asset', 'debit');
+    await _default3(
+      '1204',
+      'الأثاث والمعدات',
+      'Furniture and Equipment',
+      a12,
+      'asset',
+      'debit',
+    );
+
+    await _default3(
+      '2101',
+      'الموردون',
+      'Suppliers',
+      a21,
+      'liability',
+      'credit',
+    );
+    await _default3(
+      '2102',
+      'أوراق الدفع',
+      'Notes Payable',
+      a21,
+      'liability',
+      'credit',
+    );
+    await _default3(
+      '2103',
+      'مصروفات مستحقة',
+      'Accrued Expenses',
+      a21,
+      'liability',
+      'credit',
+    );
+    await _default3(
+      '2201',
+      'القروض طويلة الأجل',
+      'Long-term Loans',
+      a22,
+      'liability',
+      'credit',
+    );
+
+    await _default3(
+      '3101',
+      'الرواتب والأجور',
+      'Salaries and Wages',
+      a31,
+      'expense',
+      'debit',
+    );
+    await _default3('3102', 'الإيجارات', 'Rent', a31, 'expense', 'debit');
+    await _default3(
+      '3103',
+      'الكهرباء والمياه',
+      'Utilities',
+      a31,
+      'expense',
+      'debit',
+    );
+    await _default3(
+      '3104',
+      'النقل والمواصلات',
+      'Transport',
+      a31,
+      'expense',
+      'debit',
+    );
+    await _default3(
+      '3105',
+      'الاتصالات',
+      'Communication',
+      a31,
+      'expense',
+      'debit',
+    );
+    await _default3('3106', 'الإهلاك', 'Depreciation', a31, 'expense', 'debit');
+
+    await _default3('4101', 'المبيعات', 'Sales', a41, 'revenue', 'credit');
+    await _default3(
+      '4102',
+      'إيرادات الخدمات',
+      'Service Revenue',
+      a41,
+      'revenue',
+      'credit',
+    );
+    await _default3(
+      '4103',
+      'إيرادات أخرى',
+      'Other Revenue',
+      a41,
+      'revenue',
+      'credit',
+    );
+  }
+
+  Future<void> _default3(
+    String n,
+    String ar,
+    String en,
+    int p,
+    String t,
+    String r,
+  ) async {
+    await _ensureAccount(
+      number: n,
+      nameAr: ar,
+      nameEn: en,
+      type: t,
+      nature: r,
+      parentId: p,
+      level: 3,
+    );
+  }
+
+  Future<void> _default45(
+    int p,
+    String n,
+    String ar,
+    String en,
+    String t,
+    String r,
+  ) async {
+    final l4 = await _ensureAccount(
+      number: n,
+      nameAr: ar,
+      nameEn: en,
+      type: t,
+      nature: r,
+      parentId: p,
+      level: 4,
+    );
+    await _ensureAccount(
+      number: '${n}01',
+      nameAr: '$ar - رئيسي',
+      nameEn: '$en - Main',
+      type: t,
+      nature: r,
+      parentId: l4,
+      level: 5,
+    );
+  }
+
+  Future<int> _ensureAccount({
+    required String number,
+    required String nameAr,
+    required String nameEn,
+    required String type,
+    required String nature,
+    required int? parentId,
+    required int level,
+    bool acceptsPosting = false,
+  }) async {
+    final existing = await (_db.select(
+      _db.accounts,
+    )..where((t) => t.number.equals(number))).getSingleOrNull();
+
+    if (existing != null) {
+      return existing.id;
+    }
+
+    return _db
+        .into(_db.accounts)
+        .insert(
+          AccountsCompanion(
+            number: Value(number),
+            nameAr: Value(nameAr),
+            nameEn: Value(nameEn),
+            type: Value(type),
+            nature: Value(nature),
+            parentId: Value(parentId),
+            level: Value(level),
+            acceptsPosting: Value(level == 5 && acceptsPosting),
+            isSystem: const Value(true),
+            isActive: const Value(true),
+          ),
+        );
+  }
+}
+
+
+----- FILE: lib/core/services/accounting/system_account_resolver.dart -----
+import '../../database/app_database.dart';
+
+class SystemAccountResolver {
+
+  SystemAccountResolver(this._db);
+  final AppDatabase _db;
+  final Map<String, int> _cache = {};
+
+  static const Map<String, String> _systemCodes = {
+    'cash_default': '1101',
+    'bank_default': '1102',
+    'exchange_default': '1103',
+    'wallet_default': '1104',
+    'customer_parent': '1105',
+    'inventory_default': '1106',
+    'supplier_parent': '2101',
+    'sales_revenue': '4101',
+    'cogs': '3107',
+    'retained_earnings': '2202',
+  };
+
+  Future<int> resolve(String systemCode) async {
+    if (_cache.containsKey(systemCode)) {
+      return _cache[systemCode]!;
+    }
+    final accountNumber = _systemCodes[systemCode];
+    if (accountNumber == null) {
+      throw ArgumentError('رمز النظام غير معروف: $systemCode');
+    }
+    final account = await (_db.select(_db.accounts)
+          ..where((t) => t.number.equals(accountNumber)))
+        .getSingleOrNull();
+    if (account == null) {
+      throw StateError('الحساب النظامي غير موجود: $accountNumber');
+    }
+    _cache[systemCode] = account.id;
+    return account.id;
+  }
+
+  Future<Map<String, int>> resolveAll(List<String> codes) async {
+    final result = <String, int>{};
+    for (final code in codes) {
+      try {
+        result[code] = await resolve(code);
+      } catch (e) {
+        print('خطأ في حل الرمز $code: $e');
+      }
+    }
+    return result;
+  }
+
+  Future<void> ensureAll() async {
+    await _ensureSystemAccounts();
+  }
+
+  Future<void> _ensureSystemAccounts() async {
+    // التأكد من وجود الحسابات الأبوية أولاً
+    final parents = {
+      '1': {'nameAr': 'الأصول', 'nameEn': 'Assets', 'type': 'asset', 'nature': 'debit', 'level': 1},
+      '11': {'nameAr': 'الأصول المتداولة', 'nameEn': 'Current Assets', 'parent': '1', 'type': 'asset', 'nature': 'debit', 'level': 2},
+      '12': {'nameAr': 'الأصول غير المتداولة', 'nameEn': 'Non-current Assets', 'parent': '1', 'type': 'asset', 'nature': 'debit', 'level': 2},
+      '2': {'nameAr': 'الخصوم', 'nameEn': 'Liabilities', 'type': 'liability', 'nature': 'credit', 'level': 1},
+      '21': {'nameAr': 'الخصوم المتداولة', 'nameEn': 'Current Liabilities', 'parent': '2', 'type': 'liability', 'nature': 'credit', 'level': 2},
+      '22': {'nameAr': 'الخصوم طويلة الأجل', 'nameEn': 'Long-term Liabilities', 'parent': '2', 'type': 'liability', 'nature': 'credit', 'level': 2},
+      '3': {'nameAr': 'المصروفات', 'nameEn': 'Expenses', 'type': 'expense', 'nature': 'debit', 'level': 1},
+      '31': {'nameAr': 'المصروفات التشغيلية', 'nameEn': 'Operating Expenses', 'parent': '3', 'type': 'expense', 'nature': 'debit', 'level': 2},
+      '4': {'nameAr': 'الإيرادات', 'nameEn': 'Revenues', 'type': 'revenue', 'nature': 'credit', 'level': 1},
+      '41': {'nameAr': 'الإيرادات التشغيلية', 'nameEn': 'Operating Revenues', 'parent': '4', 'type': 'revenue', 'nature': 'credit', 'level': 2},
+    };
+    for (final entry in parents.entries) {
+      final number = entry.key;
+      final data = entry.value;
+      final existing = await (_db.select(_db.accounts)
+            ..where((t) => t.number.equals(number)))
+          .getSingleOrNull();
+      if (existing != null) continue;
+      int? parentId;
+      if (data.containsKey('parent')) {
+        final parentNumber = data['parent'] as String;
+        final parent = await (_db.select(_db.accounts)
+              ..where((t) => t.number.equals(parentNumber)))
+            .getSingleOrNull();
+        parentId = parent?.id;
+      }
+      await _db.into(_db.accounts).insert(
+        AccountsCompanion(
+          number: Value(number),
+          nameAr: Value(data['nameAr'] as String),
+          nameEn: Value(data['nameEn'] as String),
+          type: Value(data['type'] as String),
+          nature: Value(data['nature'] as String),
+          parentId: Value(parentId),
+          level: Value(data['level'] as int),
+          acceptsPosting: Value(number.length == 4),
+          isSystem: const Value(true),
+          isActive: const Value(true),
+        ),
+      );
+    }
+
+    // الحسابات النظامية التفصيلية
+    final accounts = {
+      '1101': {'nameAr': 'النقدية والصناديق', 'nameEn': 'Cash and Cash Boxes', 'parent': '11', 'type': 'asset', 'nature': 'debit', 'level': 3},
+      '1102': {'nameAr': 'البنوك', 'nameEn': 'Banks', 'parent': '11', 'type': 'asset', 'nature': 'debit', 'level': 3},
+      '1103': {'nameAr': 'شركات الصرافة', 'nameEn': 'Exchange Companies', 'parent': '11', 'type': 'asset', 'nature': 'debit', 'level': 3},
+      '1104': {'nameAr': 'المحافظ الإلكترونية', 'nameEn': 'E-Wallets', 'parent': '11', 'type': 'asset', 'nature': 'debit', 'level': 3},
+      '1105': {'nameAr': 'العملاء', 'nameEn': 'Customers', 'parent': '11', 'type': 'asset', 'nature': 'debit', 'level': 3},
+      '1106': {'nameAr': 'المخزون', 'nameEn': 'Inventory', 'parent': '11', 'type': 'asset', 'nature': 'debit', 'level': 3},
+      '2101': {'nameAr': 'الموردون', 'nameEn': 'Suppliers', 'parent': '21', 'type': 'liability', 'nature': 'credit', 'level': 3},
+      '3107': {'nameAr': 'تكلفة المبيعات', 'nameEn': 'Cost of Goods Sold', 'parent': '31', 'type': 'expense', 'nature': 'debit', 'level': 3},
+      '4101': {'nameAr': 'المبيعات', 'nameEn': 'Sales Revenue', 'parent': '41', 'type': 'revenue', 'nature': 'credit', 'level': 3},
+      '2202': {'nameAr': 'الأرباح المحتجزة', 'nameEn': 'Retained Earnings', 'parent': '22', 'type': 'liability', 'nature': 'credit', 'level': 3},
+    };
+    for (final entry in accounts.entries) {
+      final number = entry.key;
+      final data = entry.value;
+      final existing = await (_db.select(_db.accounts)
+            ..where((t) => t.number.equals(number)))
+          .getSingleOrNull();
+      if (existing != null) continue;
+      final parentNumber = data['parent'] as String;
+      final parent = await (_db.select(_db.accounts)
+            ..where((t) => t.number.equals(parentNumber)))
+          .getSingleOrNull();
+      if (parent == null) continue;
+      await _db.into(_db.accounts).insert(
+        AccountsCompanion(
+          number: Value(number),
+          nameAr: Value(data['nameAr'] as String),
+          nameEn: Value(data['nameEn'] as String),
+          type: Value(data['type'] as String),
+          nature: Value(data['nature'] as String),
+          parentId: Value(parent.id),
+          level: Value(data['level'] as int),
+          acceptsPosting: const Value(true),
+          isSystem: const Value(true),
+          isActive: const Value(true),
+        ),
+      );
+    }
+  }
+
+  void clearCache() {
+    _cache.clear();
+  }
+}
+
+
+----- FILE: lib/core/services/admin/owner_auth_service.dart -----
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class OwnerAuthService {
+  static const _storage = FlutterSecureStorage();
+  static const _ownerKey = 'owner_secret';
+  static const _defaultSecret = 'smart2026admin';
+
+  Future<bool> verifyOwner(String code) async {
+    final stored = await _storage.read(key: _ownerKey) ?? _defaultSecret;
+    return code == stored;
+  }
+
+  Future<void> changeOwnerSecret(String newSecret) async {
+    await _storage.write(key: _ownerKey, value: newSecret);
+  }
+
+  Future<bool> isOwnerDevice() async {
+    final stored = await _storage.read(key: _ownerKey);
+    return stored == _defaultSecret;
+  }
+}
+
+
+----- FILE: lib/core/services/ai/agent/conversation_memory.dart -----
+class ConversationMessage {
+
+  ConversationMessage({
+    required this.role,
+    required this.content,
+    DateTime? timestamp,
+    this.metadata,
+  }) : timestamp = timestamp ?? DateTime.now();
+  final String role; // user, assistant, system
+  final String content;
+  final DateTime timestamp;
+  final Map<String, dynamic>? metadata;
+}
+
+class ConversationMemory {
+  final List<ConversationMessage> _messages = [];
+  static const int maxMessages = 20;
+
+  List<ConversationMessage> get history => List.unmodifiable(_messages);
+  List<ConversationMessage> get recentContext {
+    if (_messages.length <= 6) return history;
+    return _messages.sublist(_messages.length - 6);
+  }
+
+  void addUserMessage(String content, {Map<String, dynamic>? metadata}) {
+    _messages.add(ConversationMessage(role: 'user', content: content, metadata: metadata));
+    _trim();
+  }
+
+  void addAssistantMessage(String content, {Map<String, dynamic>? metadata}) {
+    _messages.add(ConversationMessage(role: 'assistant', content: content, metadata: metadata));
+    _trim();
+  }
+
+  void addSystemMessage(String content) {
+    _messages.add(ConversationMessage(role: 'system', content: content));
+    _trim();
+  }
+
+  void _trim() {
+    while (_messages.length > maxMessages) {
+      _messages.removeAt(0);
+    }
+  }
+
+  String get contextSummary {
+    return recentContext.map((m) => '${m.role}: ${m.content}').join('\n');
+  }
+
+  void clear() => _messages.clear();
+}
+
+
+----- FILE: lib/core/services/ai/agent/intent_analyzer.dart -----
+enum UserIntent {
+  createSale,
+  createPurchase,
+  createReceipt,
+  createPayment,
+  createJournal,
+  createCustomer,
+  createSupplier,
+  createItem,
+  queryBalance,
+  queryReport,
+  queryAccount,
+  queryInventory,
+  sendDocument,
+  help,
+  unknown,
+}
+
+class DetectedIntent {
+
+  DetectedIntent({
+    required this.intent,
+    this.entities = const {},
+    this.confidence = 0.0,
+    this.followUpQuestion,
+  });
+  final UserIntent intent;
+  final Map<String, dynamic> entities;
+  final double confidence;
+  final String? followUpQuestion;
+}
+
+class IntentAnalyzer {
+  static final Map<String, UserIntent> _patterns = {
+    'بيع': UserIntent.createSale,
+    'فاتورة بيع': UserIntent.createSale,
+    'شراء': UserIntent.createPurchase,
+    'فاتورة شراء': UserIntent.createPurchase,
+    'قبض': UserIntent.createReceipt,
+    'سند قبض': UserIntent.createReceipt,
+    'صرف': UserIntent.createPayment,
+    'سند صرف': UserIntent.createPayment,
+    'قيد': UserIntent.createJournal,
+    'عميل': UserIntent.createCustomer,
+    'مورد': UserIntent.createSupplier,
+    'صنف': UserIntent.createItem,
+    'رصيد': UserIntent.queryBalance,
+    'كشف': UserIntent.queryReport,
+    'تقرير': UserIntent.queryReport,
+    'أرباح': UserIntent.queryReport,
+    'مخزون': UserIntent.queryInventory,
+    'حركة': UserIntent.queryInventory,
+    'أرسل': UserIntent.sendDocument,
+    'واتساب': UserIntent.sendDocument,
+    'كيف': UserIntent.help,
+    'شرح': UserIntent.help,
+  };
+
+  DetectedIntent analyze(String text) {
+    final lower = text.toLowerCase().trim();
+    UserIntent bestMatch = UserIntent.unknown;
+    double bestConfidence = 0.0;
+
+    for (var entry in _patterns.entries) {
+      if (lower.contains(entry.key.toLowerCase())) {
+        bestMatch = entry.value;
+        bestConfidence = 0.8;
+        break;
+      }
+    }
+
+    final entities = <String, dynamic>{};
+    
+    // استخراج المبالغ
+    final amountRegex = RegExp(r'(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:ريال|دولار|يورو)?');
+    final amountMatch = amountRegex.firstMatch(text);
+    if (amountMatch != null) {
+      entities['amount'] = double.tryParse(amountMatch.group(1)!.replaceAll(',', ''));
+    }
+
+    // استخراج الكميات
+    final qtyRegex = RegExp(r'(\d+)\s*(?:كيس|كرتون|قطعة|حبة|علبة)');
+    final qtyMatch = qtyRegex.firstMatch(text);
+    if (qtyMatch != null) {
+      entities['quantity'] = int.tryParse(qtyMatch.group(1)!);
+    }
+
+    String? followUp;
+    if (bestMatch == UserIntent.unknown) {
+      followUp = 'عذراً، لم أفهم طلبك. هل يمكنك توضيح ما تريد فعله؟\n'
+          'مثلاً: "أنشئ فاتورة بيع" أو "كم رصيد الصندوق؟"';
+    } else if (bestConfidence < 0.9) {
+      followUp = 'هل يمكنك إعطائي تفاصيل أكثر؟';
+    }
+
+    return DetectedIntent(
+      intent: bestMatch,
+      entities: entities,
+      confidence: bestConfidence,
+      followUpQuestion: followUp,
+    );
+  }
+}
+
+
+----- FILE: lib/core/services/ai/agent/knowledge_base.dart -----
+class KnowledgeBase {
+  static final Map<String, String> _faq = {
+    'كيف أضيف فاتورة بيع؟':
+        '1. اذهب إلى العمليات > المبيعات والمشتريات > فاتورة بيع\n'
+        '2. اختر نوع الدفع (نقدي/آجل)\n'
+        '3. اختر العميل (إذا آجل)\n'
+        '4. أضف الأصناف من كرت الصنف\n'
+        '5. اضغط "ترحيل"',
+    
+    'كيف أعمل نسخة احتياطية؟':
+        '1. اذهب إلى الإعدادات\n'
+        '2. اضغط "حفظ نسخة احتياطية"\n'
+        '3. سيتم إنشاء ملف ومشاركته\n'
+        'يمكنك أيضاً تفعيل الحفظ التلقائي اليومي من خيارات الحفظ والأرشفة',
+    
+    'كيف أغير العملة؟':
+        '1. اذهب إلى الإعدادات > خيارات متقدمة\n'
+        '2. فعّل "إظهار العملات"\n'
+        '3. يمكنك إضافة عملات جديدة من البيانات الأساسية > العملات',
+    
+    'كيف أطبع كشف الحساب؟':
+        '1. اذهب إلى التقارير > كشوف الحسابات\n'
+        '2. اختر نوع الكشف (عميل/مورد/بنك...)\n'
+        '3. اضغط على أيقونة المشاركة للطباعة أو الإرسال'

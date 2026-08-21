@@ -1,0 +1,1670 @@
+tState(() {
+        _banks = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تعذر تحميل البنوك')));
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _search.text.trim().toLowerCase();
+
+    if (q.isEmpty) return _banks;
+
+    return _banks.where((bank) {
+      final name = '${bank['name'] ?? ''}'.toLowerCase();
+      final number = '${bank['account_number'] ?? ''}'.toLowerCase();
+
+      return name.contains(q) || number.contains(q);
+    }).toList();
+  }
+
+  Future<void> _showForm() async {
+    final name = TextEditingController();
+    final account = TextEditingController();
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('إضافة بنك'),
+          content: SizedBox(
+            width: 450,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'اسم البنك *',
+                    hintText: 'مثال: بنك الكريمي',
+                    prefixIcon: Icon(Icons.account_balance),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: account,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'رقم الحساب',
+                    prefixIcon: Icon(Icons.numbers),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                if (name.text.trim().isEmpty) return;
+
+                await _service.createBank(
+                  name: name.text.trim(),
+                  accountNumber: account.text.trim().isEmpty
+                      ? null
+                      : account.text.trim(),
+                );
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, true);
+                }
+              },
+              icon: const Icon(Icons.save),
+              label: const Text('حفظ'),
+            ),
+          ],
+        ),
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      name.dispose();
+      account.dispose();
+    }
+  }
+
+  Future<void> _deleteBank(Map<String, dynamic> bank) async {
+    final id = bank['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف البنك'),
+        content: Text('هل تريد حذف "${bank['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteBank(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكن حذف البنك المرتبط بعمليات')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final banks = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('البنوك'),
+        actions: [
+          IconButton(
+            onPressed: _load,
+            tooltip: 'تحديث',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showForm,
+        icon: const Icon(Icons.add),
+        label: const Text('إضافة بنك'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث في البنوك',
+                hintText: 'اسم البنك أو رقم الحساب...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _search.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : banks.isEmpty
+                ? _empty()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: banks.length,
+                      itemBuilder: (_, index) {
+                        final bank = banks[index];
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              child: Icon(Icons.account_balance),
+                            ),
+                            title: Text(
+                              '${bank['name'] ?? ''}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              bank['account_number'] == null ||
+                                      '${bank['account_number']}'.trim().isEmpty
+                                  ? 'لا يوجد رقم حساب'
+                                  : 'رقم الحساب: ${bank['account_number']}',
+                            ),
+                            trailing: IconButton(
+                              tooltip: 'حذف',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _deleteBank(bank),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _empty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.account_balance_outlined, size: 64),
+          const SizedBox(height: 12),
+          const Text(
+            'لا توجد بنوك',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _showForm,
+            icon: const Icon(Icons.add),
+            label: const Text('إضافة أول بنك'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/cash_boxes/cash_boxes_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class CashBoxesScreen extends StatefulWidget {
+  const CashBoxesScreen({super.key});
+
+  @override
+  State<CashBoxesScreen> createState() => _CashBoxesScreenState();
+}
+
+class _CashBoxesScreenState extends State<CashBoxesScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _search = TextEditingController();
+
+  List<Map<String, dynamic>> _boxes = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllCashBoxes();
+
+      if (!mounted) return;
+
+      setState(() {
+        _boxes = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تعذر تحميل الخزائن')));
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _search.text.trim().toLowerCase();
+
+    if (q.isEmpty) return _boxes;
+
+    return _boxes.where((box) {
+      final name = '${box['name'] ?? ''}'.toLowerCase();
+      return name.contains(q);
+    }).toList();
+  }
+
+  Future<void> _addBox() async {
+    final controller = TextEditingController();
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('إضافة خزينة'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'اسم الخزينة *',
+              hintText: 'مثال: الخزينة الرئيسية',
+              prefixIcon: Icon(Icons.account_balance_wallet),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                if (controller.text.trim().isEmpty) {
+                  return;
+                }
+
+                await _service.createCashBox(name: controller.text.trim());
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, true);
+                }
+              },
+              icon: const Icon(Icons.save),
+              label: const Text('حفظ'),
+            ),
+          ],
+        ),
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  Future<void> _deleteBox(Map<String, dynamic> box) async {
+    final id = box['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف الخزينة'),
+        content: Text('هل تريد حذف "${box['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteCashBox(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكن حذف الخزينة المرتبطة بعمليات')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final boxes = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الخزائن'),
+        actions: [
+          IconButton(
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'تحديث',
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addBox,
+        icon: const Icon(Icons.add),
+        label: const Text('إضافة خزينة'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث في الخزائن',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _search.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : boxes.isEmpty
+                ? _empty()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: boxes.length,
+                      itemBuilder: (_, index) {
+                        final box = boxes[index];
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              child: Icon(Icons.account_balance_wallet),
+                            ),
+                            title: Text(
+                              '${box['name'] ?? ''}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: const Text('خزينة نقدية'),
+                            trailing: IconButton(
+                              tooltip: 'حذف',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _deleteBox(box),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _empty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.account_balance_wallet_outlined, size: 64),
+          const SizedBox(height: 12),
+          const Text(
+            'لا توجد خزائن',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _addBox,
+            icon: const Icon(Icons.add),
+            label: const Text('إضافة أول خزينة'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/currencies/currencies_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class CurrenciesScreen extends StatefulWidget {
+  const CurrenciesScreen({super.key});
+
+  @override
+  State<CurrenciesScreen> createState() => _CurrenciesScreenState();
+}
+
+class _CurrenciesScreenState extends State<CurrenciesScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _search = TextEditingController();
+
+  List<Map<String, dynamic>> _currencies = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllCurrencies();
+
+      if (!mounted) return;
+
+      setState(() {
+        _currencies = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تعذر تحميل العملات')));
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final query = _search.text.trim().toLowerCase();
+
+    if (query.isEmpty) return _currencies;
+
+    return _currencies.where((currency) {
+      final code = '${currency['code'] ?? ''}'.toLowerCase();
+      final name = '${currency['name'] ?? ''}'.toLowerCase();
+
+      return code.contains(query) || name.contains(query);
+    }).toList();
+  }
+
+  Future<void> _showForm({Map<String, dynamic>? existing}) async {
+    final code = TextEditingController(text: '${existing?['code'] ?? ''}');
+
+    final name = TextEditingController(text: '${existing?['name'] ?? ''}');
+
+    final rate = TextEditingController(
+      text: '${existing?['exchange_rate'] ?? 1}',
+    );
+
+    bool isDefault = existing?['is_default'] == true;
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (_, setDialogState) {
+              return AlertDialog(
+                title: Text(existing == null ? 'إضافة عملة' : 'تعديل العملة'),
+                content: SizedBox(
+                  width: 450,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: code,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: const InputDecoration(
+                            labelText: 'رمز العملة *',
+                            hintText: 'YER',
+                            prefixIcon: Icon(Icons.code),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: name,
+                          decoration: const InputDecoration(
+                            labelText: 'اسم العملة *',
+                            hintText: 'ريال يمني',
+                            prefixIcon: Icon(Icons.payments),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: rate,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'سعر الصرف *',
+                            hintText: '1',
+                            prefixIcon: Icon(Icons.sync_alt),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('العملة الافتراضية'),
+                          subtitle: const Text('تستخدم كأساس للنظام'),
+                          value: isDefault,
+                          onChanged: (value) {
+                            setDialogState(() => isDefault = value);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: const Text('إلغاء'),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () async {
+                      final currencyCode = code.text.trim().toUpperCase();
+
+                      final currencyName = name.text.trim();
+
+                      final exchangeRate = double.tryParse(rate.text.trim());
+
+                      if (currencyCode.isEmpty ||
+                          currencyName.isEmpty ||
+                          exchangeRate == null ||
+                          exchangeRate <= 0) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('تحقق من بيانات العملة وسعر الصرف'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      try {
+                        if (existing == null) {
+                          await _service.createCurrency(
+                            code: currencyCode,
+                            name: currencyName,
+                            exchangeRate: exchangeRate,
+                            isDefault: isDefault,
+                          );
+                        } else {
+                          final id = existing['id'];
+
+                          if (id is! int) {
+                            throw Exception('معرف العملة غير صالح');
+                          }
+
+                          await _service.updateCurrency(
+                            id,
+                            currencyCode,
+                            currencyName,
+                            exchangeRate,
+                            isDefault: isDefault,
+                          );
+                        }
+
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, true);
+                        }
+                      } catch (_) {
+                        if (!dialogContext.mounted) {
+                          return;
+                        }
+
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('تعذر حفظ العملة')),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.save),
+                    label: Text(existing == null ? 'حفظ' : 'حفظ التعديل'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      code.dispose();
+      name.dispose();
+      rate.dispose();
+    }
+  }
+
+  Future<void> _setDefault(Map<String, dynamic> currency) async {
+    final id = currency['id'];
+
+    if (id is! int) return;
+
+    try {
+      await _service.setDefaultCurrency(id);
+
+      if (!mounted) return;
+
+      await _load();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم تعيين العملة الافتراضية')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تعيين العملة الافتراضية')),
+      );
+    }
+  }
+
+  Future<void> _delete(Map<String, dynamic> currency) async {
+    final id = currency['id'];
+
+    if (id is! int) return;
+
+    if (currency['is_default'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكن حذف العملة الافتراضية')),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف العملة'),
+        content: Text('هل تريد حذف "${currency['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteCurrency(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكن حذف العملة المرتبطة بعمليات')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currencies = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('العملات وأسعار الصرف'),
+        actions: [
+          IconButton(
+            onPressed: _load,
+            tooltip: 'تحديث',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showForm(),
+        icon: const Icon(Icons.add),
+        label: const Text('إضافة عملة'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث عن عملة',
+                hintText: 'الرمز أو اسم العملة...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _search.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : currencies.isEmpty
+                ? _empty()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: currencies.length,
+                      itemBuilder: (_, index) {
+                        return _currencyCard(currencies[index]);
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _currencyCard(Map<String, dynamic> currency) {
+    final code = '${currency['code'] ?? ''}';
+
+    final name = '${currency['name'] ?? ''}';
+
+    final rate = '${currency['exchange_rate'] ?? 1}';
+
+    final isDefault = currency['is_default'] == true;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: CircleAvatar(
+          child: Text(
+            code.length > 3 ? code.substring(0, 3) : code,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+          ),
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (isDefault) const Chip(label: Text('افتراضية')),
+          ],
+        ),
+        subtitle: Text('$code  •  سعر الصرف: $rate'),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit') {
+              _showForm(existing: currency);
+            } else if (value == 'default') {
+              _setDefault(currency);
+            } else if (value == 'delete') {
+              _delete(currency);
+            }
+          },
+          itemBuilder: (_) => [
+            const PopupMenuItem(value: 'edit', child: Text('تعديل')),
+            if (!isDefault)
+              const PopupMenuItem(
+                value: 'default',
+                child: Text('تعيين كافتراضية'),
+              ),
+            if (!isDefault)
+              const PopupMenuItem(value: 'delete', child: Text('حذف')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _empty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.currency_exchange, size: 64),
+          const SizedBox(height: 12),
+          const Text(
+            'لا توجد عملات',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => _showForm(),
+            icon: const Icon(Icons.add),
+            label: const Text('إضافة أول عملة'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/customers/customers_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class CustomersScreen extends StatefulWidget {
+  const CustomersScreen({super.key});
+
+  @override
+  State<CustomersScreen> createState() => _CustomersScreenState();
+}
+
+class _CustomersScreenState extends State<CustomersScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _searchController = TextEditingController();
+
+  List<Map<String, dynamic>> _customers = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllCustomers();
+
+      if (!mounted) return;
+
+      setState(() {
+        _customers = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تحميل بيانات العملاء')),
+      );
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final query = _searchController.text.trim().toLowerCase();
+
+    if (query.isEmpty) return _customers;
+
+    return _customers.where((customer) {
+      final name = '${customer['name'] ?? ''}'.toLowerCase();
+      final phone = '${customer['phone'] ?? ''}'.toLowerCase();
+      final address = '${customer['address'] ?? ''}'.toLowerCase();
+
+      return name.contains(query) ||
+          phone.contains(query) ||
+          address.contains(query);
+    }).toList();
+  }
+
+  Future<void> _showForm({Map<String, dynamic>? existing}) async {
+    final name = TextEditingController(text: '${existing?['name'] ?? ''}');
+    final phone = TextEditingController(text: '${existing?['phone'] ?? ''}');
+    final address = TextEditingController(
+      text: '${existing?['address'] ?? ''}',
+    );
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: Text(existing == null ? 'إضافة عميل' : 'تعديل العميل'),
+            content: SizedBox(
+              width: 450,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: name,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم العميل *',
+                        prefixIcon: Icon(Icons.person),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: phone,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'رقم الهاتف',
+                        prefixIcon: Icon(Icons.phone),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: address,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'العنوان',
+                        prefixIcon: Icon(Icons.location_on),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  final customerName = name.text.trim();
+
+                  if (customerName.isEmpty) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('اسم العميل مطلوب')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    final phoneValue = phone.text.trim().isEmpty
+                        ? null
+                        : phone.text.trim();
+
+                    final addressValue = address.text.trim().isEmpty
+                        ? null
+                        : address.text.trim();
+
+                    if (existing == null) {
+                      await _service.createCustomer(
+                        name: customerName,
+                        phone: phoneValue,
+                        address: addressValue,
+                      );
+                    } else {
+                      final id = existing['id'];
+
+                      if (id is! int) {
+                        throw Exception('معرف العميل غير صالح');
+                      }
+
+                      await _service.updateCustomer(
+                        id,
+                        name: customerName,
+                        phone: phoneValue,
+                        address: addressValue,
+                      );
+                    }
+
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext, true);
+                    }
+                  } catch (_) {
+                    if (!dialogContext.mounted) return;
+
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('تعذر حفظ بيانات العميل')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.save),
+                label: Text(existing == null ? 'حفظ' : 'حفظ التعديل'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      name.dispose();
+      phone.dispose();
+      address.dispose();
+    }
+  }
+
+  Future<void> _deleteCustomer(Map<String, dynamic> customer) async {
+    final id = customer['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف العميل'),
+        content: Text('هل تريد حذف "${customer['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteCustomer(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يمكن حذف العميل لأنه مرتبط ببيانات أخرى'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final customers = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('العملاء'),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showForm(),
+        icon: const Icon(Icons.person_add),
+        label: const Text('إضافة عميل'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث ذكي',
+                hintText: 'الاسم أو الهاتف أو العنوان...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : customers.isEmpty
+                ? _emptyState()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: customers.length,
+                      itemBuilder: (_, index) {
+                        return _customerCard(customers[index]);
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _customerCard(Map<String, dynamic> customer) {
+    final name = '${customer['name'] ?? ''}';
+    final phone = '${customer['phone'] ?? ''}';
+    final address = '${customer['address'] ?? ''}';
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.person)),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (phone.isNotEmpty) Text('الهاتف: $phone'),
+              if (address.isNotEmpty) Text('العنوان: $address'),
+            ],
+          ),
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit') {
+              _showForm(existing: customer);
+            } else if (value == 'delete') {
+              _deleteCustomer(customer);
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'edit', child: Text('تعديل')),
+            PopupMenuItem(value: 'delete', child: Text('حذف')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.people_outline,
+            size: 64,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'لا يوجد عملاء',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          const Text('أضف العملاء لإدارة المبيعات والحسابات'),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => _showForm(),
+            icon: const Icon(Icons.person_add),
+            label: const Text('إضافة أول عميل'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/dashboard/dashboard_screen.dart -----
+import 'package:flutter/material.dart';
+
+import '../../core/di/service_locator.dart';
+import '../../core/services/reports/report_service.dart';
+
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final ReportService _reportService = sl<ReportService>();
+
+  bool _loading = true;
+  String? _error;
+
+  Map<String, dynamic> _income = {};
+  Map<String, dynamic> _balance = {};
+  List<Map<String, dynamic>> _trialBalance = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboard();
+  }
+
+  Future<void> _loadDashboard() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final now = DateTime.now();
+      final from = DateTime(now.year, now.month, 1);
+      final to = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+
+      final results = await Future.wait([
+        _reportService.incomeStatement(from: from, to: to),
+        _reportService.balanceSheet(now),
+        _reportService.trialBalance(now),
+      ]);
+
+      if (!mounted) return;
+
+      setState(() {
+        _income = results[0] as Map<String, dynamic>;
+        _balance = results[1] as Map<String, dynamic>;
+        _trialBalance = results[2] as List<Map<String, dynamic>>;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
+    }
+  }
+
+  double _number(dynamic value) {
+    if (value == null) return 0;
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(value.toString()) ?? 0;
+  }
+
+  String _money(dynamic value) {
+    return _number(value).toStringAsFixed(2);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _loadDashboard,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildHeader(context),
+          const SizedBox(height: 16),
+
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(40),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            _buildError()
+          else ...[
+            _buildFinancialSummary(),
+            const SizedBox(height: 16),
+            _buildQuickActions(context),
+            const SizedBox(height: 16),
+            _buildAccountingStatus(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'لوحة التحكم',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'ملخص الوضع المالي والمحاسبي',
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          tooltip: 'تحديث',
+          onPressed: _loading ? null : _loadDashboard,
+          icon: const Icon(Icons.refresh),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFinancialSummary() {
+    final cards = [
+      _Metric(
+        title: 'الإيرادات',
+        value: _money(_income['revenues']),
+        icon: Icons.trending_up,
+      ),
+      _Metric(
+        title: 'المصروفات',
+        value: _money(_income['expenses']),
+        icon: Icons.trending_down,
+      ),
+      _Metric(
+        title: 'صافي الربح',
+        value: _money(_income['net_income']),
+        icon: Icons.account_balance_wallet,
+      ),
+      _Metric(
+        title: 'الأصول',
+        value: _money(_balance['assets']),
+        icon: Icons.account_balance,
+      ),
+      _Metric(
+        title: 'الخصوم',
+        value: _money(_balance['liabilities']),
+        icon: Icons.payments_outlined,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+
+        final columns = width >= 900
+            ? 5
+            : width >= 600
+            ? 3
+            : 2;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: cards.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: width < 600 ? 1.5 : 1.8,
+          ),
+          itemBuilder: (_, index) {
+            final item = cards[index];
+
+            return Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(item.icon),
+                    const Spacer(),
+                    Text(
+                      item.title,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 6),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        item.value,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    final actions = [
+      ('بيع', Icons.point_of_sale),
+      ('شراء', Icons.shopping_cart),
+      ('قبض', Icons.call_received),
+      ('دفع', Icons.call_made),
+      ('قيد يومي', Icons.menu_book),
+      ('تحويل', Icons.swap_horiz),
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'العمليات السريعة',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: actions.map((action) {
+                return OutlinedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'سيتم فتح عملية ${action.$1} بعد ربط شاشة العملية.',
+                        ),
+                      ),
+                    );
+                  },
+                  icon: Icon(action.$2),
+                  label: Text(action.$1),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountingStatus() {
+    final totalAccounts = _trialBalance.length;
+
+    double debit = 0;
+    double credit = 0;
+
+    for (final row in _trialBalance) {
+      debit += _number(row['debit']);
+      credit += _number(row['credit']);
+    }
+
+    final balanced = (debit - credit).abs() < 0.01;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'حالة النظام المحاسبي',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 14),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(balanced ? Icons.check_circle : Icons.warning),
+              title: const Text('توازن ميزان المراجعة'),
+              subtitle: Text(
+                balanced
+                    ? 'المدين والدائن متساويان'
+                    : 'يوجد فرق يحتاج إلى مراجعة',
+              ),
+              trailing: Text('${_money(debit)} / ${_money(credit)}'),
+            ),
+            const Divider(),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.account_tree),
+              title: const Text('الحسابات المستخدمة'),
+              trailing: Text('$totalAccounts'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Icon(Icons.error_outline, size: 42),
+            const SizedBox(height: 10),
+            const Text(
+              'تعذر تحميل بيانات لوحة التحكم',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(_error ?? 'خطأ غير معروف', textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _loadDashbo

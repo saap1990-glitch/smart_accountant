@@ -1,12 +1,4 @@
 class SalesTarget {
-  final String id;
-  final String name;
-  final double monthlyTarget;
-  final double yearlyTarget;
-  final double achievedMonth;
-  final double achievedYear;
-  final String? salespersonId;
-  final String? salespersonName;
 
   SalesTarget({
     required this.id,
@@ -18,6 +10,14 @@ class SalesTarget {
     this.salespersonId,
     this.salespersonName,
   });
+  final String id;
+  final String name;
+  final double monthlyTarget;
+  final double yearlyTarget;
+  final double achievedMonth;
+  final double achievedYear;
+  final String? salespersonId;
+  final String? salespersonName;
 
   double get monthPercentage =>
       monthlyTarget > 0 ? (achievedMonth / monthlyTarget * 100) : 0;

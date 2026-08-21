@@ -1,9 +1,8 @@
-import 'package:get_it/get_it.dart';
 import '../../errors/result.dart';
-import '../../engine/accounting/accounting_engine.dart';
+import '../../di/service_locator.dart';
 import '../../engine/accounting/transaction_context.dart';
-import '../../engine/accounting/transaction_result.dart';
 import '../operations/operation_service.dart';
+import '../accounting/system_account_resolver.dart';
 import '../reports/report_service.dart';
 import 'agent/conversation_memory.dart';
 import 'agent/intent_analyzer.dart';
@@ -11,18 +10,17 @@ import 'agent/knowledge_base.dart';
 import 'agent/workflow_generator.dart';
 
 class AiService {
+  AiService(this._operationService, this._reportService)
+    : _memory = ConversationMemory(),
+      _analyzer = IntentAnalyzer(),
+      _knowledgeBase = KnowledgeBase(),
+      _workflow = WorkflowGenerator();
   final OperationService _operationService;
   final ReportService _reportService;
   final ConversationMemory _memory;
   final IntentAnalyzer _analyzer;
   final KnowledgeBase _knowledgeBase;
   final WorkflowGenerator _workflow;
-
-  AiService(this._operationService, this._reportService)
-      : _memory = ConversationMemory(),
-        _analyzer = IntentAnalyzer(),
-        _knowledgeBase = KnowledgeBase(),
-        _workflow = WorkflowGenerator();
 
   List<String> get suggestions => _knowledgeBase.suggestions;
   ConversationMemory get memory => _memory;
@@ -42,8 +40,11 @@ class AiService {
     final intent = _analyzer.analyze(command);
 
     // 3. إذا لم يفهم، اطلب توضيحاً
-    if (intent.intent == UserIntent.unknown || intent.followUpQuestion != null) {
-      final reply = intent.followUpQuestion ?? 'عذراً، لم أفهم. جرب: ${_knowledgeBase.suggestions.first}';
+    if (intent.intent == UserIntent.unknown ||
+        intent.followUpQuestion != null) {
+      final reply =
+          intent.followUpQuestion ??
+          'عذراً، لم أفهم. جرب: ${_knowledgeBase.suggestions.first}';
       _memory.addAssistantMessage(reply);
       return reply;
     }
@@ -69,7 +70,8 @@ class AiService {
         reply = await _showReport(intent);
         break;
       case UserIntent.help:
-        reply = 'يمكنني مساعدتك في:\n'
+        reply =
+            'يمكنني مساعدتك في:\n'
             '📝 إنشاء الفواتير والسندات\n'
             '📊 عرض التقارير والأرباح\n'
             '🔍 الاستعلام عن الأرصدة\n'
@@ -78,7 +80,8 @@ class AiService {
             'جرب: "${_knowledgeBase.suggestions.first}"';
         break;
       default:
-        reply = 'جاري تطوير هذه الميزة. يمكنك تجربة: ${_knowledgeBase.suggestions.first}';
+        reply =
+            'جاري تطوير هذه الميزة. يمكنك تجربة: ${_knowledgeBase.suggestions.first}';
     }
 
     _memory.addAssistantMessage(reply);
@@ -87,9 +90,12 @@ class AiService {
 
   Future<String> _createSale(DetectedIntent intent) async {
     final amount = (intent.entities['amount'] as double?) ?? 1000.0;
+    final resolver = await sl<SystemAccountResolver>();
+    final cashId = await resolver.resolve('cash_default');
+    final salesId = await resolver.resolve('sales_revenue');
     final items = [
-      JournalItem(accountId: 1, debit: amount),
-      JournalItem(accountId: 41, credit: amount),
+      JournalItem(accountId: cashId, debit: amount),
+      JournalItem(accountId: salesId, credit: amount),
     ];
 
     final result = await _operationService.execute(
@@ -111,9 +117,14 @@ class AiService {
 
   Future<String> _createReceipt(DetectedIntent intent) async {
     final amount = (intent.entities['amount'] as double?) ?? 500.0;
+    final resolver = await sl<SystemAccountResolver>();
+    final cashId = await resolver.resolve('cash_default');
+    final debtorsId = await resolver.resolve(
+      'customer_parent',
+    ); // يمكن تعديلها حسب الحاجة
     final items = [
-      JournalItem(accountId: 112, debit: amount),
-      JournalItem(accountId: 1, credit: amount),
+      JournalItem(accountId: debtorsId, debit: amount),
+      JournalItem(accountId: cashId, credit: amount),
     ];
 
     final result = await _operationService.execute(
@@ -133,9 +144,14 @@ class AiService {
 
   Future<String> _createPayment(DetectedIntent intent) async {
     final amount = (intent.entities['amount'] as double?) ?? 300.0;
+    final resolver = await sl<SystemAccountResolver>();
+    final cashId = await resolver.resolve('cash_default');
+    final creditorsId = await resolver.resolve(
+      'supplier_parent',
+    ); // يمكن تعديلها حسب الحاجة
     final items = [
-      JournalItem(accountId: 2, debit: amount),
-      JournalItem(accountId: 112, credit: amount),
+      JournalItem(accountId: creditorsId, debit: amount),
+      JournalItem(accountId: cashId, credit: amount),
     ];
 
     final result = await _operationService.execute(

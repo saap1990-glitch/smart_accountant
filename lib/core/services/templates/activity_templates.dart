@@ -1,6 +1,3 @@
-import 'package:get_it/get_it.dart';
-import '../accounting/accounting_link_service.dart';
-import '../master_data/master_data_service.dart';
 
 class ActivityTemplates {
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AppLocalizations {
-  final Locale locale;
   AppLocalizations(this.locale);
+  final Locale locale;
 
   static const Map<String, Map<String, String>> _translations = {
     'ar': {

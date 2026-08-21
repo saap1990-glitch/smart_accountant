@@ -3,13 +3,6 @@ import 'package:drift/drift.dart';
 import '../../database/app_database.dart';
 
 class ItemMovementRecord {
-  final String itemId;
-  final String itemName;
-  final double quantity;
-  final double price;
-  final String operationType;
-  final DateTime date;
-  final String? reference;
 
   const ItemMovementRecord({
     required this.itemId,
@@ -20,12 +13,19 @@ class ItemMovementRecord {
     required this.date,
     this.reference,
   });
+  final String itemId;
+  final String itemName;
+  final double quantity;
+  final double price;
+  final String operationType;
+  final DateTime date;
+  final String? reference;
 }
 
 class ItemMovementService {
-  final AppDatabase _db;
 
   ItemMovementService(this._db);
+  final AppDatabase _db;
 
   Future<void> recordMovement({
     required String itemId,

@@ -2,9 +2,9 @@ import '../../database/app_database.dart';
 import 'package:drift/drift.dart';
 
 class NumberGenerator {
-  final AppDatabase _db;
 
   NumberGenerator(this._db);
+  final AppDatabase _db;
 
   Future<String> generate(String type, {DateTime? date}) async {
     final operationDate = date ?? DateTime.now();

@@ -2,10 +2,9 @@ import '../../repositories/master_data_repository.dart';
 import '../accounting/accounting_link_service.dart';
 
 class MasterDataService {
+  MasterDataService(this._repository, this._linkService);
   final MasterDataRepository _repository;
   final AccountingLinkService _linkService;
-
-  MasterDataService(this._repository, this._linkService);
 
   // العملات
   Future<int> createCurrency({
@@ -194,13 +193,12 @@ class MasterDataService {
     return _repository.updateAccount(id, {
       'name_ar': nameAr,
       'name_en': nameEn,
-      if (acceptsPosting != null) 'accepts_posting': acceptsPosting,
-      if (isActive != null) 'is_active': isActive,
-      if (currencyCode != null) 'currency_code': currencyCode,
-      if (notes != null) 'notes': notes,
-      if (openingBalance != null) 'opening_balance': openingBalance.toString(),
-      if (openingBalanceNature != null)
-        'opening_balance_nature': openingBalanceNature,
+      'accepts_posting': acceptsPosting,
+      'is_active': isActive,
+      'currency_code': currencyCode,
+      'notes': notes,
+      'opening_balance': openingBalance?.toString(),
+      'opening_balance_nature': openingBalanceNature,
     });
   }
 

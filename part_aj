@@ -1,0 +1,1566 @@
+erCtrl.dispose();
+    super.dispose();
+  }
+}
+
+
+----- FILE: lib/features/settings/privacy_screen.dart -----
+import 'package:flutter/material.dart';
+
+class PrivacyScreen extends StatelessWidget {
+  const PrivacyScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('سياسة الخصوصية')),
+      body: const Padding(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Text(
+            'نحن نأخذ خصوصيتك على محمل الجد. لا نقوم بجمع أي معلومات شخصية من جهازك. '
+            'جميع البيانات المالية يتم تخزينها محليًا على جهازك فقط ولا يتم مشاركتها مع أي طرف ثالث.\n\n'
+            'نستخدم تشفيرًا قويًا لحماية بياناتك. لا يمكن لأي شخص الوصول إليها بدون إذنك.',
+            style: TextStyle(fontSize: 16),
+            textDirection: TextDirection.rtl,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/settings/profile_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _storage = const FlutterSecureStorage();
+  final _nameCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _usernameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    _nameCtrl.text = await _storage.read(key: 'profile_name') ?? '';
+    _addressCtrl.text = await _storage.read(key: 'profile_address') ?? '';
+    _phoneCtrl.text = await _storage.read(key: 'profile_phone') ?? '';
+    _emailCtrl.text = await _storage.read(key: 'profile_email') ?? '';
+    _usernameCtrl.text = await _storage.read(key: 'profile_username') ?? '';
+    setState(() {});
+  }
+
+  Future<void> _saveProfile() async {
+    await _storage.write(key: 'profile_name', value: _nameCtrl.text);
+    await _storage.write(key: 'profile_address', value: _addressCtrl.text);
+    await _storage.write(key: 'profile_phone', value: _phoneCtrl.text);
+    await _storage.write(key: 'profile_email', value: _emailCtrl.text);
+    await _storage.write(key: 'profile_username', value: _usernameCtrl.text);
+    if (_passwordCtrl.text.isNotEmpty) {
+      await _storage.write(key: 'profile_password', value: _passwordCtrl.text);
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حفظ البيانات بنجاح ✅')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('البيانات الشخصية')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _field('الاسم', Icons.person, _nameCtrl),
+          _field('العنوان', Icons.location_on, _addressCtrl),
+          _field('رقم التلفون', Icons.phone, _phoneCtrl, keyboardType: TextInputType.phone),
+          _field('البريد الإلكتروني', Icons.email, _emailCtrl, keyboardType: TextInputType.emailAddress),
+          _field('اسم المستخدم', Icons.account_circle, _usernameCtrl),
+          _field('كلمة السر', Icons.lock, _passwordCtrl, obscure: true),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.save),
+            label: const Text('حفظ البيانات'),
+            onPressed: _saveProfile,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _field(String label, IconData icon, TextEditingController ctrl, {bool obscure = false, TextInputType? keyboardType}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextField(
+        controller: ctrl,
+        obscureText: obscure,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, color: Colors.teal),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _addressCtrl.dispose();
+    _phoneCtrl.dispose();
+    _emailCtrl.dispose();
+    _usernameCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+}
+
+
+----- FILE: lib/features/settings/security_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/auth/auth_service.dart';
+
+class SecurityScreen extends StatefulWidget {
+  const SecurityScreen({super.key});
+
+  @override
+  State<SecurityScreen> createState() => _SecurityScreenState();
+}
+
+class _SecurityScreenState extends State<SecurityScreen> {
+  final _auth = GetIt.I<AuthService>();
+  final _oldPinCtrl = TextEditingController();
+  final _newPinCtrl = TextEditingController();
+  final _confirmPinCtrl = TextEditingController();
+  bool _pinEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPin();
+  }
+
+  Future<void> _checkPin() async {
+    final hasPin = await _auth.hasPin();
+    setState(() => _pinEnabled = hasPin);
+  }
+
+  Future<void> _changePin() async {
+    if (_newPinCtrl.text != _confirmPinCtrl.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الرقم السري غير متطابق')),
+      );
+      return;
+    }
+    if (_newPinCtrl.text.length < 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الرقم السري يجب أن يكون 4 أرقام على الأقل')),
+      );
+      return;
+    }
+    final success = await _auth.changePin(_oldPinCtrl.text, _newPinCtrl.text);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(success ? 'تم تغيير الرقم السري بنجاح ✅' : 'الرقم السري القديم غير صحيح ❌')),
+      );
+      if (success) {
+        _oldPinCtrl.clear();
+        _newPinCtrl.clear();
+        _confirmPinCtrl.clear();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('خيارات الأمان')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          SwitchListTile(
+            title: const Text('تفعيل كلمة السر'),
+            subtitle: const Text('حماية التطبيق برقم سري'),
+            value: _pinEnabled,
+            onChanged: (v) async {
+              if (v) {
+                setState(() => _pinEnabled = true);
+              } else {
+                await _auth.logout();
+                setState(() => _pinEnabled = false);
+              }
+            },
+          ),
+          if (_pinEnabled) ...[
+            const Divider(),
+            const Text('تغيير كلمة السر', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _oldPinCtrl,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'كلمة السر القديمة', prefixIcon: Icon(Icons.lock_outline)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _newPinCtrl,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'كلمة السر الجديدة', prefixIcon: Icon(Icons.lock)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _confirmPinCtrl,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'تأكيد كلمة السر', prefixIcon: Icon(Icons.lock)),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.save),
+              label: const Text('تغيير كلمة السر'),
+              onPressed: _changePin,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _oldPinCtrl.dispose();
+    _newPinCtrl.dispose();
+    _confirmPinCtrl.dispose();
+    super.dispose();
+  }
+}
+
+
+----- FILE: lib/features/settings/settings_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../core/auth/auth_service.dart';
+import '../../core/services/backup/backup_service.dart';
+import '../../core/services/subscription/subscription_service.dart';
+import '../../core/services/templates/activity_templates.dart';
+
+import 'profile_screen.dart';
+import 'security_screen.dart';
+import 'print_screen.dart';
+import 'backup_settings_screen.dart';
+import 'advanced_settings_screen.dart';
+import 'year_close_screen.dart';
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  static const _storage = FlutterSecureStorage();
+
+  late final BackupService _backup;
+  late final SubscriptionService _subscription;
+  late final ActivityTemplates _templates;
+  late final AuthService _auth;
+
+  bool _autoBackup = false;
+  bool _lockWithPin = true;
+  bool _showBalance = true;
+  bool _preventNegativeSale = true;
+  bool _showOperationNumber = true;
+  bool _debtAlert = true;
+  bool _voiceAssistant = true;
+  bool _showCurrency = true;
+  bool _darkMode = false;
+  bool _yearlyClose = true;
+
+  double _fontSize = 16;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _backup = GetIt.I<BackupService>();
+    _subscription = GetIt.I<SubscriptionService>();
+    _templates = GetIt.I<ActivityTemplates>();
+    _auth = GetIt.I<AuthService>();
+
+    _load();
+  }
+
+  Future<void> _load() async {
+    _autoBackup = await _storage.read(key: 'auto_backup') == 'true';
+    _lockWithPin = await _storage.read(key: 'lock_pin') != 'false';
+    _showBalance = await _storage.read(key: 'show_balance') != 'false';
+    _preventNegativeSale =
+        await _storage.read(key: 'prevent_negative') != 'false';
+    _showOperationNumber =
+        await _storage.read(key: 'show_op_number') != 'false';
+    _debtAlert = await _storage.read(key: 'debt_alert') != 'false';
+    _voiceAssistant = await _storage.read(key: 'voice_assistant') != 'false';
+    _showCurrency = await _storage.read(key: 'show_currency') != 'false';
+    _darkMode = await _storage.read(key: 'dark_mode') == 'true';
+    _yearlyClose = await _storage.read(key: 'yearly_close') != 'false';
+
+    final size = await _storage.read(key: 'font_size');
+    _fontSize = double.tryParse(size ?? '') ?? 16;
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _save(String key, Object value) async {
+    await _storage.write(key: key, value: value.toString());
+  }
+
+  void _open(Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  }
+
+  Future<void> _backupNow() async {
+    try {
+      await _backup.shareBackup();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إنشاء النسخة الاحتياطية ✅')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر إنشاء النسخة الاحتياطية')),
+        );
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    await _auth.logout();
+
+    if (!mounted) return;
+
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  void _showTemplates() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          children: [
+            const ListTile(
+              leading: Icon(Icons.account_tree, color: Colors.teal),
+              title: Text(
+                'قوالب الأنشطة المحاسبية',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(),
+            ..._templates.templates.keys.map(
+              (name) => ListTile(
+                leading: const Icon(Icons.business),
+                title: Text(name),
+                onTap: () => Navigator.pop(ctx),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _subscription.isActive;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الإعدادات'),
+        actions: [
+          IconButton(
+            tooltip: 'إعادة تحميل',
+            icon: const Icon(Icons.refresh),
+            onPressed: _load,
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 32),
+        children: [
+          _section('👤 البيانات الشخصية'),
+
+          _tile(
+            Icons.person,
+            Colors.teal,
+            'الملف الشخصي',
+            'الاسم والعنوان والتواصل وبيانات المستخدم',
+            () => _open(const ProfileScreen()),
+          ),
+
+          _section('💾 النسخ الاحتياطي والاستعادة'),
+
+          _tile(
+            Icons.backup,
+            Colors.blue,
+            'نسخ احتياطي الآن',
+            'إنشاء نسخة من بيانات التطبيق ومشاركتها',
+            _backupNow,
+          ),
+
+          _tile(
+            Icons.cloud_sync,
+            Colors.blue,
+            'إعدادات النسخ الاحتياطي',
+            'الحفظ التلقائي ووقت النسخ والاستعادة',
+            () => _open(const BackupSettingsScreen()),
+          ),
+
+          _switch(
+            'الحفظ اليومي التلقائي',
+            'تشغيل النسخ الاحتياطي التلقائي',
+            _autoBackup,
+            (v) async {
+              setState(() => _autoBackup = v);
+              await _save('auto_backup', v);
+              await _backup.setAutoBackup(v);
+            },
+          ),
+
+          _section('🔐 الأمان والحماية'),
+
+          _tile(
+            Icons.security,
+            Colors.red,
+            'إعدادات الأمان',
+            'PIN والبصمة والحماية',
+            () => _open(const SecurityScreen()),
+          ),
+
+          _switch('قفل التطبيق', 'طلب الحماية عند فتح التطبيق', _lockWithPin, (
+            v,
+          ) async {
+            setState(() => _lockWithPin = v);
+            await _save('lock_pin', v);
+          }),
+
+          _section('🖨️ الطباعة'),
+
+          _tile(
+            Icons.print,
+            Colors.grey,
+            'إعدادات الطباعة',
+            'الترويسة والتذييل والتاريخ والأرصدة',
+            () => _open(const PrintSettingsScreen()),
+          ),
+
+          _switch(
+            'إظهار الرصيد في الطباعة',
+            'عرض الرصيد المتبقي في المستندات',
+            _showBalance,
+            (v) {
+              setState(() => _showBalance = v);
+              _save('show_balance', v);
+            },
+          ),
+
+          _section('⚙️ العمليات والمحاسبة'),
+
+          _switch(
+            'منع البيع بالسالب',
+            'منع بيع كمية أكبر من رصيد المخزون',
+            _preventNegativeSale,
+            (v) {
+              setState(() => _preventNegativeSale = v);
+              _save('prevent_negative', v);
+            },
+          ),
+
+          _switch(
+            'إظهار رقم العملية',
+            'إظهار الرقم التلقائي للمستندات',
+            _showOperationNumber,
+            (v) {
+              setState(() => _showOperationNumber = v);
+              _save('show_op_number', v);
+            },
+          ),
+
+          _switch(
+            'تنبيهات الديون',
+            'التنبيه عند وجود ديون مستحقة',
+            _debtAlert,
+            (v) {
+              setState(() => _debtAlert = v);
+              _save('debt_alert', v);
+            },
+          ),
+
+          _section('🤖 المساعد الذكي'),
+
+          _switch(
+            'المساعد الصوتي',
+            'السماح بالأوامر الصوتية',
+            _voiceAssistant,
+            (v) {
+              setState(() => _voiceAssistant = v);
+              _save('voice_assistant', v);
+            },
+          ),
+
+          _section('💱 العملات'),
+
+          _switch(
+            'إظهار العملات',
+            'تفعيل التعامل متعدد العملات داخل الشاشات',
+            _showCurrency,
+            (v) {
+              setState(() => _showCurrency = v);
+              _save('show_currency', v);
+            },
+          ),
+
+          _section('🎨 المظهر'),
+
+          _switch('الوضع الليلي', 'تفضيل المظهر الداكن', _darkMode, (v) {
+            setState(() => _darkMode = v);
+            _save('dark_mode', v);
+          }),
+
+          ListTile(
+            leading: const Icon(Icons.format_size, color: Colors.indigo),
+            title: const Text('حجم الخط'),
+            subtitle: Text('${_fontSize.toInt()}'),
+            trailing: SizedBox(
+              width: 150,
+              child: Slider(
+                min: 12,
+                max: 24,
+                divisions: 12,
+                value: _fontSize,
+                onChanged: (v) {
+                  setState(() => _fontSize = v);
+                  _save('font_size', v);
+                },
+              ),
+            ),
+          ),
+
+          _section('📂 قوالب الأنشطة'),
+
+          _tile(
+            Icons.account_tree,
+            Colors.teal,
+            'قوالب الأنشطة',
+            'اختيار الهيكل المحاسبي المناسب للنشاط',
+            _showTemplates,
+          ),
+
+          _section('🔒 الإغلاق السنوي'),
+
+          _tile(
+            Icons.calendar_month,
+            Colors.red,
+            'الإغلاق السنوي',
+            'إغلاق السنة وترحيل النتيجة',
+            () => _open(const YearCloseScreen()),
+          ),
+
+          _switch(
+            'تفعيل الإغلاق السنوي',
+            'السماح بإجراءات الإغلاق السنوي',
+            _yearlyClose,
+            (v) {
+              setState(() => _yearlyClose = v);
+              _save('yearly_close', v);
+            },
+          ),
+
+          _section('👑 الاشتراك'),
+
+          ListTile(
+            leading: Icon(
+              active ? Icons.check_circle : Icons.warning,
+              color: active ? Colors.green : Colors.red,
+            ),
+            title: Text(active ? 'الاشتراك نشط' : 'الاشتراك منتهي'),
+            subtitle: Text(
+              active
+                  ? 'متبقي ${_subscription.daysLeft} يوم'
+                  : 'يرجى تجديد الاشتراك',
+            ),
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.key, color: Colors.purple),
+            title: const Text('شراء / تفعيل النسخة'),
+            subtitle: const Text('إدخال رمز التفعيل'),
+            onTap: _showActivation,
+          ),
+
+          _section('🧰 خيارات متقدمة'),
+
+          _tile(
+            Icons.tune,
+            Colors.teal,
+            'جميع الخيارات المتقدمة',
+            'إعدادات النظام التفصيلية',
+            () => _open(const AdvancedSettingsScreen()),
+          ),
+
+          _section('🚪 الحساب'),
+
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('تسجيل الخروج'),
+            onTap: _logout,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showActivation() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تفعيل الاشتراك'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'رمز التفعيل',
+            prefixIcon: Icon(Icons.key),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final ok = await _subscription.activate(controller.text.trim());
+
+              if (ctx.mounted) Navigator.pop(ctx);
+
+              if (mounted) {
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      ok ? 'تم تفعيل الاشتراك ✅' : 'رمز التفعيل غير صحيح ❌',
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Text('تفعيل'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _section(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 22, 16, 6),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.bold,
+          color: Colors.teal,
+        ),
+      ),
+    );
+  }
+
+  Widget _tile(
+    IconData icon,
+    Color color,
+    String title,
+    String subtitle,
+    VoidCallback onTap,
+  ) {
+    return ListTile(
+      leading: Icon(icon, color: color),
+      title: Text(title),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+      ),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: onTap,
+    );
+  }
+
+  Widget _switch(
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
+    return SwitchListTile(
+      title: Text(title),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(fontSize: 11, color: Colors.grey),
+      ),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+}
+
+
+----- FILE: lib/features/settings/terms_screen.dart -----
+import 'package:flutter/material.dart';
+
+class TermsScreen extends StatelessWidget {
+  const TermsScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('شروط الاستخدام')),
+      body: const Padding(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Text(
+            'باستخدامك لهذا التطبيق فإنك توافق على الشروط التالية:\n\n'
+            '1. التطبيق مخصص لأغراض محاسبية فقط.\n'
+            '2. المستخدم مسؤول عن دقة البيانات المدخلة.\n'
+            '3. يمنع نسخ أو إعادة توزيع التطبيق بدون إذن.\n'
+            '4. نحتفظ بالحق في تعديل هذه الشروط في أي وقت.\n',
+            style: TextStyle(fontSize: 16),
+            textDirection: TextDirection.rtl,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/settings/year_close_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/services/inventory/inventory_count_service.dart';
+
+class YearCloseScreen extends StatefulWidget {
+  const YearCloseScreen({super.key});
+
+  @override
+  State<YearCloseScreen> createState() => _YearCloseScreenState();
+}
+
+class _YearCloseScreenState extends State<YearCloseScreen> {
+  final _countService = GetIt.I<InventoryCountService>();
+  bool _loading = false;
+  Map<String, dynamic>? _result;
+
+  Future<void> _closeYear() async {
+    setState(() => _loading = true);
+    final result = await _countService.closeYear();
+    setState(() {
+      _loading = false;
+      _result = result;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم الإغلاق السنوي')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الإغلاق السنوي')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.calendar_month, size: 80, color: Colors.teal),
+              const SizedBox(height: 16),
+              Text('الإغلاق السنوي ${DateTime.now().year}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text('سيتم تصفير حسابات الإيرادات والمصروفات وترحيل النتيجة إلى الأرباح المحتجزة', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+              const SizedBox(height: 24),
+              if (_loading)
+                const CircularProgressIndicator()
+              else if (_result != null)
+                Card(
+                  color: Colors.green.shade50,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(children: [
+                      Text('الإيرادات: ${_result!['totalRevenues']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text('المصروفات: ${_result!['totalExpenses']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text('صافي الدخل: ${_result!['netIncome']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                    ]),
+                  ),
+                )
+              else
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.lock),
+                  label: const Text('تنفيذ الإغلاق السنوي'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16)),
+                  onPressed: _closeYear,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/shared/master_data_screen.dart -----
+import 'package:flutter/material.dart';
+
+class MasterDataScreen extends StatefulWidget {
+
+  const MasterDataScreen({
+    super.key,
+    required this.title,
+    required this.data,
+    required this.columnKeys,
+    required this.columnTitles,
+    required this.onSave,
+    required this.onDelete,
+    required this.getItems,
+    required this.refresh,
+  });
+  final String title;
+  final List<Map<String, dynamic>> data;
+  final List<String> columnKeys;
+  final List<String> columnTitles;
+  final Future<void> Function(Map<String, dynamic>) onSave;
+  final Future<void> Function(int) onDelete;
+  final List<Map<String, dynamic>> Function() getItems;
+  final void Function() refresh;
+
+  @override
+  State<MasterDataScreen> createState() => _MasterDataScreenState();
+}
+
+class _MasterDataScreenState extends State<MasterDataScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final Map<String, TextEditingController> _controllers = {};
+
+  void _showForm([Map<String, dynamic>? existing]) {
+    for (final key in widget.columnKeys) {
+      _controllers[key] = TextEditingController(text: existing?[key]?.toString() ?? '');
+    }
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(existing != null ? 'تعديل' : 'إضافة'),
+        content: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: widget.columnKeys.map((key) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: TextFormField(
+                    controller: _controllers[key],
+                    decoration: InputDecoration(labelText: widget.columnTitles[widget.columnKeys.indexOf(key)]),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () async {
+              if (_formKey.currentState!.validate()) {
+                final data = <String, dynamic>{};
+                for (final key in widget.columnKeys) {
+                  data[key] = _controllers[key]!.text;
+                }
+                await widget.onSave(data);
+                Navigator.pop(ctx);
+                widget.refresh();
+              }
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showForm(),
+        child: const Icon(Icons.add),
+      ),
+      body: widget.data.isEmpty
+          ? const Center(child: Text('لا توجد بيانات'))
+          : ListView.builder(
+              itemCount: widget.data.length,
+              itemBuilder: (ctx, index) {
+                final item = widget.data[index];
+                return ListTile(
+                  title: Text(item[widget.columnKeys.first]?.toString() ?? ''),
+                  subtitle: Text(widget.columnKeys.skip(1).map((k) => '${widget.columnTitles[widget.columnKeys.indexOf(k)]}: ${item[k]}').join(' | ')),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(icon: const Icon(Icons.edit), onPressed: () => _showForm(item)),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () async {
+                          await widget.onDelete(item['id'] as int);
+                          widget.refresh();
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/suppliers/suppliers_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class SuppliersScreen extends StatefulWidget {
+  const SuppliersScreen({super.key});
+
+  @override
+  State<SuppliersScreen> createState() => _SuppliersScreenState();
+}
+
+class _SuppliersScreenState extends State<SuppliersScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _searchController = TextEditingController();
+
+  List<Map<String, dynamic>> _suppliers = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllSuppliers();
+
+      if (!mounted) return;
+
+      setState(() {
+        _suppliers = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تحميل بيانات الموردين')),
+      );
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final query = _searchController.text.trim().toLowerCase();
+
+    if (query.isEmpty) return _suppliers;
+
+    return _suppliers.where((supplier) {
+      final name = '${supplier['name'] ?? ''}'.toLowerCase();
+      final phone = '${supplier['phone'] ?? ''}'.toLowerCase();
+      final address = '${supplier['address'] ?? ''}'.toLowerCase();
+
+      return name.contains(query) ||
+          phone.contains(query) ||
+          address.contains(query);
+    }).toList();
+  }
+
+  Future<void> _showForm({Map<String, dynamic>? existing}) async {
+    final name = TextEditingController(text: '${existing?['name'] ?? ''}');
+
+    final phone = TextEditingController(text: '${existing?['phone'] ?? ''}');
+
+    final address = TextEditingController(
+      text: '${existing?['address'] ?? ''}',
+    );
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: Text(existing == null ? 'إضافة مورد' : 'تعديل المورد'),
+            content: SizedBox(
+              width: 450,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: name,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم المورد *',
+                        prefixIcon: Icon(Icons.business),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: phone,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'رقم الهاتف',
+                        prefixIcon: Icon(Icons.phone),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: address,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'العنوان',
+                        prefixIcon: Icon(Icons.location_on),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  final supplierName = name.text.trim();
+
+                  if (supplierName.isEmpty) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('اسم المورد مطلوب')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    if (existing == null) {
+                      await _service.createSupplier(
+                        name: supplierName,
+                        phone: phone.text.trim().isEmpty
+                            ? null
+                            : phone.text.trim(),
+                        address: address.text.trim().isEmpty
+                            ? null
+                            : address.text.trim(),
+                      );
+                    } else {
+                      final id = existing['id'];
+
+                      if (id is! int) {
+                        throw Exception('معرف المورد غير صالح');
+                      }
+
+                      await _service.updateSupplier(
+                        id,
+                        name: supplierName,
+                        phone: phone.text.trim().isEmpty
+                            ? null
+                            : phone.text.trim(),
+                        address: address.text.trim().isEmpty
+                            ? null
+                            : address.text.trim(),
+                      );
+                    }
+
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext, true);
+                    }
+                  } catch (_) {
+                    if (!dialogContext.mounted) return;
+
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('تعذر حفظ بيانات المورد')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.save),
+                label: Text(existing == null ? 'حفظ' : 'حفظ التعديل'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      name.dispose();
+      phone.dispose();
+      address.dispose();
+    }
+  }
+
+  Future<void> _deleteSupplier(Map<String, dynamic> supplier) async {
+    final id = supplier['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف المورد'),
+        content: Text('هل تريد حذف "${supplier['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteSupplier(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يمكن حذف المورد لأنه مرتبط ببيانات أخرى'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final suppliers = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الموردون'),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showForm(),
+        icon: const Icon(Icons.person_add),
+        label: const Text('إضافة مورد'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث ذكي',
+                hintText: 'الاسم أو الهاتف أو العنوان...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : suppliers.isEmpty
+                ? _emptyState()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: suppliers.length,
+                      itemBuilder: (_, index) {
+                        return _supplierCard(suppliers[index]);
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _supplierCard(Map<String, dynamic> supplier) {
+    final name = '${supplier['name'] ?? ''}';
+    final phone = '${supplier['phone'] ?? ''}';
+    final address = '${supplier['address'] ?? ''}';
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.business)),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (phone.isNotEmpty) Text('الهاتف: $phone'),
+              if (address.isNotEmpty) Text('العنوان: $address'),
+            ],
+          ),
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit') {
+              _showForm(existing: supplier);
+            } else if (value == 'delete') {
+              _deleteSupplier(supplier);
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'edit', child: Text('تعديل')),
+            PopupMenuItem(value: 'delete', child: Text('حذف')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.business,
+            size: 64,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'لا يوجد موردون',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          const Text('أضف الموردين لإدارة المشتريات والحسابات'),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => _showForm(),
+            icon: const Icon(Icons.person_add),
+            label: const Text('إضافة أول مورد'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/targets/targets_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/services/targets/target_service.dart';
+
+class TargetsScreen extends StatefulWidget {
+  const TargetsScreen({super.key});
+
+  @override
+  State<TargetsScreen> createState() => _TargetsScreenState();
+}
+
+class _TargetsScreenState extends State<TargetsScreen> {
+  final _service = GetIt.I<TargetService>();
+
+  @override
+  Widget build(BuildContext context) {
+    final targets = _service.allTargets;
+    final overall = _service.overallTarget;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الأهداف والتارجت'),
+        actions: [
+          IconButton(icon: const Icon(Icons.add), onPressed: _addTarget),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (overall.monthlyTarget > 0) ...[
+            _TargetCard(target: overall, isOverall: true),
+            const SizedBox(height: 16),
+          ],
+          if (targets.isNotEmpty) ...[
+            Text('المندوبين', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            ...targets.map((t) => _TargetCard(target: t)),
+          ] else
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Text('لم يتم تحديد أهداف بعد\nاضغط + لإضافة هدف جديد', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _addTarget() {
+    final nameCtrl = TextEditingController();
+    final monthCtrl = TextEditingController();
+    final yearCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إضافة هدف جديد'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'اسم المندوب')),
+              const SizedBox(height: 8),
+              TextField(controller: monthCtrl, decoration: const InputDecoration(labelText: 'الهدف الشهري (ريال)'), keyboardType: TextInputType.number),
+              const SizedBox(height: 8),
+              TextField(controller: yearCtrl, decoration: const InputDecoration(labelText: 'الهدف السنوي (ريال)'), keyboardType: TextInputType.number),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              final target = SalesTarget(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                name: nameCtrl.text,
+                salespersonName: nameCtrl.text,
+                monthlyTarget: double.tryParse(monthCtrl.text) ?? 0,
+                yearlyTarget: double.tryParse(yearCtrl.text) ?? 0,
+              );
+              _service.setTarget(target);
+              Navigator.pop(ctx);
+              setState(() {});
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إضافة الهدف ✅')));
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TargetCard extends StatelessWidget {
+  const _TargetCard({required this.target, this.isOverall = false});
+  final SalesTarget target;
+  final bool isOverall;
+
+  @override
+  Widget build(BuildContext context) {
+    final percentage = target.monthPercentage.clamp(0, 100) / 100.0;
+    final color = percentage >= 1.0 ? Colors.green : percentage >= 0.8 ? Colors.orange : Colors.teal;
+
+    return Card(
+      elevation: isOverall ? 2 : 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text(target.name, style: TextStyle(fontSize: isOverall ? 20 : 16, fontWeight: FontWeight.bold)),
+              Text('${(percentage * 100.0).toInt()}%', style: TextStyle(fontSize: 18, color: color, fontWeight: FontWeight.bold)),
+            ]),
+            const SizedBox(height: 12),
+            _progressRow('شهري', target.achievedMonth, target.monthlyTarget, color),
+            const SizedBox(height: 8),
+            _progressRow('سنوي', target.achievedYear, target.yearlyTarget, Colors.blue),
+            const SizedBox(height: 8),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('المتبقي شهرياً: ${target.monthRemaining.toStringAsFixed(0)} ريال', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Text('متبقي ${target.monthDaysLeft} يوم', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _progressRow(String label, double achieved, double targetVal, Color color) {
+    final pct = targetVal > 0 ? (achieved / targetVal).clamp(0.0, 1.0) : 0.0;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('$label: ${achieved.toStringAsFixed(0)} / ${targetVal.toStringAsFixed(0)}'),
+      const SizedBox(height: 4),
+      ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(value: pct, minHeight: 8, backgroundColor: Colors.grey.shade200, color: color)),
+    ]);
+  }
+}
+
+
+----- FILE: lib/features/units/units_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class UnitsScreen extends StatefulWidget {
+  const UnitsScreen({super.key});
+
+  @override
+  State<UnitsScreen> createState() => _UnitsScreenState();
+}
+
+class _UnitsScreenState extends State<UnitsScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _search = TextEditingController();
+
+  List<Map<String, dynamic>> _units = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllUnits();
+
+      if (!mounted) return;
+
+      setState(() {
+        _units = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تعذر تحميل الوحدات')));
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final query = _search.text.trim().toLowerCase();
+
+    if (query.isEmpty) return _units;
+
+    return _units.where((unit) {
+      final name = '${unit['name'] ?? ''}'.toLowerCase();
+      final abbreviation = '${unit['abbreviation'] ?? ''}'.toLowerCase();
+
+      return name.contains(query) || abbreviation.contains(query);
+    }).toList();
+  }
+
+  Future<void> _addUnit() async {
+    final name = TextEditingController();
+    final abbreviation = TextEditingController();
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('إضافة وحدة قياس'),
+            content: SizedBox(
+              width: 420,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: name,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      labelText: 'اسم الوحدة *',
+              

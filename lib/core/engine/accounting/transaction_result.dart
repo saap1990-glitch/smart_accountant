@@ -1,9 +1,6 @@
 enum TransactionStatus { draft, approved, posted, cancelled }
 
 class TransactionResult {
-  final String? entryNumber;
-  final TransactionStatus status;
-  final String? message;
 
   const TransactionResult({this.entryNumber, required this.status, this.message});
 
@@ -22,4 +19,7 @@ class TransactionResult {
         status: TransactionStatus.cancelled,
         message: 'تم إلغاء العملية',
       );
+  final String? entryNumber;
+  final TransactionStatus status;
+  final String? message;
 }

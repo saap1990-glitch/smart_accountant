@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import '../reports/report_view_screen.dart';
 
 class ItemCardScreen extends StatelessWidget {
-  final Map<String, dynamic> item;
-
   const ItemCardScreen({super.key, required this.item});
+  final Map<String, dynamic> item;
 
   String _text(String key, [String fallback = '—']) {
     final value = item[key];
@@ -157,9 +157,13 @@ class ItemCardScreen extends StatelessWidget {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('سيتم ربط حركة المخزون في المرحلة التالية'),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ReportViewScreen(
+                    type: 'item',
+                    itemId: int.tryParse(item['id']?.toString() ?? '0'),
+                  ),
                 ),
               );
             },
@@ -172,9 +176,10 @@ class ItemCardScreen extends StatelessWidget {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('سيتم ربط التقارير في المرحلة التالية'),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ReportViewScreen(type: 'inventory'),
                 ),
               );
             },

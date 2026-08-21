@@ -6,13 +6,15 @@ class ExcelService {
   Future<void> exportToExcel({
     required String title,
     required List<String> headers,
-    required List<List<String>> rows,
+    required List<List<dynamic>> rows,
   }) async {
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
     sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
     for (var row in rows) {
-      sheet.appendRow(row.map((cell) => TextCellValue(cell)).toList());
+      sheet.appendRow(
+        row.map((cell) => TextCellValue(cell.toString())).toList(),
+      );
     }
     final bytes = excel.encode();
     if (bytes == null) return;

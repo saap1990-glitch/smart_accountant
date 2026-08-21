@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../auth/login_screen.dart';
 import '../../core/services/backup/backup_service.dart';
 import '../../core/services/subscription/subscription_service.dart';
 import '../../core/services/templates/activity_templates.dart';
@@ -39,6 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _showCurrency = true;
   bool _darkMode = false;
   bool _yearlyClose = true;
+  String _language = 'ar';
 
   double _fontSize = 16;
 
@@ -67,6 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _showCurrency = await _storage.read(key: 'show_currency') != 'false';
     _darkMode = await _storage.read(key: 'dark_mode') == 'true';
     _yearlyClose = await _storage.read(key: 'yearly_close') != 'false';
+    _language = await _storage.read(key: 'language') ?? 'ar';
 
     final size = await _storage.read(key: 'font_size');
     _fontSize = double.tryParse(size ?? '') ?? 16;
@@ -105,7 +108,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (!mounted) return;
 
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
   }
 
   void _showTemplates() {
@@ -285,9 +291,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
+          _section('🌐 اللغة'),
+
+          ListTile(
+            leading: const Icon(Icons.language, color: Colors.indigo),
+            title: const Text('لغة التطبيق'),
+            subtitle: Text(_language == 'ar' ? 'العربية' : 'English'),
+            trailing: DropdownButton<String>(
+              value: _language,
+              underline: const SizedBox(),
+              items: const [
+                DropdownMenuItem(value: 'ar', child: Text('العربية')),
+                DropdownMenuItem(value: 'en', child: Text('English')),
+              ],
+              onChanged: (v) async {
+                if (v != null) {
+                  setState(() => _language = v);
+                  await _save('language', v);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('سيتم تطبيق اللغة عند إعادة التشغيل'),
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+
           _section('🎨 المظهر'),
 
           _switch('الوضع الليلي', 'تفضيل المظهر الداكن', _darkMode, (v) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('سيتم تطبيق الوضع الليلي عند إعادة التشغيل'),
+              ),
+            );
             setState(() => _darkMode = v);
             _save('dark_mode', v);
           }),

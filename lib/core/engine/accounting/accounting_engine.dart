@@ -12,6 +12,16 @@ import '../validation/transaction_validator.dart';
 import '../workflow/workflow_engine.dart';
 
 class AccountingEngine {
+
+  AccountingEngine({
+    required this._validator,
+    required this._workflow,
+    required this._numberGenerator,
+    required this._transactionManager,
+    required this._eventBus,
+    required this._journalRepo,
+    required this._ledgerRepo,
+  });
   final TransactionValidator _validator;
   final WorkflowEngine _workflow;
   final NumberGenerator _numberGenerator;
@@ -19,22 +29,6 @@ class AccountingEngine {
   final AppEventBus _eventBus;
   final JournalRepository _journalRepo;
   final LedgerRepository _ledgerRepo;
-
-  AccountingEngine({
-    required TransactionValidator validator,
-    required WorkflowEngine workflow,
-    required NumberGenerator numberGenerator,
-    required TransactionManager transactionManager,
-    required AppEventBus eventBus,
-    required JournalRepository journalRepo,
-    required LedgerRepository ledgerRepo,
-  }) : _validator = validator,
-       _workflow = workflow,
-       _numberGenerator = numberGenerator,
-       _transactionManager = transactionManager,
-       _eventBus = eventBus,
-       _journalRepo = journalRepo,
-       _ledgerRepo = ledgerRepo;
 
   Future<Result<TransactionResult>> execute(
     TransactionContext context, {
@@ -47,8 +41,8 @@ class AccountingEngine {
 
     final status = _workflow.execute(initialStatus, WorkflowAction.post);
     if (status != TransactionStatus.posted) {
-      return Failure(
-        const AppException('لا يمكن ترحيل العملية في حالتها الحالية'),
+      return const Failure(
+        AppException('لا يمكن ترحيل العملية في حالتها الحالية'),
       );
     }
 
@@ -112,7 +106,7 @@ class AccountingEngine {
   ) async {
     final validationResult = _validator.validate(context);
     if (!validationResult.isValid) {
-      return Failure(const ValidationException('Validation failed'));
+      return const Failure(ValidationException('Validation failed'));
     }
 
     return _transactionManager.execute<TransactionResult>(

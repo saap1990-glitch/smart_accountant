@@ -1,28 +1,40 @@
-import 'package:get_it/get_it.dart';
 import '../../repositories/master_data_repository.dart';
 import '../../repositories/ledger_repository.dart';
 import '../../repositories/journal_repository.dart';
 import '../numbering/number_generator.dart';
+import '../accounting/system_account_resolver.dart';
+import '../../di/service_locator.dart';
 
 class InventoryCountService {
+  Future<int> _getRetainedEarningsId() async {
+    final resolver = sl<SystemAccountResolver>();
+    return await resolver.resolve('retained_earnings');
+  }
+
+  InventoryCountService(
+    this._repo,
+    this._ledgerRepo,
+    this._journalRepo,
+    this._numberGen,
+  );
   final MasterDataRepository _repo;
   final LedgerRepository _ledgerRepo;
   final JournalRepository _journalRepo;
   final NumberGenerator _numberGen;
 
-  InventoryCountService(this._repo, this._ledgerRepo, this._journalRepo, this._numberGen);
-
   /// إجراء جرد فعلي - تحديث أرصدة المخزون
   Future<Map<String, dynamic>> performCount({
     required int warehouseId,
-    required List<Map<String, dynamic>> items, // [{itemId, expectedQty, actualQty}]
+    required List<Map<String, dynamic>>
+    items, // [{itemId, expectedQty, actualQty}]
     String? notes,
   }) async {
     final adjustments = <Map<String, dynamic>>[];
     double totalDifference = 0;
 
     for (var item in items) {
-      final expected = double.tryParse(item['expectedQty']?.toString() ?? '0') ?? 0;
+      final expected =
+          double.tryParse(item['expectedQty']?.toString() ?? '0') ?? 0;
       final actual = double.tryParse(item['actualQty']?.toString() ?? '0') ?? 0;
       final difference = actual - expected;
 
@@ -39,10 +51,22 @@ class InventoryCountService {
     // إذا كانت هناك فروقات، أنشئ قيد تسوية
     if (adjustments.isNotEmpty) {
       final number = await _numberGen.generate('inventory');
-      // قيد التسوية: مخزون مدين/دائن مقابل حساب الفروقات
+      final resolver = sl<SystemAccountResolver>();
+      final inventoryId = await resolver.resolve('inventory_default');
+      final adjustmentId = await resolver.resolve(
+        'retained_earnings',
+      ); // يمكن استخدام حساب مخصص
       final items = <Map<String, dynamic>>[
-        {'accountId': 113, 'debit': totalDifference > 0 ? totalDifference : 0, 'credit': totalDifference < 0 ? -totalDifference : 0},
-        {'accountId': 4, 'debit': totalDifference < 0 ? -totalDifference : 0, 'credit': totalDifference > 0 ? totalDifference : 0},
+        {
+          'accountId': inventoryId,
+          'debit': totalDifference > 0 ? totalDifference : 0,
+          'credit': totalDifference < 0 ? -totalDifference : 0,
+        },
+        {
+          'accountId': adjustmentId,
+          'debit': totalDifference < 0 ? -totalDifference : 0,
+          'credit': totalDifference > 0 ? totalDifference : 0,
+        },
       ];
 
       await _journalRepo.saveJournalEntry(
@@ -99,7 +123,11 @@ class InventoryCountService {
       }
     }
     // حساب الأرباح المحتجزة
-    lines.add({'accountId': 2, 'debit': netIncome < 0 ? -netIncome : 0, 'credit': netIncome > 0 ? netIncome : 0});
+    lines.add({
+      'accountId': 2,
+      'debit': netIncome < 0 ? -netIncome : 0,
+      'credit': netIncome > 0 ? netIncome : 0,
+    });
 
     await _journalRepo.saveJournalEntry(
       entryNumber: number,

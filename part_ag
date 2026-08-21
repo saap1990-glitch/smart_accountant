@@ -1,0 +1,1462 @@
+ard,
+              icon: const Icon(Icons.refresh),
+              label: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Metric {
+
+  const _Metric({required this.title, required this.value, required this.icon});
+  final String title;
+  final String value;
+  final IconData icon;
+}
+
+
+----- FILE: lib/features/dashboard/main_screen.dart -----
+import 'package:flutter/material.dart';
+import 'dashboard_screen.dart';
+import '../operations/receipt/receipt_screen.dart';
+import '../operations/payment/payment_screen.dart';
+import '../operations/journal/journal_screen.dart';
+import '../operations/sale/sale_screen.dart';
+import '../operations/purchase/purchase_screen.dart';
+import '../operations/sale_return/sale_return_screen.dart';
+import '../operations/purchase_return/purchase_return_screen.dart';
+import '../operations/transfer_cash/transfer_cash_screen.dart';
+import '../operations/transfer_bank/transfer_bank_screen.dart';
+import '../operations/transfer_wallet/transfer_wallet_screen.dart';
+import '../operations/inventory_count/inventory_count_screen.dart';
+import '../operations/inventory_out/inventory_out_screen.dart';
+import '../operations/inventory_in/inventory_in_screen.dart';
+import '../customers/customers_screen.dart';
+import '../suppliers/suppliers_screen.dart';
+import '../items/items_screen.dart';
+import '../units/units_screen.dart';
+import '../warehouses/warehouses_screen.dart';
+import '../banks/banks_screen.dart';
+import '../cash_boxes/cash_boxes_screen.dart';
+import '../wallets/wallets_screen.dart';
+import '../exchange_companies/exchange_companies_screen.dart';
+import '../currencies/currencies_screen.dart';
+import '../accounts/accounts_screen.dart';
+import '../reports/reports_screen.dart';
+import '../targets/targets_screen.dart';
+import '../settings/settings_screen.dart';
+import '../ai/ai_assistant_screen.dart';
+import '../debts/debts_screen.dart';
+import '../admin/admin_panel_screen.dart';
+import '../../core/services/admin/owner_auth_service.dart';
+import 'package:get_it/get_it.dart';
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _currentIndex = 0;
+  bool _isOwner = false;
+
+  final List<Widget> _tabs = const [
+    DashboardScreen(),
+    OperationsMenu(),
+    MasterDataMenu(),
+    ReportsScreen(),
+    SettingsScreen(),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOwner();
+  }
+
+  Future<void> _checkOwner() async {
+    final ownerAuth = GetIt.I<OwnerAuthService>();
+    final isOwner = await ownerAuth.isOwnerDevice();
+    if (mounted) setState(() => _isOwner = isOwner);
+  }
+
+  void _showOwnerLogin() {
+    final codeCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('دخول المالك'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('أدخل رمز المالك للوصول للوحة التحكم:'),
+            const SizedBox(height: 12),
+            TextField(controller: codeCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'رمز المالك', hintText: 'smart2026admin')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () async {
+              final ownerAuth = GetIt.I<OwnerAuthService>();
+              if (await ownerAuth.verifyOwner(codeCtrl.text)) {
+                Navigator.pop(ctx);
+                if (mounted) setState(() => _isOwner = true);
+              } else {
+                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('رمز غير صحيح')));
+              }
+            },
+            child: const Text('دخول'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _tabs[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.teal,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'الرئيسية'),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'العمليات'),
+          BottomNavigationBarItem(icon: Icon(Icons.storage), label: 'البيانات'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'تقارير'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'إعدادات'),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.teal),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
+                Icon(Icons.account_balance, size: 50, color: Colors.white),
+                SizedBox(height: 8),
+                Text('المحاسب الذكي', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                Text('Enterprise v1.0', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              ]),
+            ),
+            ListTile(
+              leading: const Icon(Icons.auto_awesome, color: Colors.purple),
+              title: const Text('المساعد الذكي'),
+              onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const AiAssistantScreen())); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.track_changes, color: Colors.orange),
+              title: const Text('الأهداف والتارجت'),
+              onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const TargetsScreen())); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.money_off, color: Colors.red),
+              title: const Text('الديون والتحصيل'),
+              onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtsScreen())); },
+            ),
+            const Divider(),
+            // لوحة المالك - تظهر فقط بعد التحقق
+            if (_isOwner)
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings, color: Colors.purple),
+                title: const Text('لوحة تحكم المالك'),
+                onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPanelScreen())); },
+              )
+            else
+              ListTile(
+                leading: const Icon(Icons.lock_outline, color: Colors.grey),
+                title: const Text('دخول المالك'),
+                onTap: () { Navigator.pop(context); _showOwnerLogin(); },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class OperationsMenu extends StatelessWidget {
+  const OperationsMenu({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('العمليات')),
+      body: ListView(
+        children: [
+          _section('العمليات المالية', [
+            _tile(context, 'سند قبض', Icons.arrow_downward, Colors.green, const ReceiptScreen()),
+            _tile(context, 'سند صرف', Icons.arrow_upward, Colors.red, const PaymentScreen()),
+            _tile(context, 'قيد يومية', Icons.book, Colors.blue, const JournalScreen()),
+            _tile(context, 'تحويل بين الصناديق', Icons.swap_horiz, Colors.teal, const TransferCashScreen()),
+            _tile(context, 'تحويل بين البنوك', Icons.account_balance, Colors.teal, const TransferBankScreen()),
+            _tile(context, 'تحويل بين المحافظ', Icons.wallet, Colors.teal, const TransferWalletScreen()),
+          ]),
+          _section('المبيعات والمشتريات', [
+            _tile(context, 'فاتورة بيع', Icons.point_of_sale, Colors.green, const SaleScreen()),
+            _tile(context, 'فاتورة شراء', Icons.shopping_cart, Colors.orange, const PurchaseScreen()),
+            _tile(context, 'مرتجع بيع', Icons.undo, Colors.red, const SaleReturnScreen()),
+            _tile(context, 'مرتجع شراء', Icons.undo, Colors.red, const PurchaseReturnScreen()),
+          ]),
+          _section('العمليات المخزنية', [
+            _tile(context, 'صرف مخزني', Icons.outbox, Colors.brown, const InventoryOutScreen()),
+            _tile(context, 'توريد مخزني', Icons.inbox, Colors.brown, const InventoryInScreen()),
+            _tile(context, 'تحويل مخزني', Icons.swap_vert, Colors.brown, const InventoryCountScreen()),
+          ]),
+        ],
+      ),
+    );
+  }
+  Widget _section(String title, List<Widget> children) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.teal))),
+      ...children,
+    ]);
+  }
+  Widget _tile(BuildContext context, String title, IconData icon, Color color, Widget screen) {
+    return Card(margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: ListTile(leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), child: Icon(icon, color: color, size: 22)), title: Text(title), trailing: const Icon(Icons.arrow_forward_ios, size: 16), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen))));
+  }
+}
+
+class MasterDataMenu extends StatelessWidget {
+  const MasterDataMenu({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('البيانات الأساسية')),
+      body: ListView(
+        children: [
+          _tile(context, 'دليل الحسابات', Icons.account_tree, Colors.teal, const AccountsScreen()),
+          _tile(context, 'العملاء', Icons.person, Colors.blue, const CustomersScreen()),
+          _tile(context, 'الموردين', Icons.business, Colors.orange, const SuppliersScreen()),
+          _tile(context, 'الأصناف', Icons.inventory, Colors.indigo, const ItemsScreen()),
+          _tile(context, 'الوحدات', Icons.straighten, Colors.grey, const UnitsScreen()),
+          _tile(context, 'المخازن', Icons.warehouse, Colors.brown, const WarehousesScreen()),
+          _tile(context, 'البنوك', Icons.account_balance, Colors.blueGrey, const BanksScreen()),
+          _tile(context, 'الصناديق', Icons.money, Colors.green, const CashBoxesScreen()),
+          _tile(context, 'المحافظ', Icons.wallet, Colors.purple, const WalletsScreen()),
+          _tile(context, 'شركات الصرافة', Icons.currency_exchange, Colors.amber, const ExchangeCompaniesScreen()),
+          _tile(context, 'العملات', Icons.attach_money, Colors.teal, const CurrenciesScreen()),
+        ],
+      ),
+    );
+  }
+  Widget _tile(BuildContext context, String title, IconData icon, Color color, Widget screen) {
+    return Card(margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: ListTile(leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), child: Icon(icon, color: color, size: 22)), title: Text(title), trailing: const Icon(Icons.arrow_forward_ios, size: 16), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen))));
+  }
+}
+
+
+----- FILE: lib/features/dashboard/widgets/animated_counter.dart -----
+import 'package:flutter/material.dart';
+
+class AnimatedCounter extends StatefulWidget {
+
+  const AnimatedCounter({
+    super.key,
+    required this.value,
+    this.style,
+    this.duration = const Duration(milliseconds: 1500),
+  });
+  final double value;
+  final TextStyle? style;
+  final Duration duration;
+
+  @override
+  State<AnimatedCounter> createState() => _AnimatedCounterState();
+}
+
+class _AnimatedCounterState extends State<AnimatedCounter>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  double _oldValue = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _animation = Tween<double>(begin: _oldValue, end: widget.value).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(AnimatedCounter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      _oldValue = oldWidget.value;
+      _animation = Tween<double>(begin: _oldValue, end: widget.value).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+      );
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Text(
+          _animation.value.toStringAsFixed(0),
+          style: widget.style,
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+}
+
+
+----- FILE: lib/features/dashboard/widgets/notification_bell.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../../core/services/notifications/notification_service.dart';
+
+class NotificationBell extends StatefulWidget {
+  const NotificationBell({super.key});
+
+  @override
+  State<NotificationBell> createState() => _NotificationBellState();
+}
+
+class _NotificationBellState extends State<NotificationBell> {
+  final _service = GetIt.I<NotificationService>();
+  int _count = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _count = _service.unreadCount;
+    _service.notifications.listen((_) {
+      if (mounted) setState(() => _count = _service.unreadCount);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined),
+          onPressed: () => _showNotifications(context),
+        ),
+        if (_count > 0)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                _count.toString(),
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showNotifications(BuildContext context) {
+    _service.markAllRead();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final notifications = _service.all;
+        if (notifications.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: Text('لا توجد إشعارات 🎉', style: TextStyle(fontSize: 18))),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: notifications.length,
+          separatorBuilder: (_, _) => const Divider(),
+          itemBuilder: (_, i) {
+            final n = notifications[i];
+            IconData icon;
+            Color color;
+            switch (n.type) {
+              case NotificationType.achievement:
+                icon = Icons.emoji_events;
+                color = Colors.amber;
+                break;
+              case NotificationType.warning:
+                icon = Icons.warning;
+                color = Colors.orange;
+                break;
+              case NotificationType.deadline:
+                icon = Icons.schedule;
+                color = Colors.red;
+                break;
+              case NotificationType.motivational:
+                icon = Icons.favorite;
+                color = Colors.pink;
+                break;
+              default:
+                icon = Icons.info;
+                color = Colors.teal;
+            }
+            return ListTile(
+              leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.2), child: Icon(icon, color: color)),
+              title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(n.message),
+              trailing: Text(
+                '${n.timestamp.hour}:${n.timestamp.minute.toString().padLeft(2, '0')}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+
+----- FILE: lib/features/dashboard/widgets/target_gauge.dart -----
+import 'package:flutter/material.dart';
+import '../../../core/services/targets/target_service.dart';
+
+class TargetGauge extends StatelessWidget {
+  const TargetGauge({super.key, required this.target});
+  final SalesTarget target;
+
+  @override
+  Widget build(BuildContext context) {
+    final percentage = target.monthPercentage.clamp(0, 100) / 100;
+    final color = percentage >= 1
+        ? Colors.green
+        : percentage >= 0.8
+            ? Colors.orange
+            : Colors.teal;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('🎯 الهدف الشهري', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('${percentage.toStringAsFixed(0)}%'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: percentage,
+                minHeight: 12,
+                backgroundColor: Colors.grey.shade200,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('المحقق: ${target.achievedMonth.toStringAsFixed(0)} ريال'),
+                Text('المتبقي: ${target.monthRemaining.toStringAsFixed(0)} ريال'),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'متبقي ${target.monthDaysLeft} يوم',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/debts/debts_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../core/services/debts/debt_service.dart';
+
+class DebtsScreen extends StatefulWidget {
+  const DebtsScreen({super.key});
+
+  @override
+  State<DebtsScreen> createState() => _DebtsScreenState();
+}
+
+class _DebtsScreenState extends State<DebtsScreen> {
+  final _debtService = GetIt.I<DebtService>();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الديون والتحصيل'),
+        actions: [
+          IconButton(icon: const Icon(Icons.add), onPressed: () => _showAddDialog()),
+        ],
+      ),
+      body: StreamBuilder<List<DebtRecord>>(
+        stream: _debtService.debts,
+        initialData: _debtService.allDebts,
+        builder: (context, snapshot) {
+          final debts = snapshot.data ?? [];
+          if (debts.isEmpty) {
+            return const Center(child: Text('لا توجد ديون'));
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // ملخص
+              Card(
+                color: Colors.red.withValues(alpha: 0.1),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('إجمالي الديون: ${_debtService.totalUnpaid.toStringAsFixed(0)} ريال', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text('المتأخر: ${_debtService.totalOverdue.toStringAsFixed(0)} ريال', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...debts.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final debt = entry.value;
+                final isOverdue = !debt.isPaid && DateTime.now().isAfter(debt.dueDate);
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: Icon(isOverdue ? Icons.warning : Icons.schedule, color: isOverdue ? Colors.red : Colors.orange),
+                    title: Text(debt.customerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('المبلغ: ${debt.amount.toStringAsFixed(0)} ريال | الاستحقاق: ${debt.dueDate.day}/${debt.dueDate.month}/${debt.dueDate.year}'),
+                    trailing: debt.isPaid
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : IconButton(icon: const Icon(Icons.check), color: Colors.green, onPressed: () { _debtService.markPaid(idx); setState(() {}); }),
+                  ),
+                );
+              }),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAddDialog() {
+    final nameCtrl = TextEditingController();
+    final amountCtrl = TextEditingController();
+    DateTime dueDate = DateTime.now().add(const Duration(days: 30));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إضافة دين'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'اسم العميل')),
+            const SizedBox(height: 8),
+            TextField(controller: amountCtrl, decoration: const InputDecoration(labelText: 'المبلغ'), keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            ListTile(
+              title: Text('تاريخ الاستحقاق: ${dueDate.day}/${dueDate.month}/${dueDate.year}'),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () async {
+                final date = await showDatePicker(context: ctx, initialDate: dueDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                if (date != null) dueDate = date;
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              if (nameCtrl.text.isNotEmpty && amountCtrl.text.isNotEmpty) {
+                _debtService.addDebt(customerName: nameCtrl.text, amount: double.tryParse(amountCtrl.text) ?? 0, dueDate: dueDate);
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('إضافة'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/exchange_companies/exchange_companies_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class ExchangeCompaniesScreen extends StatefulWidget {
+  const ExchangeCompaniesScreen({super.key});
+
+  @override
+  State<ExchangeCompaniesScreen> createState() =>
+      _ExchangeCompaniesScreenState();
+}
+
+class _ExchangeCompaniesScreenState extends State<ExchangeCompaniesScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _search = TextEditingController();
+
+  List<Map<String, dynamic>> _companies = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final data = await _service.getAllExchangeCompanies();
+
+      if (!mounted) return;
+
+      setState(() {
+        _companies = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تعذر تحميل شركات الصرافة')));
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _search.text.trim().toLowerCase();
+
+    if (q.isEmpty) return _companies;
+
+    return _companies.where((company) {
+      final name = '${company['name'] ?? ''}'.toLowerCase();
+      final phone = '${company['phone'] ?? ''}'.toLowerCase();
+      final address = '${company['address'] ?? ''}'.toLowerCase();
+
+      return name.contains(q) || phone.contains(q) || address.contains(q);
+    }).toList();
+  }
+
+  Future<void> _showForm() async {
+    final name = TextEditingController();
+    final phone = TextEditingController();
+    final address = TextEditingController();
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('إضافة شركة صرافة'),
+          content: SizedBox(
+            width: 450,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: name,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      labelText: 'اسم الشركة *',
+                      prefixIcon: Icon(Icons.currency_exchange),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم الهاتف',
+                      prefixIcon: Icon(Icons.phone),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: address,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'العنوان',
+                      prefixIcon: Icon(Icons.location_on),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                final value = name.text.trim();
+
+                if (value.isEmpty) return;
+
+                await _service.createExchangeCompany(
+                  name: value,
+                  phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
+                );
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, true);
+                }
+              },
+              icon: const Icon(Icons.save),
+              label: const Text('حفظ'),
+            ),
+          ],
+        ),
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      name.dispose();
+      phone.dispose();
+      address.dispose();
+    }
+  }
+
+  Future<void> _delete(Map<String, dynamic> company) async {
+    final id = company['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف شركة الصرافة'),
+        content: Text('هل تريد حذف "${company['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteExchangeCompany(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكن حذف الشركة المرتبطة بعمليات')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final companies = _filtered;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('شركات الصرافة'),
+        actions: [
+          IconButton(
+            onPressed: _load,
+            tooltip: 'تحديث',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showForm,
+        icon: const Icon(Icons.add),
+        label: const Text('إضافة شركة'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث ذكي',
+                hintText: 'اسم الشركة أو الهاتف أو العنوان...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _search.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : companies.isEmpty
+                ? _empty()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: companies.length,
+                      itemBuilder: (_, index) {
+                        final company = companies[index];
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              child: Icon(Icons.currency_exchange),
+                            ),
+                            title: Text(
+                              '${company['name'] ?? ''}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: _subtitle(company),
+                            trailing: IconButton(
+                              tooltip: 'حذف',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _delete(company),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _subtitle(Map<String, dynamic> company) {
+    final phone = '${company['phone'] ?? ''}'.trim();
+    final address = '${company['address'] ?? ''}'.trim();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (phone.isNotEmpty) Text('الهاتف: $phone'),
+        if (address.isNotEmpty) Text('العنوان: $address'),
+        const Text('حساب شركة صرافة'),
+      ],
+    );
+  }
+
+  Widget _empty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.currency_exchange, size: 64),
+          const SizedBox(height: 12),
+          const Text(
+            'لا توجد شركات صرافة',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _showForm,
+            icon: const Icon(Icons.add),
+            label: const Text('إضافة أول شركة'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/items/item_card_screen.dart -----
+import 'package:flutter/material.dart';
+
+class ItemCardScreen extends StatelessWidget {
+
+  const ItemCardScreen({super.key, required this.item});
+  final Map<String, dynamic> item;
+
+  String _text(String key, [String fallback = '—']) {
+    final value = item[key];
+    if (value == null || '$value'.trim().isEmpty) return fallback;
+    return '$value';
+  }
+
+  String _money(String key) {
+    final value = item[key];
+    if (value == null) return '0';
+    return '$value';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isService = item['is_service'] == true;
+    final isActive = item['is_active'] != false;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('بطاقة الصنف')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _header(context, isService, isActive),
+          const SizedBox(height: 16),
+          _section('البيانات الأساسية', [
+            _row('رقم الصنف', _text('code')),
+            _row('اسم الصنف', _text('name')),
+            _row('الاسم بالإنجليزية', _text('name_en')),
+            _row('نوع الصنف', isService ? 'خدمة' : 'صنف مخزني'),
+            _row('التصنيف', _text('category')),
+            _row('الوحدة', _text('unit')),
+          ]),
+          const SizedBox(height: 12),
+          _section('الأسعار', [
+            _row('تكلفة الشراء', _money('cost')),
+            _row(isService ? 'سعر الخدمة' : 'سعر البيع', _money('price')),
+          ]),
+          if (!isService) ...[
+            const SizedBox(height: 12),
+            _section('المخزون', [
+              _row('الرصيد الافتتاحي', _money('opening_quantity')),
+              _row('الحد الأدنى', _money('minimum_quantity')),
+              _row('الحد الأعلى', _money('maximum_quantity')),
+            ]),
+          ],
+          const SizedBox(height: 12),
+          _section('الترميز والتعريف', [
+            _row('الباركود', _text('barcode')),
+            _row('SKU', _text('sku')),
+          ]),
+          const SizedBox(height: 12),
+          _section('الوصف والملاحظات', [
+            _row('الوصف', _text('description')),
+            _row('ملاحظات', _text('notes')),
+          ]),
+          const SizedBox(height: 12),
+          _section('الحالة', [
+            _row('حالة الصنف', isActive ? 'نشط' : 'متوقف'),
+            _row('نوع الاستخدام', isService ? 'خدمة' : 'مخزون'),
+          ]),
+          const SizedBox(height: 24),
+          _actions(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _header(BuildContext context, bool isService, bool isActive) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              child: Icon(
+                isService ? Icons.miscellaneous_services : Icons.inventory_2,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _text('name'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _text('code'),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  Chip(label: Text(isActive ? 'نشط' : 'متوقف')),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _section(String title, List<Widget> children) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 135,
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+
+  Widget _actions(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('سيتم ربط حركة المخزون في المرحلة التالية'),
+                ),
+              );
+            },
+            icon: const Icon(Icons.swap_vert),
+            label: const Text('حركات المخزون'),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('سيتم ربط التقارير في المرحلة التالية'),
+                ),
+              );
+            },
+            icon: const Icon(Icons.analytics_outlined),
+            label: const Text('تقارير الصنف'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+----- FILE: lib/features/items/items_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/master_data/master_data_service.dart';
+
+class ItemsScreen extends StatefulWidget {
+  const ItemsScreen({super.key});
+
+  @override
+  State<ItemsScreen> createState() => _ItemsScreenState();
+}
+
+class _ItemsScreenState extends State<ItemsScreen> {
+  final _service = GetIt.I<MasterDataService>();
+  final _searchController = TextEditingController();
+
+  List<Map<String, dynamic>> _items = [];
+  List<Map<String, dynamic>> _units = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      final results = await Future.wait([
+        _service.getAllItems(),
+        _service.getAllUnits(),
+      ]);
+
+      if (!mounted) return;
+
+      setState(() {
+        _items = results[0];
+        _units = results[1];
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تحميل بيانات الأصناف')),
+      );
+    }
+  }
+
+  List<Map<String, dynamic>> get _filteredItems {
+    final query = _searchController.text.trim().toLowerCase();
+
+    if (query.isEmpty) return _items;
+
+    return _items.where((item) {
+      final name = '${item['name'] ?? ''}'.toLowerCase();
+      final unit = '${item['unit'] ?? ''}'.toLowerCase();
+
+      return name.contains(query) || unit.contains(query);
+    }).toList();
+  }
+
+  Future<void> _showForm({Map<String, dynamic>? existing}) async {
+    final name = TextEditingController(text: '${existing?['name'] ?? ''}');
+
+    final cost = TextEditingController(
+      text: existing?['cost']?.toString() ?? '',
+    );
+
+    final price = TextEditingController(
+      text: existing?['price']?.toString() ?? '',
+    );
+
+    String? selectedUnit = existing?['unit'];
+
+    if (selectedUnit != null &&
+        !_units.any((u) => '${u['name']}' == selectedUnit)) {
+      selectedUnit = null;
+    }
+
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: Text(
+                  existing == null ? 'إضافة صنف جديد' : 'تعديل الصنف',
+                ),
+                content: SizedBox(
+                  width: 450,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: name,
+                          autofocus: true,
+                          decoration: const InputDecoration(
+                            labelText: 'اسم الصنف *',
+                            hintText: 'أدخل اسم الصنف',
+                            prefixIcon: Icon(Icons.inventory_2),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedUnit,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'وحدة القياس *',
+                            prefixIcon: Icon(Icons.straighten),
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _units
+                              .map(
+                                (unit) => DropdownMenuItem<String>(
+                                  value: '${unit['name']}',
+                                  child: Text('${unit['name']}'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            setDialogState(() => selectedUnit = value);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: cost,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'تكلفة الشراء',
+                            prefixIcon: Icon(Icons.shopping_cart),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: price,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'سعر البيع',
+                            prefixIcon: Icon(Icons.sell),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        if (_units.isEmpty) ...[
+                          const SizedBox(height: 12),
+                          const Text(
+                            'لا توجد وحدات قياس. أضف وحدة أولًا.',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: const Text('إلغاء'),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () async {
+                      final itemName = name.text.trim();
+
+                      if (itemName.isEmpty) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('اسم الصنف مطلوب')),
+                        );
+                        return;
+                      }
+
+                      if (selectedUnit == null) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(content: Text('اختر وحدة القياس')),
+                        );
+                        return;
+                      }
+
+                      final costValue = double.tryParse(cost.text.trim());
+
+                      final priceValue = double.tryParse(price.text.trim());
+
+                      try {
+                        if (existing == null) {
+                          await _service.createItem(
+                            name: itemName,
+                            unit: selectedUnit!,
+                            cost: costValue ?? 0,
+                            price: priceValue ?? 0,
+                          );
+                        } else {
+                          final id = existing['id'];
+
+                          if (id is! int) {
+                            throw Exception('معرف الصنف غير صالح');
+                          }
+
+                          await _service.updateItem(
+                            id,
+                            name: itemName,
+                            unit: selectedUnit!,
+                            cost: costValue ?? 0,
+                            price: priceValue ?? 0,
+                          );
+                        }
+
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, true);
+                        }
+                      } catch (_) {
+                        if (!dialogContext.mounted) return;
+
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('تعذر حفظ بيانات الصنف'),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.save),
+                    label: Text(existing == null ? 'حفظ' : 'حفظ التعديل'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (saved == true && mounted) {
+        await _load();
+      }
+    } finally {
+      name.dispose();
+      cost.dispose();
+      price.dispose();
+    }
+  }
+
+  Future<void> _deleteItem(Map<String, dynamic> item) async {
+    final id = item['id'];
+
+    if (id is! int) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف الصنف'),
+        content: Text('هل تريد حذف "${item['name'] ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _service.deleteItem(id);
+
+      if (!mounted) return;
+
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يمكن حذف الصنف لأنه مستخدم في بيانات أخرى'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _filteredItems;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الأصناف والمخزون'),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showForm(),
+        icon: const Icon(Icons.add),
+        label: const Text('إضافة صنف'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'بحث ذكي عن صنف',
+                hintText: 'الاسم أو الوحدة...',
+                prefixIcon:

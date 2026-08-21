@@ -2,9 +2,9 @@ import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 
 class LedgerRepository {
-  final AppDatabase _db;
 
   LedgerRepository(this._db);
+  final AppDatabase _db;
 
   Future<void> addLedgerEntry({
     required int journalEntryId,

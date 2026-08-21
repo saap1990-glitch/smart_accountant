@@ -1,14 +1,6 @@
 import 'package:flutter/material.dart';
 
 class MasterDataScreen extends StatefulWidget {
-  final String title;
-  final List<Map<String, dynamic>> data;
-  final List<String> columnKeys;
-  final List<String> columnTitles;
-  final Future<void> Function(Map<String, dynamic>) onSave;
-  final Future<void> Function(int) onDelete;
-  final List<Map<String, dynamic>> Function() getItems;
-  final void Function() refresh;
 
   const MasterDataScreen({
     super.key,
@@ -21,6 +13,14 @@ class MasterDataScreen extends StatefulWidget {
     required this.getItems,
     required this.refresh,
   });
+  final String title;
+  final List<Map<String, dynamic>> data;
+  final List<String> columnKeys;
+  final List<String> columnTitles;
+  final Future<void> Function(Map<String, dynamic>) onSave;
+  final Future<void> Function(int) onDelete;
+  final List<Map<String, dynamic>> Function() getItems;
+  final void Function() refresh;
 
   @override
   State<MasterDataScreen> createState() => _MasterDataScreenState();

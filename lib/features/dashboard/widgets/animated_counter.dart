@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
 class AnimatedCounter extends StatefulWidget {
-  final double value;
-  final TextStyle? style;
-  final Duration duration;
 
   const AnimatedCounter({
     super.key,
@@ -11,6 +8,9 @@ class AnimatedCounter extends StatefulWidget {
     this.style,
     this.duration = const Duration(milliseconds: 1500),
   });
+  final double value;
+  final TextStyle? style;
+  final Duration duration;
 
   @override
   State<AnimatedCounter> createState() => _AnimatedCounterState();

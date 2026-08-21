@@ -6,10 +6,10 @@ import '../audit/audit_service.dart';
 import '../logging/logger.dart';
 
 class TransactionManager {
-  final AuditService _audit;
-  final AppEventBus _eventBus;
 
   TransactionManager(this._audit, this._eventBus);
+  final AuditService _audit;
+  final AppEventBus _eventBus;
 
   Future<Result<T>> execute<T>({
     required Future<T> Function() operation,
@@ -50,6 +50,6 @@ class TransactionManager {
 }
 
 class TransactionCompleted {
-  final dynamic result;
   const TransactionCompleted(this.result);
+  final dynamic result;
 }

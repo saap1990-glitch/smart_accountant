@@ -68,7 +68,7 @@ class _NotificationBellState extends State<NotificationBell> {
         return ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: notifications.length,
-          separatorBuilder: (_, __) => const Divider(),
+          separatorBuilder: (_, _) => const Divider(),
           itemBuilder: (_, i) {
             final n = notifications[i];
             IconData icon;
@@ -95,7 +95,7 @@ class _NotificationBellState extends State<NotificationBell> {
                 color = Colors.teal;
             }
             return ListTile(
-              leading: CircleAvatar(backgroundColor: color.withOpacity(0.2), child: Icon(icon, color: color)),
+              leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.2), child: Icon(icon, color: color)),
               title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text(n.message),
               trailing: Text(

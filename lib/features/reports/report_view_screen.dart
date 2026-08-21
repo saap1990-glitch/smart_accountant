@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../core/services/reports/report_service.dart';
+import '../../core/services/pdf/pdf_service.dart';
+import '../../core/services/excel/excel_service.dart';
 
 class ReportViewScreen extends StatefulWidget {
+  const ReportViewScreen({super.key, required this.type, this.itemId});
   final String type;
-
-  const ReportViewScreen({super.key, required this.type});
+  final int? itemId;
 
   @override
   State<ReportViewScreen> createState() => _ReportViewScreenState();
@@ -31,6 +33,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   @override
   void initState() {
     super.initState();
+    _itemId = widget.itemId;
     _loadSources();
   }
 
@@ -89,7 +92,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         _items = items;
       });
 
-      if (!_needsAccount && !_needsItem) {
+      if ((!_needsAccount && !_needsItem) || (_needsItem && _itemId != null)) {
         await _loadReport();
       }
     } catch (e) {
@@ -229,7 +232,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     required ValueChanged<T?> onChanged,
   }) {
     return DropdownButtonFormField<T>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
@@ -417,6 +420,108 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     );
   }
 
+  Future<void> _exportPdf() async {
+    if (_data == null) {
+      _showError('لا توجد بيانات للتصدير');
+      return;
+    }
+    final pdfService = PdfService();
+    final List<String> headers = [];
+    final List<List<String>> rows = [];
+
+    if (_data is Map<String, dynamic>) {
+      final map = _data as Map<String, dynamic>;
+      map.forEach((key, value) {
+        if (value is! List && value is! Map) {
+          headers.add(key.toString());
+          rows.add(<String>[value is num ? _money(value) : _text(value)]);
+        }
+      });
+    } else if (_data is List && _data.isNotEmpty && _data.first is Map) {
+      final list = _data as List;
+      final firstMap = list.first as Map<String, dynamic>;
+      headers.addAll(
+        firstMap.keys
+            .where((k) => firstMap[k] is! List && firstMap[k] is! Map)
+            .map((e) => e.toString()),
+      );
+      rows.addAll(
+        list.map((e) {
+          final map = e as Map<String, dynamic>;
+          return headers.map((h) {
+            final value = map[h];
+            return value is num ? _money(value) : _text(value);
+          }).toList();
+        }),
+      );
+    }
+
+    if (rows.isEmpty) {
+      _showError('لا توجد بيانات قابلة للتصدير');
+      return;
+    }
+
+    await pdfService.printReport(
+      reportTitle: _title,
+      headers: headers,
+      rows: rows,
+    );
+  }
+
+  Future<void> _exportExcel() async {
+    if (_data == null) {
+      _showError('لا توجد بيانات للتصدير');
+      return;
+    }
+    final excelService = ExcelService();
+    final List<String> headers = [];
+    final List<List<String>> rows = [];
+
+    if (_data is Map<String, dynamic>) {
+      final map = _data as Map<String, dynamic>;
+      map.forEach((key, value) {
+        if (value is! List && value is! Map) {
+          headers.add(key.toString());
+          rows.add(<String>[value is num ? _money(value) : _text(value)]);
+        }
+      });
+    } else if (_data is List && _data.isNotEmpty && _data.first is Map) {
+      final list = _data as List;
+      final firstMap = list.first as Map<String, dynamic>;
+      headers.addAll(
+        firstMap.keys
+            .where((k) => firstMap[k] is! List && firstMap[k] is! Map)
+            .map((e) => e.toString()),
+      );
+      rows.addAll(
+        list.map((e) {
+          final map = e as Map<String, dynamic>;
+          return headers.map((h) {
+            final value = map[h];
+            return value is num ? _money(value) : _text(value);
+          }).toList();
+        }),
+      );
+    }
+
+    if (rows.isEmpty) {
+      _showError('لا توجد بيانات قابلة للتصدير');
+      return;
+    }
+
+    await excelService.exportToExcel(
+      title: _title,
+      headers: headers,
+      rows: rows,
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -426,6 +531,18 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           title: Text(_title),
           centerTitle: true,
           leading: Icon(_icon),
+          actions: [
+            IconButton(
+              tooltip: 'تصدير PDF',
+              icon: const Icon(Icons.picture_as_pdf),
+              onPressed: _exportPdf,
+            ),
+            IconButton(
+              tooltip: 'تصدير Excel',
+              icon: const Icon(Icons.grid_on),
+              onPressed: _exportExcel,
+            ),
+          ],
         ),
         body: RefreshIndicator(
           onRefresh: _loadReport,

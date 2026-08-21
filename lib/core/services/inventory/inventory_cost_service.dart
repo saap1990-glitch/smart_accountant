@@ -3,10 +3,6 @@ import 'package:drift/drift.dart';
 import '../../database/app_database.dart';
 
 class InventoryCostResult {
-  final double quantity;
-  final double averageCost;
-  final double stockValue;
-  final double costOfGoodsSold;
 
   const InventoryCostResult({
     required this.quantity,
@@ -14,12 +10,16 @@ class InventoryCostResult {
     required this.stockValue,
     required this.costOfGoodsSold,
   });
+  final double quantity;
+  final double averageCost;
+  final double stockValue;
+  final double costOfGoodsSold;
 }
 
 class InventoryCostService {
-  final AppDatabase _db;
 
   InventoryCostService(this._db);
+  final AppDatabase _db;
 
   Future<InventoryCostResult> calculateItemCost(int itemId) async {
     final movements =

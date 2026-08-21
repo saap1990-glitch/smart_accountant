@@ -3,9 +3,9 @@ import 'package:drift/drift.dart';
 import '../../database/app_database.dart';
 
 class InventoryMovementEngine {
-  final AppDatabase _db;
 
   InventoryMovementEngine(this._db);
+  final AppDatabase _db;
 
   Future<void> record({
     required int itemId,

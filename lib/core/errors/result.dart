@@ -5,11 +5,11 @@ sealed class Result<T> {
 }
 
 final class Success<T> extends Result<T> {
-  final T data;
   const Success(this.data);
+  final T data;
 }
 
 final class Failure<T> extends Result<T> {
-  final AppException exception;
   const Failure(this.exception);
+  final AppException exception;
 }

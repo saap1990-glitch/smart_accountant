@@ -199,7 +199,7 @@ class OperationsMenu extends StatelessWidget {
     ]);
   }
   Widget _tile(BuildContext context, String title, IconData icon, Color color, Widget screen) {
-    return Card(margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: ListTile(leading: CircleAvatar(backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color, size: 22)), title: Text(title), trailing: const Icon(Icons.arrow_forward_ios, size: 16), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen))));
+    return Card(margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: ListTile(leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), child: Icon(icon, color: color, size: 22)), title: Text(title), trailing: const Icon(Icons.arrow_forward_ios, size: 16), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen))));
   }
 }
 
@@ -227,6 +227,6 @@ class MasterDataMenu extends StatelessWidget {
     );
   }
   Widget _tile(BuildContext context, String title, IconData icon, Color color, Widget screen) {
-    return Card(margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: ListTile(leading: CircleAvatar(backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color, size: 22)), title: Text(title), trailing: const Icon(Icons.arrow_forward_ios, size: 16), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen))));
+    return Card(margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: ListTile(leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), child: Icon(icon, color: color, size: 22)), title: Text(title), trailing: const Icon(Icons.arrow_forward_ios, size: 16), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen))));
   }
 }

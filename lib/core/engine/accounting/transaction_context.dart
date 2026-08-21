@@ -6,10 +6,6 @@ enum TransactionType {
 }
 
 class JournalItem {
-  final int accountId;
-  final double debit;
-  final double credit;
-  final String? description;
 
   const JournalItem({
     required this.accountId,
@@ -17,16 +13,13 @@ class JournalItem {
     this.credit = 0,
     this.description,
   });
+  final int accountId;
+  final double debit;
+  final double credit;
+  final String? description;
 }
 
 class TransactionContext {
-  final TransactionType type;
-  final DateTime date;
-  final String? reference;
-  final List<JournalItem> items;
-  final String? currencyCode;
-  final double exchangeRate;
-  final Map<String, dynamic>? metadata;
 
   const TransactionContext({
     required this.type,
@@ -37,6 +30,13 @@ class TransactionContext {
     this.exchangeRate = 1.0,
     this.metadata,
   });
+  final TransactionType type;
+  final DateTime date;
+  final String? reference;
+  final List<JournalItem> items;
+  final String? currencyCode;
+  final double exchangeRate;
+  final Map<String, dynamic>? metadata;
 
   Result<void> validate() {
     if (items.isEmpty) {

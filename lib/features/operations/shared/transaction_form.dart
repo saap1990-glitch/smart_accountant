@@ -9,19 +9,6 @@ import '../../../core/engine/accounting/transaction_result.dart';
 import '../../../core/errors/result.dart';
 
 class TransactionForm extends StatefulWidget {
-  final String title;
-  final TransactionType transactionType;
-  final OperationService operationService;
-  final String amountLabel;
-  final String sourceLabel;
-  final List<String> sourceTypes;
-  final String? debitAccountPrefix;
-  final String? creditAccountPrefix;
-  final bool showMultiLines;
-  final bool showItems;
-  final bool showDestination;
-  final bool showCurrencyExchange;
-  final bool isInventory;
 
   const TransactionForm({
     super.key,
@@ -39,6 +26,19 @@ class TransactionForm extends StatefulWidget {
     this.showCurrencyExchange = false,
     this.isInventory = false,
   });
+  final String title;
+  final TransactionType transactionType;
+  final OperationService operationService;
+  final String amountLabel;
+  final String sourceLabel;
+  final List<String> sourceTypes;
+  final String? debitAccountPrefix;
+  final String? creditAccountPrefix;
+  final bool showMultiLines;
+  final bool showItems;
+  final bool showDestination;
+  final bool showCurrencyExchange;
+  final bool isInventory;
 
   @override
   State<TransactionForm> createState() => _TransactionFormState();

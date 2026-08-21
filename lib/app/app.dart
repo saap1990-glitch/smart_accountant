@@ -4,8 +4,8 @@ import '../features/auth/login_screen.dart';
 import '../features/dashboard/main_screen.dart';
 
 class SmartAccountantApp extends StatelessWidget {
-  final bool showLogin;
   const SmartAccountantApp({super.key, this.showLogin = true});
+  final bool showLogin;
 
   @override
   Widget build(BuildContext context) {

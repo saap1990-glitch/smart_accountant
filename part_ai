@@ -1,0 +1,1628 @@
+wFreeColumn: widget.config.showFreeQty,
+              onChanged: (items) {
+                double total = 0;
+                for (var item in items) {
+                  total += item.quantity * item.price;
+                }
+                setState(() => _totalAmount = total);
+              },
+            ),
+          ],
+
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.check_circle),
+            label: const Text('حفظ وترحيل'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: _submit,
+          ),
+          if (_statusText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                _statusText,
+                style: TextStyle(
+                  color: _statusText.startsWith('✅')
+                      ? Colors.green
+                      : Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _modeBtn(String label, PaymentMode mode, IconData icon, Color color) {
+    final selected = _paymentMode == mode;
+    return ElevatedButton.icon(
+      icon: Icon(icon),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: selected ? color : Colors.grey.shade200,
+        foregroundColor: selected ? Colors.white : Colors.black,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+      ),
+      onPressed: () => setState(() => _paymentMode = selected ? null : mode),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/shared/transaction_form.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../../core/services/operations/operation_service.dart';
+import '../../../core/services/master_data/master_data_service.dart';
+import '../../../core/services/accounting/accounting_link_service.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+import '../../../core/engine/accounting/transaction_result.dart';
+import '../../../core/errors/result.dart';
+
+class TransactionForm extends StatefulWidget {
+
+  const TransactionForm({
+    super.key,
+    required this.title,
+    required this.transactionType,
+    required this.operationService,
+    required this.amountLabel,
+    required this.sourceLabel,
+    required this.sourceTypes,
+    this.debitAccountPrefix,
+    this.creditAccountPrefix,
+    this.showMultiLines = false,
+    this.showItems = false,
+    this.showDestination = false,
+    this.showCurrencyExchange = false,
+    this.isInventory = false,
+  });
+  final String title;
+  final TransactionType transactionType;
+  final OperationService operationService;
+  final String amountLabel;
+  final String sourceLabel;
+  final List<String> sourceTypes;
+  final String? debitAccountPrefix;
+  final String? creditAccountPrefix;
+  final bool showMultiLines;
+  final bool showItems;
+  final bool showDestination;
+  final bool showCurrencyExchange;
+  final bool isInventory;
+
+  @override
+  State<TransactionForm> createState() => _TransactionFormState();
+}
+
+class _TransactionFormState extends State<TransactionForm> {
+  final _formKey = GlobalKey<FormState>();
+
+  final _dataService = GetIt.I<MasterDataService>();
+  final _linkService = GetIt.I<AccountingLinkService>();
+
+  DateTime _selectedDate = DateTime.now();
+  double _amount = 0;
+
+  String? _selectedSourceType;
+  String? _selectedEntityId;
+  String? _selectedDestinationEntityId;
+
+  String _currencyCode = 'YER';
+  double _exchangeRate = 1.0;
+
+  String _statusText = '';
+
+  List<Map<String, dynamic>> _sources = [];
+  List<Map<String, dynamic>> _destinations = [];
+
+  int? _sourceAccountId;
+  int? _destinationAccountId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSources();
+  }
+
+  Future<void> _loadSources() async {
+    final List<Map<String, dynamic>> data = [];
+
+    for (final type in widget.sourceTypes) {
+      switch (type.toLowerCase()) {
+        case 'صندوق':
+        case 'cash':
+          data.addAll(
+            (await _dataService.getAllCashBoxes()).map(
+              (e) => {
+                'id': e['id'],
+                'name': e['name'],
+                'type': 'cash_boxes',
+                'entityType': 'CashBox',
+              },
+            ),
+          );
+          break;
+
+        case 'بنك':
+        case 'bank':
+          data.addAll(
+            (await _dataService.getAllBanks()).map(
+              (e) => {
+                'id': e['id'],
+                'name': e['name'],
+                'type': 'banks',
+                'entityType': 'Bank',
+              },
+            ),
+          );
+          break;
+
+        case 'محفظة':
+        case 'wallet':
+          data.addAll(
+            (await _dataService.getAllWallets()).map(
+              (e) => {
+                'id': e['id'],
+                'name': e['name'],
+                'type': 'wallets',
+                'entityType': 'Wallet',
+              },
+            ),
+          );
+          break;
+
+        case 'عميل':
+        case 'customer':
+          data.addAll(
+            (await _dataService.getAllCustomers()).map(
+              (e) => {
+                'id': e['id'],
+                'name': e['name'],
+                'type': 'customers',
+                'entityType': 'Customer',
+              },
+            ),
+          );
+          break;
+
+        case 'مورد':
+        case 'supplier':
+          data.addAll(
+            (await _dataService.getAllSuppliers()).map(
+              (e) => {
+                'id': e['id'],
+                'name': e['name'],
+                'type': 'suppliers',
+                'entityType': 'Supplier',
+              },
+            ),
+          );
+          break;
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _sources = data;
+      _destinations = List<Map<String, dynamic>>.from(data);
+    });
+  }
+
+  Future<int?> _resolveAccount(Map<String, dynamic>? entity) async {
+    if (entity == null) return null;
+
+    final id = entity['id'];
+    final module = entity['type'];
+    final entityType = entity['entityType'];
+
+    if (id == null || module == null || entityType == null) {
+      return null;
+    }
+
+    return _linkService.getLinkedAccount(module, entityType, id.toString());
+  }
+
+  Future<void> _selectSource(String? value) async {
+    if (value == null) return;
+
+    final entity = _sources.firstWhere(
+      (e) => '${e['type']}:${e['id']}' == value,
+      orElse: () => {},
+    );
+
+    final accountId = await _resolveAccount(entity);
+
+    if (!mounted) return;
+
+    setState(() {
+      _selectedEntityId = value;
+      _sourceAccountId = accountId;
+    });
+  }
+
+  Future<void> _selectDestination(String? value) async {
+    if (value == null) return;
+
+    final entity = _destinations.firstWhere(
+      (e) => '${e['type']}:${e['id']}' == value,
+      orElse: () => {},
+    );
+
+    final accountId = await _resolveAccount(entity);
+
+    if (!mounted) return;
+
+    setState(() {
+      _selectedDestinationEntityId = value;
+      _destinationAccountId = accountId;
+    });
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    _formKey.currentState!.save();
+
+    if (_amount <= 0) {
+      setState(() => _statusText = 'يجب إدخال مبلغ أكبر من صفر');
+      return;
+    }
+
+    if (_sourceAccountId == null || _sourceAccountId! <= 0) {
+      setState(() => _statusText = 'الحساب المرتبط بالمصدر غير موجود');
+      return;
+    }
+
+    if (widget.showDestination &&
+        (_destinationAccountId == null || _destinationAccountId! <= 0)) {
+      setState(() => _statusText = 'يجب اختيار الوجهة والحساب المرتبط بها');
+      return;
+    }
+
+    final items = <JournalItem>[];
+
+    if (widget.showDestination) {
+      items.add(JournalItem(accountId: _destinationAccountId!, debit: _amount));
+
+      items.add(JournalItem(accountId: _sourceAccountId!, credit: _amount));
+    } else {
+      switch (widget.transactionType) {
+        case TransactionType.receipt:
+          items.add(JournalItem(accountId: _sourceAccountId!, debit: _amount));
+          break;
+
+        case TransactionType.payment:
+          items.add(JournalItem(accountId: _sourceAccountId!, credit: _amount));
+          break;
+
+        default:
+          setState(
+            () => _statusText =
+                'هذه العملية تحتاج حساب الطرف المقابل قبل الترحيل',
+          );
+          return;
+      }
+
+      setState(
+        () => _statusText =
+            'لم يتم تحديد حساب الطرف المقابل؛ لم يتم إنشاء قيد ناقص',
+      );
+      return;
+    }
+
+    final result = await widget.operationService.execute(
+      type: widget.transactionType,
+      date: _selectedDate,
+      items: items,
+      currencyCode: _currencyCode,
+      exchangeRate: _exchangeRate,
+      reference: widget.title,
+    );
+
+    if (!mounted) return;
+
+    switch (result) {
+      case Success(data: final TransactionResult res):
+        setState(() => _statusText = res.message ?? 'تم تنفيذ العملية بنجاح');
+
+      case Failure(exception: final e):
+        setState(() => _statusText = e.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            ListTile(
+              title: Text('التاريخ: ${_selectedDate.toLocal()}'.split(' ')[0]),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                );
+
+                if (date != null) {
+                  setState(() => _selectedDate = date);
+                }
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            TextFormField(
+              decoration: InputDecoration(labelText: widget.amountLabel),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              validator: (value) {
+                final amount = double.tryParse(value ?? '');
+
+                if (amount == null || amount <= 0) {
+                  return 'أدخل مبلغًا صحيحًا أكبر من صفر';
+                }
+
+                return null;
+              },
+              onSaved: (value) {
+                _amount = double.tryParse(value ?? '') ?? 0;
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            if (_sources.isNotEmpty)
+              DropdownButtonFormField<String>(
+                initialValue: _selectedEntityId,
+                decoration: InputDecoration(labelText: widget.sourceLabel),
+                items: _sources.map((entity) {
+                  final value = '${entity['type']}:${entity['id']}';
+
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(entity['name']?.toString() ?? ''),
+                  );
+                }).toList(),
+                onChanged: _selectSource,
+                validator: (value) {
+                  if (value == null) {
+                    return 'يجب اختيار المصدر';
+                  }
+
+                  return null;
+                },
+              ),
+
+            if (widget.showDestination) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedDestinationEntityId,
+                decoration: const InputDecoration(labelText: 'الوجهة'),
+                items: _destinations.map((entity) {
+                  final value = '${entity['type']}:${entity['id']}';
+
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(entity['name']?.toString() ?? ''),
+                  );
+                }).toList(),
+                onChanged: _selectDestination,
+                validator: (value) {
+                  if (value == null) {
+                    return 'يجب اختيار الوجهة';
+                  }
+
+                  return null;
+                },
+              ),
+            ],
+
+            if (widget.showCurrencyExchange) ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: _currencyCode,
+                decoration: const InputDecoration(labelText: 'العملة'),
+                onChanged: (value) {
+                  _currencyCode = value.trim().isEmpty ? 'YER' : value.trim();
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: '1',
+                decoration: const InputDecoration(labelText: 'سعر الصرف'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                onChanged: (value) {
+                  _exchangeRate = double.tryParse(value) ?? 1.0;
+                },
+              ),
+            ],
+
+            const SizedBox(height: 20),
+
+            ElevatedButton.icon(
+              onPressed: _submit,
+              icon: const Icon(Icons.check),
+              label: const Text('تنفيذ وترحيل'),
+            ),
+
+            if (_statusText.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(_statusText, textAlign: TextAlign.center),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/shared/widgets/item_card_widget.dart -----
+import 'package:flutter/material.dart';
+
+class ItemCardEntry {
+
+  ItemCardEntry({
+    this.itemId,
+    required this.itemName,
+    this.unit,
+    this.quantity = 1,
+    this.price = 0,
+    this.freeQuantity = 0,
+    this.discount = 0,
+  });
+  String? itemId;
+  String itemName;
+  String? unit;
+  double quantity;
+  double price;
+  double freeQuantity;
+  double discount;
+}
+
+class ItemCardWidget extends StatefulWidget {
+
+  const ItemCardWidget({
+    super.key,
+    required this.items,
+    required this.availableItems,
+    this.showPriceColumn = true,
+    this.showFreeColumn = true,
+    required this.onChanged,
+  });
+  final List<ItemCardEntry> items;
+  final List<Map<String, dynamic>> availableItems;
+  final bool showPriceColumn;
+  final bool showFreeColumn;
+  final ValueChanged<List<ItemCardEntry>> onChanged;
+
+  @override
+  State<ItemCardWidget> createState() => _ItemCardWidgetState();
+}
+
+class _ItemCardWidgetState extends State<ItemCardWidget> {
+  final _searchCtrl = TextEditingController();
+  final _qtyCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
+  final _freeCtrl = TextEditingController();
+  final _discountCtrl = TextEditingController();
+  Map<String, dynamic>? _selectedItem;
+
+  List<Map<String, dynamic>> _filteredItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredItems = widget.availableItems;
+  }
+
+  void _searchItems(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredItems = widget.availableItems;
+      } else {
+        _filteredItems = widget.availableItems.where((item) => (item['name'] ?? '').toString().toLowerCase().contains(query.toLowerCase())).toList();
+      }
+    });
+  }
+
+  double get _total {
+    double total = 0;
+    for (var item in widget.items) {
+      total += item.quantity * item.price - item.discount;
+    }
+    return total;
+  }
+
+  void _addItem() {
+    if (_selectedItem == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر صنفاً أولاً')));
+      return;
+    }
+    final qty = double.tryParse(_qtyCtrl.text) ?? 1;
+    final price = double.tryParse(_priceCtrl.text) ?? double.tryParse(_selectedItem!['price']?.toString() ?? '0') ?? 0;
+    final free = double.tryParse(_freeCtrl.text) ?? 0;
+    final discount = double.tryParse(_discountCtrl.text) ?? 0;
+
+    widget.items.add(ItemCardEntry(
+      itemId: _selectedItem!['id']?.toString(),
+      itemName: _selectedItem!['name'] ?? '',
+      unit: _selectedItem!['unit'] ?? '',
+      quantity: qty,
+      price: price,
+      freeQuantity: free,
+      discount: discount,
+    ));
+    widget.onChanged(widget.items);
+    setState(() {
+      _selectedItem = null;
+      _qtyCtrl.clear();
+      _priceCtrl.clear();
+      _freeCtrl.clear();
+      _discountCtrl.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.items.isNotEmpty) ...[
+          const Text('الأصناف المضافة:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          ...widget.items.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final item = entry.value;
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: ListTile(
+                leading: CircleAvatar(backgroundColor: Colors.teal.withValues(alpha: 0.1), child: const Icon(Icons.inventory, color: Colors.teal)),
+                title: Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text('الكمية: ${item.quantity} | السعر: ${item.price} | الإجمالي: ${(item.quantity * item.price - item.discount).toStringAsFixed(2)}'),
+                trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () { widget.items.removeAt(idx); widget.onChanged(widget.items); setState(() {}); }),
+              ),
+            );
+          }),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text('الإجمالي: ${_total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal)),
+          ),
+          const Divider(),
+        ],
+
+        // قسم إضافة صنف
+        const Text('إضافة صنف جديد:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+
+        // اختيار الصنف
+        Autocomplete<Map<String, dynamic>>(
+          displayStringForOption: (option) => '${option['name']} (${option['unit'] ?? ''})',
+          optionsBuilder: (textEditingValue) {
+            if (textEditingValue.text.isEmpty) return _filteredItems.take(15);
+            return _filteredItems.where((item) => (item['name'] ?? '').toString().toLowerCase().contains(textEditingValue.text.toLowerCase())).take(15);
+          },
+          onSelected: (selected) {
+            setState(() {
+              _selectedItem = selected;
+              _priceCtrl.text = selected['price']?.toString() ?? '0';
+            });
+          },
+          fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: const InputDecoration(labelText: '🔍 ابحث عن الصنف', border: OutlineInputBorder(), prefixIcon: Icon(Icons.search)),
+              onSubmitted: (v) => onSubmitted(),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+
+        // حقول الكمية والسعر
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _qtyCtrl,
+                decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder(), hintText: 'أدخل الكمية'),
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (widget.showPriceColumn)
+              Expanded(
+                child: TextField(
+                  controller: _priceCtrl,
+                  decoration: const InputDecoration(labelText: 'السعر', border: OutlineInputBorder(), hintText: 'سعر الوحدة'),
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (widget.showFreeColumn)
+          TextField(
+            controller: _freeCtrl,
+            decoration: const InputDecoration(labelText: 'الكمية المجانية', border: OutlineInputBorder(), hintText: '0 = لا يوجد مجاني'),
+            keyboardType: TextInputType.number,
+          ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _discountCtrl,
+          decoration: const InputDecoration(labelText: 'الخصم (مبلغ)', border: OutlineInputBorder(), hintText: '0 = لا يوجد خصم'),
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 12),
+
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.add_shopping_cart),
+            label: const Text('إضافة الصنف'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+            onPressed: _addItem,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/transfer_bank/transfer_bank_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class TransferBankScreen extends StatelessWidget {
+  const TransferBankScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const SmartOperationForm(
+    config: OperationConfig(
+      title: 'تحويل بنكي',
+      transactionType: TransactionType.transfer,
+      showBankSource: true,
+      showDebitAccount: true,
+      showCreditAccount: true,
+    ),
+  );
+}
+
+
+----- FILE: lib/features/operations/transfer_cash/transfer_cash_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class TransferCashScreen extends StatelessWidget {
+  const TransferCashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const SmartOperationForm(
+    config: OperationConfig(
+      title: 'تحويل نقدي بين الخزائن',
+      transactionType: TransactionType.transfer,
+      showCashSource: true,
+      showDebitAccount: true,
+      showCreditAccount: true,
+    ),
+  );
+}
+
+
+----- FILE: lib/features/operations/transfer_wallet/transfer_wallet_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class TransferWalletScreen extends StatelessWidget {
+  const TransferWalletScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const SmartOperationForm(
+    config: OperationConfig(
+      title: 'تحويل بين المحافظ',
+      transactionType: TransactionType.transfer,
+      showDebitAccount: true,
+      showCreditAccount: true,
+    ),
+  );
+}
+
+
+----- FILE: lib/features/reports/report_view_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/reports/report_service.dart';
+
+class ReportViewScreen extends StatefulWidget {
+
+  const ReportViewScreen({super.key, required this.type});
+  final String type;
+
+  @override
+  State<ReportViewScreen> createState() => _ReportViewScreenState();
+}
+
+class _ReportViewScreenState extends State<ReportViewScreen> {
+  final ReportService _service = GetIt.I<ReportService>();
+
+  DateTime _from = DateTime.now();
+  DateTime _to = DateTime.now();
+
+  int? _accountId;
+  int? _itemId;
+
+  List<Map<String, dynamic>> _accounts = [];
+  List<Map<String, dynamic>> _items = [];
+
+  dynamic _data;
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSources();
+  }
+
+  String get _title {
+    switch (widget.type) {
+      case 'general':
+        return 'دفتر الأستاذ العام';
+      case 'trial':
+        return 'ميزان المراجعة';
+      case 'income':
+        return 'قائمة الدخل';
+      case 'balance':
+        return 'الميزانية العمومية';
+      case 'cash':
+        return 'التدفقات النقدية';
+      case 'profit':
+        return 'تقرير الأرباح';
+      case 'inventory':
+        return 'تقرير المخزون';
+      case 'item':
+        return 'حركة الصنف';
+      default:
+        return 'التقرير';
+    }
+  }
+
+  IconData get _icon {
+    switch (widget.type) {
+      case 'trial':
+        return Icons.account_balance;
+      case 'income':
+      case 'profit':
+        return Icons.trending_up;
+      case 'balance':
+        return Icons.balance;
+      case 'cash':
+        return Icons.payments;
+      case 'inventory':
+        return Icons.inventory_2;
+      case 'item':
+        return Icons.swap_vert;
+      default:
+        return Icons.description;
+    }
+  }
+
+  Future<void> _loadSources() async {
+    try {
+      final accounts = await _service.getAccounts();
+      final items = await _service.getItems();
+
+      if (!mounted) return;
+
+      setState(() {
+        _accounts = accounts;
+        _items = items;
+      });
+
+      if (!_needsAccount && !_needsItem) {
+        await _loadReport();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
+    }
+  }
+
+  bool get _needsAccount => widget.type == 'general';
+
+  bool get _needsItem => widget.type == 'item';
+
+  Future<void> _loadReport() async {
+    if (_needsAccount && _accountId == null) {
+      setState(() => _error = 'اختر الحساب أولاً');
+      return;
+    }
+
+    if (_needsItem && _itemId == null) {
+      setState(() => _error = 'اختر الصنف أولاً');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      dynamic result;
+
+      switch (widget.type) {
+        case 'general':
+          result = await _service.generalLedger(
+            accountId: _accountId!,
+            from: _from,
+            to: _to,
+          );
+          break;
+
+        case 'trial':
+          result = await _service.trialBalance(_to);
+          break;
+
+        case 'income':
+          result = await _service.incomeStatement(from: _from, to: _to);
+          break;
+
+        case 'balance':
+          result = await _service.balanceSheet(_to);
+          break;
+
+        case 'cash':
+          result = await _service.cashFlow(from: _from, to: _to);
+          break;
+
+        case 'profit':
+          result = await _service.profitReport(from: _from, to: _to);
+          break;
+
+        case 'inventory':
+          result = await _service.inventoryReport();
+          break;
+
+        case 'item':
+          result = await _service.itemMovementReport(
+            itemId: _itemId!,
+            from: _from,
+            to: _to,
+          );
+          break;
+
+        default:
+          throw Exception('نوع التقرير غير معروف');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _data = result;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _pickDate(bool from) async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: from ? _from : _to,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      locale: const Locale('ar'),
+    );
+
+    if (selected == null) return;
+
+    setState(() {
+      if (from) {
+        _from = selected;
+      } else {
+        _to = selected;
+      }
+    });
+  }
+
+  String _date(DateTime date) {
+    return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _money(dynamic value) {
+    if (value == null) return '0.00';
+
+    if (value is num) {
+      return value.toStringAsFixed(2);
+    }
+
+    return double.tryParse(value.toString())?.toStringAsFixed(2) ??
+        value.toString();
+  }
+
+  String _text(dynamic value) {
+    return value?.toString() ?? '';
+  }
+
+  Widget _selector<T>({
+    required String label,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return DropdownButtonFormField<T>(
+      initialValue: value,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      items: items,
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _filters() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickDate(true),
+                    icon: const Icon(Icons.date_range),
+                    label: Text('من ${_date(_from)}'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickDate(false),
+                    icon: const Icon(Icons.event),
+                    label: Text('إلى ${_date(_to)}'),
+                  ),
+                ),
+              ],
+            ),
+            if (_needsAccount) ...[
+              const SizedBox(height: 12),
+              _selector<int>(
+                label: 'الحساب',
+                value: _accountId,
+                items: _accounts
+                    .map((account) {
+                      final id = int.tryParse('${account['id']}');
+                      return DropdownMenuItem<int>(
+                        value: id,
+                        child: Text(
+                          '${account['number'] ?? ''} - ${account['name_ar'] ?? account['name_en'] ?? ''}',
+                        ),
+                      );
+                    })
+                    .where((e) => e.value != null)
+                    .toList(),
+                onChanged: (value) {
+                  setState(() => _accountId = value);
+                },
+              ),
+            ],
+            if (_needsItem) ...[
+              const SizedBox(height: 12),
+              _selector<int>(
+                label: 'الصنف',
+                value: _itemId,
+                items: _items
+                    .map((item) {
+                      final id = int.tryParse('${item['id']}');
+                      return DropdownMenuItem<int>(
+                        value: id,
+                        child: Text('${item['name'] ?? ''}'),
+                      );
+                    })
+                    .where((e) => e.value != null)
+                    .toList(),
+                onChanged: (value) {
+                  setState(() => _itemId = value);
+                },
+              ),
+            ],
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _loading ? null : _loadReport,
+                icon: const Icon(Icons.search),
+                label: const Text('عرض التقرير'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMap(Map<String, dynamic> map) {
+    return Column(
+      children: map.entries
+          .where((e) => e.value is! List && e.value is! Map)
+          .map(
+            (e) => Card(
+              child: ListTile(
+                title: Text(e.key),
+                trailing: Text(
+                  e.value is num ? _money(e.value) : _text(e.value),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildList(List list) {
+    if (list.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(30),
+          child: Center(child: Text('لا توجد بيانات لهذا التقرير')),
+        ),
+      );
+    }
+
+    return Column(
+      children: list.map((row) {
+        if (row is! Map) {
+          return Card(child: ListTile(title: Text(_text(row))));
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: row.entries
+                  .where((e) => e.value is! List && e.value is! Map)
+                  .map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              e.key,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Flexible(
+                            child: Text(
+                              e.value is num ? _money(e.value) : _text(e.value),
+                              textAlign: TextAlign.end,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _reportBody() {
+    if (_data == null) {
+      return const SizedBox.shrink();
+    }
+
+    if (_data is Map<String, dynamic>) {
+      return _buildMap(_data);
+    }
+
+    if (_data is List) {
+      return _buildList(_data);
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text(_text(_data)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_title),
+          centerTitle: true,
+          leading: Icon(_icon),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _loadReport,
+          child: ListView(
+            padding: const EdgeInsets.all(14),
+            children: [
+              Card(
+                elevation: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      CircleAvatar(radius: 28, child: Icon(_icon, size: 30)),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _title,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 5),
+                            Text('${_date(_from)} → ${_date(_to)}'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _filters(),
+              const SizedBox(height: 16),
+              if (_loading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(30),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              if (_error != null)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ),
+              if (!_loading && _error == null) _reportBody(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/reports/reports_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../core/services/reports/report_service.dart';
+import 'report_view_screen.dart';
+
+class ReportsScreen extends StatelessWidget {
+  const ReportsScreen({super.key});
+
+  ReportService get service => GetIt.I<ReportService>();
+
+  @override
+  Widget build(BuildContext context) {
+    final reports = <_ReportItem>[
+      const _ReportItem(
+        'دفتر الأستاذ العام',
+        Icons.menu_book,
+        Colors.indigo,
+        'general',
+      ),
+      const _ReportItem('ميزان المراجعة', Icons.balance, Colors.teal, 'trial'),
+      const _ReportItem('قائمة الدخل', Icons.trending_up, Colors.green, 'income'),
+      const _ReportItem(
+        'الميزانية العمومية',
+        Icons.account_balance,
+        Colors.blue,
+        'balance',
+      ),
+      const _ReportItem('التدفقات النقدية', Icons.payments, Colors.orange, 'cash'),
+      const _ReportItem('الأرباح', Icons.show_chart, Colors.purple, 'profit'),
+      const _ReportItem('المخزون', Icons.inventory_2, Colors.brown, 'inventory'),
+      const _ReportItem('حركة الأصناف', Icons.swap_vert, Colors.cyan, 'items'),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('مركز التقارير'),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            icon: const Icon(Icons.refresh),
+            onPressed: () {},
+          ),
+        ],
+      ),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 420,
+          mainAxisExtent: 118,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: reports.length,
+        itemBuilder: (_, i) {
+          final r = reports[i];
+          return Card(
+            elevation: 1,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReportViewScreen(
+                      type: r.type,
+                    ),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 27,
+                      backgroundColor: r.color.withValues(alpha: .12),
+                      child: Icon(r.icon, color: r.color),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        r.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ReportItem {
+
+  const _ReportItem(this.title, this.icon, this.color, this.type);
+  final String title;
+  final IconData icon;
+  final Color color;
+  final String type;
+}
+
+
+----- FILE: lib/features/settings/advanced_settings_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class AdvancedSettingsScreen extends StatefulWidget {
+  const AdvancedSettingsScreen({super.key});
+
+  @override
+  State<AdvancedSettingsScreen> createState() => _AdvancedSettingsScreenState();
+}
+
+class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
+  final _storage = const FlutterSecureStorage();
+
+  bool _sendWhatsApp = false;
+  bool _voiceAssistant = true;
+  bool _showCurrency = true;
+  bool _yearlyClose = false;
+  bool _preventNegativeSale = true;
+  bool _showOperationNumber = true;
+  bool _debtAlert = true;
+  bool _darkMode = false;
+  bool _showTotalOperations = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    _sendWhatsApp = await _storage.read(key: 'send_whatsapp') == 'true';
+    _voiceAssistant = await _storage.read(key: 'voice_assistant') != 'false';
+    _showCurrency = await _storage.read(key: 'show_currency') != 'false';
+    _yearlyClose = await _storage.read(key: 'yearly_close') == 'true';
+    _preventNegativeSale = await _storage.read(key: 'prevent_negative') != 'false';
+    _showOperationNumber = await _storage.read(key: 'show_op_number') != 'false';
+    _debtAlert = await _storage.read(key: 'debt_alert') != 'false';
+    _darkMode = await _storage.read(key: 'dark_mode') == 'true';
+    _showTotalOperations = await _storage.read(key: 'show_totals') != 'false';
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _save(String key, bool value) async {
+    await _storage.write(key: key, value: value.toString());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الخيارات المتقدمة')),
+      body: ListView(
+        children: [
+          _section('التواصل'),
+          _sw('إرسال كشف الحساب عبر الواتساب', 'مشاركة مباشرة مع العميل', _sendWhatsApp, (v) { setState(() => _sendWhatsApp = v); _save('send_whatsapp', v); }),
+
+          _section('المساعد الذكي'),
+          _sw('تفعيل المساعد الصوتي', 'الأوامر بالصوت', _voiceAssistant, (v) { setState(() => _voiceAssistant = v); _save('voice_assistant', v); }),
+
+          _section('العمليات'),
+          _sw('منع البيع بالسالب', 'رقابة صارمة على المخزون', _preventNegativeSale, (v) { setState(() => _preventNegativeSale = v); _save('prevent_negative', v); }),
+          _sw('إظهار رقم العملية', 'في جميع الشاشات', _showOperationNumber, (v) { setState(() => _showOperationNumber = v); _save('show_op_number', v); }),
+          _sw('إجمالي العمليات أسفل الحساب', 'عرض المجاميع', _showTotalOperations, (v) { setState(() => _showTotalOperations = v); _save('show_totals', v); }),
+
+          _section('التنبيهات'),
+          _sw('تنبيه الديون المستحقة', 'إشعار عند وجود ديون', _debtAlert, (v) { setState(() => _debtAlert = v); _save('debt_alert', v); }),
+
+          _section('العرض'),
+          _sw('إظهار العملات', 'عملات متعددة في الشاشات', _showCurrency, (v) { setState(() => _showCurrency = v); _save('show_currency', v); }),
+          _sw('الوضع الليلي', 'Dark Mode', _darkMode, (v) { setState(() => _darkMode = v); _save('dark_mode', v); }),
+
+          _section('الإغلاق'),
+          _sw('الإغلاق السنوي', 'تصفير الإيرادات والمصروفات', _yearlyClose, (v) { setState(() => _yearlyClose = v); _save('yearly_close', v); }),
+
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _section(String title) {
+    return Padding(padding: const EdgeInsets.fromLTRB(16, 20, 16, 4), child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.teal)));
+  }
+
+  Widget _sw(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile(title: Text(title), subtitle: Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)), value: value, onChanged: onChanged);
+  }
+}
+
+
+----- FILE: lib/features/settings/backup_settings_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../core/services/backup/backup_service.dart';
+
+class BackupSettingsScreen extends StatefulWidget {
+  const BackupSettingsScreen({super.key});
+
+  @override
+  State<BackupSettingsScreen> createState() => _BackupSettingsScreenState();
+}
+
+class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
+  final _backup = GetIt.I<BackupService>();
+  bool _autoBackup = false;
+  String _backupTime = '22:00';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    _autoBackup = await _backup.autoBackupEnabled;
+    _backupTime = await _backup.backupTime ?? '22:00';
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _restore() async {
+    try {
+      final result = await FilePicker.pickFiles(type: FileType.any);
+      if (result.isNotEmpty) {
+        final path = result.first.path;
+        if (path != null) {
+          final ok = await _backup.importBackup(path);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? '✅ تمت الاستعادة' : '❌ فشلت')));
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل اختيار الملف')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('النسخ الاحتياطي والاستعادة')),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        SwitchListTile(
+          title: const Text('حفظ يومي تلقائي'),
+          value: _autoBackup,
+          onChanged: (v) async {
+            setState(() => _autoBackup = v);
+            await _backup.setAutoBackup(v);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.access_time),
+          title: const Text('وقت الحفظ'),
+          subtitle: Text(_backupTime),
+          onTap: () async {
+            final time = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 22, minute: 0));
+            if (time != null) {
+              final formatted = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+              setState(() => _backupTime = formatted);
+              await _backup.setBackupTime(formatted);
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(child: ElevatedButton.icon(icon: const Icon(Icons.backup), label: const Text('نسخ الآن'), onPressed: () => _backup.shareBackup())),
+          const SizedBox(width: 8),
+          Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.restore), label: const Text('استعادة'), onPressed: _restore)),
+        ]),
+      ]),
+    );
+  }
+}
+
+
+----- FILE: lib/features/settings/print_screen.dart -----
+import 'package:flutter/material.dart';
+
+class PrintSettingsScreen extends StatefulWidget {
+  const PrintSettingsScreen({super.key});
+
+  @override
+  State<PrintSettingsScreen> createState() => _PrintSettingsScreenState();
+}
+
+class _PrintSettingsScreenState extends State<PrintSettingsScreen> {
+  bool _showData = true;
+  bool _showDate = true;
+  bool _showSummary = false;
+  bool _showBalance = true;
+  bool _showDebit = true;
+  bool _showCredit = true;
+  final _headerCtrl = TextEditingController();
+  final _footerCtrl = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('خيارات الطباعة')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          SwitchListTile(
+            title: const Text('إظهار البيانات'),
+            subtitle: const Text('اسم الشركة والعنوان'),
+            value: _showData,
+            onChanged: (v) => setState(() => _showData = v),
+          ),
+          SwitchListTile(
+            title: const Text('إظهار التاريخ'),
+            value: _showDate,
+            onChanged: (v) => setState(() => _showDate = v),
+          ),
+          SwitchListTile(
+            title: const Text('طباعة البيانات المختصرة'),
+            value: _showSummary,
+            onChanged: (v) => setState(() => _showSummary = v),
+          ),
+          SwitchListTile(
+            title: const Text('طباعة الرصيد المتبقي'),
+            value: _showBalance,
+            onChanged: (v) => setState(() => _showBalance = v),
+          ),
+          SwitchListTile(
+            title: const Text('🔻 إظهار المدين'),
+            value: _showDebit,
+            onChanged: (v) => setState(() => _showDebit = v),
+          ),
+          SwitchListTile(
+            title: const Text('🔺 إظهار الدائن'),
+            value: _showCredit,
+            onChanged: (v) => setState(() => _showCredit = v),
+          ),
+          const Divider(),
+          const Text('ترويسة وتذييل', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _headerCtrl,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'الترويسة (أعلى الصفحة)',
+              hintText: 'مثال: شركة النجاح التجارية - صنعاء',
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _footerCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'التذييل (أسفل الصفحة)',
+              hintText: 'مثال: شكراً لتعاملكم معنا',
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.save),
+            label: const Text('حفظ الإعدادات'),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('تم حفظ إعدادات الطباعة ✅')),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _headerCtrl.dispose();
+    _foot

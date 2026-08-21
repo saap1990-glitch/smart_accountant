@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import '../../../core/services/operations/operation_service.dart';
 import '../../../core/services/master_data/master_data_service.dart';
+import '../../../core/services/inventory/item_movement_service.dart';
 import '../../../core/services/numbering/number_generator.dart';
 import '../../../core/services/inventory/inventory_journal_service.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/engine/accounting/transaction_context.dart';
 import '../../../core/errors/result.dart';
+import '../../../core/services/pdf/pdf_service.dart';
 import 'widgets/item_card_widget.dart';
 
 enum PaymentMode { cash, bank, credit }
@@ -80,25 +83,6 @@ extension OperationConfigSmartRules on OperationConfig {
 }
 
 class OperationConfig {
-  final String title;
-  final TransactionType transactionType;
-  final bool showPaymentMode;
-  final bool showCustomer;
-  final bool showSupplier;
-  final bool showItems;
-  final bool showCashSource;
-  final bool showBankSource;
-  final bool showWarehouse;
-  final bool showDestinationWarehouse;
-  final bool showCreditAccount;
-  final bool showDebitAccount;
-  final bool showInvoiceNumber;
-  final bool isReturn;
-  final bool isInventoryOut;
-  final bool isInventoryIn;
-  final bool showPrice;
-  final bool showFreeQty;
-
   const OperationConfig({
     required this.title,
     required this.transactionType,
@@ -119,11 +103,29 @@ class OperationConfig {
     this.showPrice = true,
     this.showFreeQty = true,
   });
+  final String title;
+  final TransactionType transactionType;
+  final bool showPaymentMode;
+  final bool showCustomer;
+  final bool showSupplier;
+  final bool showItems;
+  final bool showCashSource;
+  final bool showBankSource;
+  final bool showWarehouse;
+  final bool showDestinationWarehouse;
+  final bool showCreditAccount;
+  final bool showDebitAccount;
+  final bool showInvoiceNumber;
+  final bool isReturn;
+  final bool isInventoryOut;
+  final bool isInventoryIn;
+  final bool showPrice;
+  final bool showFreeQty;
 }
 
 class SmartOperationForm extends StatefulWidget {
-  final OperationConfig config;
   const SmartOperationForm({super.key, required this.config});
+  final OperationConfig config;
 
   @override
   State<SmartOperationForm> createState() => _SmartOperationFormState();
@@ -140,6 +142,9 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
   String? _operationNumber;
   String _statusText = '';
   PaymentMode? _paymentMode;
+  bool _preventNegativeSale = true;
+  bool _showCurrency = true;
+  bool _showOperationNumber = true;
 
   Future<int?> _getSystemAccountId(String code) async {
     final row =
@@ -186,7 +191,7 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
 
   // العملة
   String _currencyCode = 'YER';
-  double _exchangeRate = 1.0;
+  final double _exchangeRate = 1.0;
   List<Map<String, dynamic>> _currencies = [];
 
   final _invoiceNumberCtrl = TextEditingController();
@@ -198,8 +203,18 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     _loadData();
     _generateNumber();
+  }
+
+  Future<void> _loadSettings() async {
+    const storage = FlutterSecureStorage();
+    _preventNegativeSale =
+        await storage.read(key: 'prevent_negative') != 'false';
+    _showCurrency = await storage.read(key: 'show_currency') != 'false';
+    _showOperationNumber = await storage.read(key: 'show_op_number') != 'false';
+    if (mounted) setState(() {});
   }
 
   Future<void> _generateNumber() async {
@@ -363,6 +378,30 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
   }
 
   Future<void> _submit() async {
+    if (_preventNegativeSale &&
+        widget.config.transactionType == TransactionType.sale &&
+        _items.isNotEmpty) {
+      final movementService = GetIt.I<ItemMovementService>();
+      for (final item in _items) {
+        if (item.itemId == null) continue;
+        final available = await movementService.getAvailableQuantity(
+          item.itemId!,
+        );
+        if (item.quantity > available) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '❌ الكمية المطلوبة للصنف ${item.itemName} أكبر من المتاح ($available)',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
+
     if (_totalAmount <= 0 &&
         _items.isEmpty &&
         double.tryParse(_amountCtrl.text) == null) {
@@ -419,6 +458,7 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
             backgroundColor: Colors.green,
           ),
         );
+        _showPrintButton = true;
       case Failure(exception: final e):
         setState(() => _statusText = '❌ ${e.message}');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -427,6 +467,46 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
             backgroundColor: Colors.red,
           ),
         );
+    }
+  }
+
+  bool _showPrintButton = false;
+
+  Future<void> _printResult() async {
+    final pdfService = PdfService();
+    if (_items.isNotEmpty) {
+      await pdfService.printInvoiceModern(
+        title: widget.config.title,
+        number: _operationNumber ?? '',
+        date:
+            '${_selectedDate.year}/${_selectedDate.month}/${_selectedDate.day}',
+        customerName: _selectedCustomerId != null
+            ? _customers
+                      .firstWhere((c) => c['id'] == _selectedCustomerId)['name']
+                      ?.toString() ??
+                  ''
+            : '',
+        items: _items
+            .map(
+              (e) => {
+                'name': e.itemName,
+                'quantity': e.quantity,
+                'price': e.price,
+              },
+            )
+            .toList(),
+        total: _totalAmount,
+      );
+    } else {
+      await pdfService.printReceipt(
+        title: widget.config.title,
+        number: _operationNumber ?? '',
+        date:
+            '${_selectedDate.year}/${_selectedDate.month}/${_selectedDate.day}',
+        accountName: 'العملية',
+        amount: double.tryParse(_amountCtrl.text) ?? _totalAmount,
+        description: _descriptionCtrl.text,
+      );
     }
   }
 
@@ -451,12 +531,12 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (_operationNumber != null)
+          if (_showOperationNumber && _operationNumber != null)
             Container(
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: Colors.teal.withOpacity(0.1),
+                color: Colors.teal.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -481,19 +561,20 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
             },
           ),
           const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: 'العملة'),
-            value: _currencyCode,
-            items: _currencies
-                .map(
-                  (c) => DropdownMenuItem<String>(
-                    value: c['code'] as String?,
-                    child: Text('${c['name']} (${c['code']})'),
-                  ),
-                )
-                .toList(),
-            onChanged: (v) => setState(() => _currencyCode = v!),
-          ),
+          if (_showCurrency)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'العملة'),
+              initialValue: _currencyCode,
+              items: _currencies
+                  .map(
+                    (c) => DropdownMenuItem<String>(
+                      value: c['code'] as String?,
+                      child: Text('${c['name']} (${c['code']})'),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _currencyCode = v!),
+            ),
           const SizedBox(height: 8),
           if (widget.config.showPaymentMode)
             Row(
@@ -538,7 +619,7 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
           if (_paymentMode == PaymentMode.cash && widget.config.showCashSource)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'اختر الصندوق'),
-              value: _selectedCashBoxId?.toString(),
+              initialValue: _selectedCashBoxId?.toString(),
               items: _cashBoxes
                   .map(
                     (c) => DropdownMenuItem<String>(
@@ -567,7 +648,7 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
           if (_paymentMode == PaymentMode.bank && widget.config.showBankSource)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'نوع الحساب'),
-              value: _selectedBankSourceType,
+              initialValue: _selectedBankSourceType,
               items: const [
                 DropdownMenuItem(value: 'bank', child: Text('بنك')),
                 DropdownMenuItem(value: 'wallet', child: Text('محفظة')),
@@ -582,7 +663,7 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
           if (_selectedBankSourceType == 'bank')
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'اختر البنك'),
-              value: _selectedBankSourceId?.toString(),
+              initialValue: _selectedBankSourceId?.toString(),
               items: _banks
                   .map(
                     (b) => DropdownMenuItem<String>(
@@ -608,7 +689,7 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
           if (_paymentMode == PaymentMode.credit && widget.config.showCustomer)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'اختر العميل'),
-              value: _selectedCustomerId?.toString(),
+              initialValue: _selectedCustomerId?.toString(),
               items: _customers
                   .map(
                     (c) => DropdownMenuItem<String>(
@@ -632,7 +713,7 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
           if (_paymentMode == PaymentMode.credit && widget.config.showSupplier)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'اختر المورد'),
-              value: _selectedSupplierId?.toString(),
+              initialValue: _selectedSupplierId?.toString(),
               items: _suppliers
                   .map(
                     (s) => DropdownMenuItem<String>(
@@ -658,7 +739,7 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
           if (widget.config.showDebitAccount)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'الحساب المدين'),
-              value: _selectedDebitAccountId?.toString(),
+              initialValue: _selectedDebitAccountId?.toString(),
               items: _postingAccounts
                   .map(
                     (a) => DropdownMenuItem<String>(
@@ -677,7 +758,7 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
           if (widget.config.showCreditAccount)
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'الحساب الدائن'),
-              value: _selectedCreditAccountId?.toString(),
+              initialValue: _selectedCreditAccountId?.toString(),
               items: _postingAccounts
                   .map(
                     (a) => DropdownMenuItem<String>(
@@ -740,14 +821,26 @@ class _SmartOperationFormState extends State<SmartOperationForm> {
           if (_statusText.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                _statusText,
-                style: TextStyle(
-                  color: _statusText.startsWith('✅')
-                      ? Colors.green
-                      : Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    _statusText,
+                    style: TextStyle(
+                      color: _statusText.startsWith('✅')
+                          ? Colors.green
+                          : Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (_showPrintButton) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.print),
+                      label: const Text('طباعة العملية'),
+                      onPressed: _printResult,
+                    ),
+                  ],
+                ],
               ),
             ),
         ],

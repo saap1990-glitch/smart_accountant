@@ -93,9 +93,9 @@ class _TargetsScreenState extends State<TargetsScreen> {
 }
 
 class _TargetCard extends StatelessWidget {
+  const _TargetCard({required this.target, this.isOverall = false});
   final SalesTarget target;
   final bool isOverall;
-  const _TargetCard({required this.target, this.isOverall = false});
 
   @override
   Widget build(BuildContext context) {

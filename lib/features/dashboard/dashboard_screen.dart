@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/di/service_locator.dart';
 import '../../core/services/reports/report_service.dart';
+import '../../core/services/debts/debt_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -51,6 +52,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _trialBalance = results[2] as List<Map<String, dynamic>>;
         _loading = false;
       });
+
+      // التحقق من تنبيهات الديون
+      final debtService = sl<DebtService>();
+      final alert = debtService.getDebtAlert();
+      if (alert.isNotEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(alert), duration: const Duration(seconds: 5)),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -344,9 +354,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class _Metric {
+  const _Metric({required this.title, required this.value, required this.icon});
   final String title;
   final String value;
   final IconData icon;
-
-  const _Metric({required this.title, required this.value, required this.icon});
 }

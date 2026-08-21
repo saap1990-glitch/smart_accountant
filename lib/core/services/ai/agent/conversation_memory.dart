@@ -1,8 +1,4 @@
 class ConversationMessage {
-  final String role; // user, assistant, system
-  final String content;
-  final DateTime timestamp;
-  final Map<String, dynamic>? metadata;
 
   ConversationMessage({
     required this.role,
@@ -10,6 +6,10 @@ class ConversationMessage {
     DateTime? timestamp,
     this.metadata,
   }) : timestamp = timestamp ?? DateTime.now();
+  final String role; // user, assistant, system
+  final String content;
+  final DateTime timestamp;
+  final Map<String, dynamic>? metadata;
 }
 
 class ConversationMemory {

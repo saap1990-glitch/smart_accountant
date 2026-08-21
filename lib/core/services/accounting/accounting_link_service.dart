@@ -3,9 +3,8 @@ import 'package:drift/drift.dart';
 import '../../database/app_database.dart';
 
 class AccountingLinkService {
-  final AppDatabase _db;
-
   AccountingLinkService(this._db);
+  final AppDatabase _db;
 
   Future<int> createAndLink({
     required String module,
@@ -417,34 +416,6 @@ class AccountingLinkService {
       nature: r,
       parentId: p,
       level: 3,
-    );
-  }
-
-  Future<void> _default45(
-    int p,
-    String n,
-    String ar,
-    String en,
-    String t,
-    String r,
-  ) async {
-    final l4 = await _ensureAccount(
-      number: n,
-      nameAr: ar,
-      nameEn: en,
-      type: t,
-      nature: r,
-      parentId: p,
-      level: 4,
-    );
-    await _ensureAccount(
-      number: '${n}01',
-      nameAr: '${ar} - رئيسي',
-      nameEn: '${en} - Main',
-      type: t,
-      nature: r,
-      parentId: l4,
-      level: 5,
     );
   }
 

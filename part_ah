@@ -1,0 +1,1507 @@
+ const Icon(Icons.search),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : items.isEmpty
+                ? _emptyState()
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: items.length,
+                      itemBuilder: (_, index) {
+                        return _itemCard(items[index]);
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _itemCard(Map<String, dynamic> item) {
+    final name = '${item['name'] ?? ''}';
+    final unit = '${item['unit'] ?? ''}';
+
+    final cost = item['cost'];
+    final price = item['price'];
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.inventory_2)),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            children: [
+              Text('الوحدة: $unit'),
+              Text('التكلفة: ${cost ?? 0}'),
+              Text('البيع: ${price ?? 0}'),
+            ],
+          ),
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit') {
+              _showForm(existing: item);
+            } else if (value == 'delete') {
+              _deleteItem(item);
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'edit', child: Text('تعديل')),
+            PopupMenuItem(value: 'delete', child: Text('حذف')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.inventory_2,
+            size: 64,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'لا توجد أصناف',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          const Text('ابدأ بإضافة أصنافك ووحدات القياس الخاصة بها'),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => _showForm(),
+            icon: const Icon(Icons.add),
+            label: const Text('إضافة أول صنف'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/currency_exchange/currency_exchange_screen.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../../core/services/operations/operation_service.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+import '../shared/transaction_form.dart';
+
+class CurrencyExchangeScreen extends StatelessWidget {
+  const CurrencyExchangeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = GetIt.I<OperationService>();
+    return TransactionForm(
+      title: 'تحويل عملات',
+      transactionType: TransactionType.transfer,
+      operationService: service,
+      amountLabel: 'المبلغ المحول',
+      sourceLabel: 'من عملة',
+      sourceTypes: const ['عملة'],
+      debitAccountPrefix: null,
+      creditAccountPrefix: null,
+      showCurrencyExchange: true,
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/inventory_count/inventory_count_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../../core/engine/accounting/transaction_context.dart';
+
+class InventoryCountScreen extends StatelessWidget {
+  const InventoryCountScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const SmartOperationForm(
+      config: OperationConfig(
+        title: 'تحويل مخزني',
+        transactionType: TransactionType.transfer,
+        showWarehouse: true,
+        showDestinationWarehouse: true,
+        showItems: true,
+        showPrice: false,
+        showFreeQty: false,
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/inventory_in/inventory_in_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class InventoryInScreen extends StatelessWidget {
+  const InventoryInScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const SmartOperationForm(
+    config: OperationConfig(
+      title: 'توريد مخزني',
+      transactionType: TransactionType.transfer,
+      showWarehouse: true,
+      showItems: true,
+      showCreditAccount: true,
+      showPrice: false,
+      showFreeQty: false,
+      isInventoryIn: true,
+    ),
+  );
+}
+
+
+----- FILE: lib/features/operations/inventory_out/inventory_out_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class InventoryOutScreen extends StatelessWidget {
+  const InventoryOutScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const SmartOperationForm(
+    config: OperationConfig(
+      title: 'صرف مخزني',
+      transactionType: TransactionType.transfer,
+      showWarehouse: true,
+      showItems: true,
+      showDebitAccount: true,
+      showPrice: false,
+      showFreeQty: false,
+      isInventoryOut: true,
+    ),
+  );
+}
+
+
+----- FILE: lib/features/operations/journal/journal_screen.dart -----
+import 'package:flutter/material.dart';
+import '../../../core/services/accounting/system_account_resolver.dart';
+import 'package:get_it/get_it.dart';
+import '../../../core/services/operations/operation_service.dart';
+import '../../../core/services/master_data/master_data_service.dart';
+import '../../../core/services/numbering/number_generator.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+import '../../../core/errors/result.dart';
+
+class JournalEntryLine {
+
+  JournalEntryLine({
+    this.accountId,
+    this.accountName,
+    this.accountNumber,
+    this.debit = 0,
+    this.credit = 0,
+    this.description,
+  });
+  int? accountId;
+  String? accountName;
+  String? accountNumber;
+  double debit;
+  double credit;
+  String? description;
+}
+
+class JournalScreen extends StatefulWidget {
+  const JournalScreen({super.key});
+
+  @override
+  State<JournalScreen> createState() => _JournalScreenState();
+}
+
+class _JournalScreenState extends State<JournalScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _opService = GetIt.I<OperationService>();
+  final _systemResolver = GetIt.I<SystemAccountResolver>();
+  final _dataService = GetIt.I<MasterDataService>();
+  final _numberGen = GetIt.I<NumberGenerator>();
+
+  DateTime _selectedDate = DateTime.now();
+  final _descriptionCtrl = TextEditingController();
+  final _referenceCtrl = TextEditingController();
+  String _currencyCode = 'YER';
+  double _exchangeRate = 1.0;
+  String? _generatedNumber;
+  String _statusText = '';
+
+  final List<JournalEntryLine> _lines = [];
+  List<Map<String, dynamic>> _accounts = [];
+  List<Map<String, dynamic>> _currencies = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _addLine();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final accounts = await _dataService.getAllAccounts();
+    if (mounted) {
+      setState(() {
+        _accounts = accounts;
+        _currencies = [
+          {'code': 'YER', 'name': 'ريال يمني'},
+          {'code': 'USD', 'name': 'دولار أمريكي'},
+          {'code': 'SAR', 'name': 'ريال سعودي'},
+        ];
+      });
+    }
+  }
+
+  void _addLine() {
+    setState(() {
+      _lines.add(JournalEntryLine());
+    });
+  }
+
+  void _removeLine(int index) {
+    if (_lines.length > 2) {
+      setState(() {
+        _lines.removeAt(index);
+      });
+    }
+  }
+
+  double get _totalDebit => _lines.fold(0, (sum, line) => sum + line.debit);
+  double get _totalCredit => _lines.fold(0, (sum, line) => sum + line.credit);
+  double get _difference => (_totalDebit - _totalCredit).abs();
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
+
+    // التحقق من توازن القيد
+    if (_difference > 0.001) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('⚠️ القيد غير متوازن! الفرق: ${_difference.toStringAsFixed(2)}'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (_totalDebit == 0 && _totalCredit == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ لا يمكن أن تكون جميع المبالغ صفراً'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+
+    final items = _lines.where((l) => l.accountId != null).map((line) {
+      return JournalItem(
+        accountId: line.accountId!,
+        debit: line.debit,
+        credit: line.credit,
+        description: line.description,
+      );
+    }).toList();
+
+    final result = await _opService.execute(
+      type: TransactionType.journal,
+      date: _selectedDate,
+      items: items,
+      reference: '${_referenceCtrl.text} - ${_descriptionCtrl.text}',
+      currencyCode: _currencyCode,
+      exchangeRate: _exchangeRate,
+    );
+
+    if (!mounted) return;
+
+    switch (result) {
+      case Success(data: final res):
+        setState(() {
+          _generatedNumber = res.entryNumber;
+          _statusText = '✅ تم ترحيل القيد بنجاح - ${res.entryNumber}';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ تم ترحيل القيد: ${res.entryNumber}'), backgroundColor: Colors.green),
+        );
+      case Failure(exception: final e):
+        setState(() => _statusText = '❌ ${e.message}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ ${e.message}'), backgroundColor: Colors.red),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('قيد يومية'),
+        actions: [
+          IconButton(icon: const Icon(Icons.print), tooltip: 'طباعة', onPressed: () {}),
+          IconButton(icon: const Icon(Icons.search), tooltip: 'بحث', onPressed: () {}),
+          IconButton(icon: const Icon(Icons.history), tooltip: 'عرض القيود', onPressed: () {}),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // التاريخ
+            ListTile(
+              title: Text('التاريخ: ${_selectedDate.toLocal()}'.split(' ')[0]),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context, initialDate: _selectedDate,
+                  firstDate: DateTime(2020), lastDate: DateTime(2030),
+                );
+                if (date != null && mounted) setState(() => _selectedDate = date);
+              },
+            ),
+            const SizedBox(height: 8),
+
+            // العملة وسعر الصرف
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'العملة'),
+                    initialValue: _currencyCode,
+                    items: _currencies.map((c) => DropdownMenuItem<String>(value: c['code'], child: Text('${c['name']}'))).toList(),
+                    onChanged: (v) => setState(() => _currencyCode = v!),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (_currencyCode != 'YER')
+                  Expanded(
+                    child: TextFormField(
+                      decoration: const InputDecoration(labelText: 'سعر الصرف'),
+                      keyboardType: TextInputType.number,
+                      initialValue: '1.0',
+                      onChanged: (v) => _exchangeRate = double.tryParse(v) ?? 1.0,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // البيان
+            TextFormField(
+              controller: _descriptionCtrl,
+              decoration: const InputDecoration(labelText: 'البيان', hintText: 'وصف القيد'),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 8),
+
+            // رقم المرجع
+            TextFormField(
+              controller: _referenceCtrl,
+              decoration: const InputDecoration(labelText: 'رقم المرجع'),
+            ),
+            const SizedBox(height: 16),
+
+            // رأس الجدول
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              color: Colors.teal.withValues(alpha: 0.1),
+              child: const Row(
+                children: [
+                  Expanded(flex: 3, child: Text('الحساب', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 2, child: Text('مدين', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 2, child: Text('دائن', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 2, child: Text('البيان', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
+                  SizedBox(width: 40),
+                ],
+              ),
+            ),
+
+            // أسطر القيد
+            ..._lines.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final line = entry.value;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    // اختيار الحساب
+                    Expanded(
+                      flex: 3,
+                      child: Autocomplete<Map<String, dynamic>>(
+                        displayStringForOption: (option) => '${option['number']} - ${option['name_ar'] ?? option['name_en']}',
+                        optionsBuilder: (textEditingValue) {
+                          if (textEditingValue.text.isEmpty) return _accounts.take(20);
+                          return _accounts.where((a) =>
+                            (a['name_ar']?.toString().contains(textEditingValue.text) ?? false) ||
+                            (a['number']?.toString().contains(textEditingValue.text) ?? false)
+                          ).take(20);
+                        },
+                        onSelected: (selected) {
+                          setState(() {
+                            _lines[idx].accountId = selected['id'] as int;
+                            _lines[idx].accountName = selected['name_ar'] ?? selected['name_en'];
+                            _lines[idx].accountNumber = selected['number'];
+                          });
+                        },
+                        fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+                          return TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            decoration: InputDecoration(
+                              hintText: 'بحث عن حساب...',
+                              isDense: true,
+                              suffixText: line.accountNumber ?? '',
+                            ),
+                            onSubmitted: (v) => onSubmitted(),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // مدين
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        decoration: const InputDecoration(hintText: '0', isDense: true),
+                        keyboardType: TextInputType.number,
+                        initialValue: line.debit > 0 ? line.debit.toString() : '',
+                        onChanged: (v) => setState(() => _lines[idx].debit = double.tryParse(v) ?? 0),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // دائن
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        decoration: const InputDecoration(hintText: '0', isDense: true),
+                        keyboardType: TextInputType.number,
+                        initialValue: line.credit > 0 ? line.credit.toString() : '',
+                        onChanged: (v) => setState(() => _lines[idx].credit = double.tryParse(v) ?? 0),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // البيان
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        decoration: const InputDecoration(hintText: 'بيان', isDense: true),
+                        onChanged: (v) => setState(() => _lines[idx].description = v),
+                      ),
+                    ),
+                    // حذف
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
+                      onPressed: () => _removeLine(idx),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            const SizedBox(height: 8),
+
+            // إضافة سطر
+            OutlinedButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('إضافة سطر'),
+              onPressed: _addLine,
+            ),
+
+            const SizedBox(height: 12),
+
+            // ملخص الأرصدة
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _difference > 0.001 ? Colors.red.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Text('مدين: ${_totalDebit.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('دائن: ${_totalCredit.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    'الفرق: ${_difference.toStringAsFixed(2)}',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: _difference > 0.001 ? Colors.red : Colors.green),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // أزرار
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.check_circle),
+                  label: const Text('ترحيل القيد'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  onPressed: _submit,
+                ),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.save),
+                  label: const Text('حفظ كمسودة'),
+                  onPressed: () {},
+                ),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.clear),
+                  label: const Text('إلغاء'),
+                  onPressed: () => _formKey.currentState?.reset(),
+                ),
+              ],
+            ),
+
+            if (_statusText.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(_statusText, style: TextStyle(
+                  color: _statusText.startsWith('✅') ? Colors.green : Colors.red,
+                  fontWeight: FontWeight.bold,
+                )),
+              ),
+            if (_generatedNumber != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text('رقم القيد: $_generatedNumber', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/payment/payment_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../../core/engine/accounting/transaction_context.dart';
+
+class PaymentScreen extends StatelessWidget {
+  const PaymentScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const SmartOperationForm(
+      config: OperationConfig(
+        title: 'سند صرف',
+        transactionType: TransactionType.payment,
+        showPaymentMode: true,
+        showCashSource: true,
+        showBankSource: true,
+        showDebitAccount: true,
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/payment_screen.dart -----
+import 'package:flutter/material.dart';
+import 'shared/smart_operation_form.dart';
+import '../../core/engine/accounting/transaction_context.dart';
+
+class PaymentScreen extends StatelessWidget {
+  const PaymentScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SmartOperationForm(
+      config: OperationConfig(
+        title: 'سند صرف',
+        transactionType: TransactionType.payment,
+        showPaymentMode: true,
+        showCashSource: true,
+        showBankSource: true,
+        showDebitAccount: true,
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/purchase/purchase_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class PurchaseScreen extends StatelessWidget {
+  const PurchaseScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SmartOperationForm(
+      config: OperationConfig(
+        title: 'فاتورة شراء',
+        transactionType: TransactionType.purchase,
+        showPaymentMode: true,
+        showSupplier: true,
+        showCashSource: true,
+        showBankSource: true,
+        showDebitAccount: true,
+        showWarehouse: true,
+        showItems: true,
+        showInvoiceNumber: true,
+        showPrice: true,
+        showFreeQty: true,
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/purchase_return/purchase_return_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class PurchaseReturnScreen extends StatelessWidget {
+  const PurchaseReturnScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SmartOperationForm(
+      config: OperationConfig(
+        title: 'مرتجع مشتريات',
+        transactionType: TransactionType.purchase,
+        showSupplier: true,
+        showInvoiceNumber: true,
+        showWarehouse: true,
+        showItems: true,
+        showPrice: true,
+        showFreeQty: true,
+        isReturn: true,
+        isInventoryOut: true,
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/receipt/receipt_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class ReceiptScreen extends StatelessWidget {
+  const ReceiptScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SmartOperationForm(
+      config: OperationConfig(
+        title: 'سند قبض',
+        transactionType: TransactionType.receipt,
+        showPaymentMode: true,
+        showCashSource: true,
+        showBankSource: true,
+        showCreditAccount: true,
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/sale/sale_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class SaleScreen extends StatelessWidget {
+  const SaleScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SmartOperationForm(
+      config: OperationConfig(
+        title: 'فاتورة بيع',
+        transactionType: TransactionType.sale,
+        showPaymentMode: true,
+        showCustomer: true,
+        showCashSource: true,
+        showBankSource: true,
+        showCreditAccount: true,
+        showWarehouse: true,
+        showItems: true,
+        showInvoiceNumber: true,
+        showPrice: true,
+        showFreeQty: true,
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/sale_return/sale_return_screen.dart -----
+import 'package:flutter/material.dart';
+import '../shared/smart_operation_form.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+
+class SaleReturnScreen extends StatelessWidget {
+  const SaleReturnScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SmartOperationForm(
+      config: OperationConfig(
+        title: 'مرتجع مبيعات',
+        transactionType: TransactionType.sale,
+        showCustomer: true,
+        showInvoiceNumber: true,
+        showWarehouse: true,
+        showItems: true,
+        showPrice: true,
+        showFreeQty: true,
+        isReturn: true,
+        isInventoryIn: true,
+      ),
+    );
+  }
+}
+
+
+----- FILE: lib/features/operations/shared/smart_operation_form.dart -----
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import '../../../core/services/operations/operation_service.dart';
+import '../../../core/services/master_data/master_data_service.dart';
+import '../../../core/services/numbering/number_generator.dart';
+import '../../../core/services/inventory/inventory_journal_service.dart';
+import '../../../core/database/app_database.dart';
+import '../../../core/engine/accounting/transaction_context.dart';
+import '../../../core/errors/result.dart';
+import 'widgets/item_card_widget.dart';
+
+enum PaymentMode { cash, bank, credit }
+
+extension OperationConfigSmartRules on OperationConfig {
+  bool get needsPaymentMode {
+    // سند القبض والدفع يمثل حركة مالية فعلية،
+    // لذلك لا يحتوي على خيار "آجل".
+    if (transactionType == TransactionType.receipt ||
+        transactionType == TransactionType.payment) {
+      return false;
+    }
+
+    return showPaymentMode ||
+        transactionType == TransactionType.sale ||
+        transactionType == TransactionType.purchase;
+  }
+
+  bool get needsCustomer =>
+      showCustomer ||
+      (transactionType == TransactionType.sale &&
+          isReturn == false &&
+          paymentModeRequiredForCustomer);
+
+  bool get needsSupplier =>
+      showSupplier ||
+      (transactionType == TransactionType.purchase &&
+          isReturn == false &&
+          paymentModeRequiredForSupplier);
+
+  bool get paymentModeRequiredForCustomer =>
+      showCustomer && transactionType == TransactionType.sale;
+
+  bool get paymentModeRequiredForSupplier =>
+      showSupplier && transactionType == TransactionType.purchase;
+
+  bool get needsItems =>
+      showItems ||
+      transactionType == TransactionType.sale ||
+      transactionType == TransactionType.purchase;
+
+  bool get needsWarehouse => showWarehouse || needsItems;
+
+  bool get needsCurrency =>
+      transactionType == TransactionType.sale ||
+      transactionType == TransactionType.purchase ||
+      transactionType == TransactionType.receipt ||
+      transactionType == TransactionType.payment ||
+      transactionType == TransactionType.transfer;
+
+  bool get needsAmount =>
+      !needsItems ||
+      transactionType == TransactionType.receipt ||
+      transactionType == TransactionType.payment ||
+      transactionType == TransactionType.transfer;
+
+  bool get needsCounterAccount =>
+      showCreditAccount ||
+      showDebitAccount ||
+      transactionType == TransactionType.receipt ||
+      transactionType == TransactionType.payment;
+
+  bool get isStockOperation =>
+      isInventoryIn ||
+      isInventoryOut ||
+      (transactionType == TransactionType.transfer &&
+          (showWarehouse || showDestinationWarehouse));
+
+  bool get needsDestinationWarehouse =>
+      showDestinationWarehouse && isStockOperation;
+}
+
+class OperationConfig {
+
+  const OperationConfig({
+    required this.title,
+    required this.transactionType,
+    this.showPaymentMode = false,
+    this.showCustomer = false,
+    this.showSupplier = false,
+    this.showItems = false,
+    this.showCashSource = false,
+    this.showBankSource = false,
+    this.showWarehouse = false,
+    this.showDestinationWarehouse = false,
+    this.showCreditAccount = false,
+    this.showDebitAccount = false,
+    this.showInvoiceNumber = false,
+    this.isReturn = false,
+    this.isInventoryOut = false,
+    this.isInventoryIn = false,
+    this.showPrice = true,
+    this.showFreeQty = true,
+  });
+  final String title;
+  final TransactionType transactionType;
+  final bool showPaymentMode;
+  final bool showCustomer;
+  final bool showSupplier;
+  final bool showItems;
+  final bool showCashSource;
+  final bool showBankSource;
+  final bool showWarehouse;
+  final bool showDestinationWarehouse;
+  final bool showCreditAccount;
+  final bool showDebitAccount;
+  final bool showInvoiceNumber;
+  final bool isReturn;
+  final bool isInventoryOut;
+  final bool isInventoryIn;
+  final bool showPrice;
+  final bool showFreeQty;
+}
+
+class SmartOperationForm extends StatefulWidget {
+  const SmartOperationForm({super.key, required this.config});
+  final OperationConfig config;
+
+  @override
+  State<SmartOperationForm> createState() => _SmartOperationFormState();
+}
+
+class _SmartOperationFormState extends State<SmartOperationForm> {
+  final _opService = GetIt.I<OperationService>();
+  final _dataService = GetIt.I<MasterDataService>();
+  final _numberGen = GetIt.I<NumberGenerator>();
+  final _inventoryJournalService = GetIt.I<InventoryJournalService>();
+  final _db = GetIt.I<AppDatabase>();
+
+  DateTime _selectedDate = DateTime.now();
+  String? _operationNumber;
+  String _statusText = '';
+  PaymentMode? _paymentMode;
+
+  Future<int?> _getSystemAccountId(String code) async {
+    final row =
+        await (_db.select(_db.systemAccounts)
+              ..where((t) => t.systemCode.equals(code))
+              ..where((t) => t.isActive.equals(true)))
+            .getSingleOrNull();
+
+    return row?.accountId;
+  }
+
+  // الحسابات المختارة فعلياً
+  int? _selectedCreditAccountId;
+  int? _selectedDebitAccountId;
+  List<Map<String, dynamic>> _postingAccounts = [];
+
+  // مصادر النقد
+  int? _selectedCashBoxId;
+  int? _selectedCashBoxAccountId;
+  List<Map<String, dynamic>> _cashBoxes = [];
+  int? _selectedBankAccountId;
+  String? _selectedBankSourceType;
+  int? _selectedBankSourceId;
+  List<Map<String, dynamic>> _banks = [];
+  List<Map<String, dynamic>> _wallets = [];
+  List<Map<String, dynamic>> _exchangeCompanies = [];
+
+  // العملاء/الموردين
+  int? _selectedCustomerId;
+  int? _selectedCustomerAccountId;
+  List<Map<String, dynamic>> _customers = [];
+  int? _selectedSupplierId;
+  int? _selectedSupplierAccountId;
+  List<Map<String, dynamic>> _suppliers = [];
+
+  // المخازن
+  int? _selectedWarehouseId;
+  int? _selectedDestWarehouseId;
+  List<Map<String, dynamic>> _warehouses = [];
+
+  // الأصناف
+  final List<ItemCardEntry> _items = [];
+  List<Map<String, dynamic>> _allItems = [];
+
+  // العملة
+  String _currencyCode = 'YER';
+  final double _exchangeRate = 1.0;
+  List<Map<String, dynamic>> _currencies = [];
+
+  final _invoiceNumberCtrl = TextEditingController();
+  final _amountCtrl = TextEditingController();
+  final _descriptionCtrl = TextEditingController();
+  final _referenceCtrl = TextEditingController();
+  double _totalAmount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+    _generateNumber();
+  }
+
+  Future<void> _generateNumber() async {
+    final number = await _numberGen.generate(
+      widget.config.transactionType.name,
+    );
+    if (mounted) setState(() => _operationNumber = number);
+  }
+
+  Future<void> _loadData() async {
+    final accounts = await _dataService.getAllAccounts();
+    final cashBoxes = await _dataService.getAllCashBoxes();
+    final banks = await _dataService.getAllBanks();
+    final wallets = await _dataService.getAllWallets();
+    final exchange = await _dataService.getAllExchangeCompanies();
+    final customers = await _dataService.getAllCustomers();
+    final suppliers = await _dataService.getAllSuppliers();
+    final warehouses = await _dataService.getAllWarehouses();
+    final items = await _dataService.getAllItems();
+
+    if (mounted) {
+      setState(() {
+        _postingAccounts = accounts
+            .where(
+              (a) => a['is_active'] != false && a['accepts_posting'] == true,
+            )
+            .toList();
+        _cashBoxes = cashBoxes;
+        _banks = banks;
+        _wallets = wallets;
+        _exchangeCompanies = exchange;
+        _customers = customers;
+        _suppliers = suppliers;
+        _warehouses = warehouses;
+        _allItems = items;
+        _currencies = [
+          {'code': 'YER', 'name': 'ريال يمني'},
+          {'code': 'USD', 'name': 'دولار أمريكي'},
+          {'code': 'SAR', 'name': 'ريال سعودي'},
+        ];
+      });
+    }
+  }
+
+  Future<List<JournalItem>> _buildJournalItems() async {
+    final amount = _totalAmount > 0
+        ? _totalAmount
+        : double.tryParse(_amountCtrl.text) ?? 0;
+
+    if (amount <= 0 && _items.isEmpty) {
+      return [];
+    }
+
+    // =========================
+    // البيع ومرتجع البيع
+    // =========================
+    if (widget.config.transactionType == TransactionType.sale &&
+        _items.isNotEmpty) {
+      final debitAccountId = _paymentMode == PaymentMode.credit
+          ? _selectedCustomerAccountId
+          : _selectedCashBoxAccountId ?? _selectedBankAccountId;
+
+      final salesAccountId =
+          _selectedCreditAccountId ??
+          await _getSystemAccountId('sales_default');
+
+      final inventoryAccountId = await _getSystemAccountId('inventory_default');
+
+      final cogsAccountId = await _getSystemAccountId('cogs_default');
+
+      if (debitAccountId == null ||
+          salesAccountId == null ||
+          inventoryAccountId == null ||
+          cogsAccountId == null) {
+        return [];
+      }
+
+      return _inventoryJournalService.buildSaleLines(
+        items: _items
+            .map(
+              (item) => {
+                'id': item.itemId,
+                'name': item.itemName,
+                'quantity': item.quantity,
+                'price': item.price,
+                'discount': item.discount,
+              },
+            )
+            .toList(),
+        receivableAccountId: debitAccountId,
+        salesAccountId: salesAccountId,
+        inventoryAccountId: inventoryAccountId,
+        cogsAccountId: cogsAccountId,
+        isReturn: widget.config.isReturn,
+      );
+    }
+
+    // =========================
+    // الشراء ومرتجع الشراء
+    // =========================
+    if (widget.config.transactionType == TransactionType.purchase &&
+        _items.isNotEmpty) {
+      final inventoryAccountId =
+          _selectedDebitAccountId ??
+          await _getSystemAccountId('inventory_default');
+
+      final payableAccountId = _paymentMode == PaymentMode.credit
+          ? _selectedSupplierAccountId
+          : _selectedCashBoxAccountId ?? _selectedBankAccountId;
+
+      if (inventoryAccountId == null || payableAccountId == null) {
+        return [];
+      }
+
+      return _inventoryJournalService.buildPurchaseLines(
+        total: amount,
+        inventoryAccountId: inventoryAccountId,
+        payableAccountId: payableAccountId,
+        isReturn: widget.config.isReturn,
+      );
+    }
+
+    // =========================
+    // العمليات المالية الأخرى
+    // =========================
+    int? debitAccountId = _selectedDebitAccountId;
+    int? creditAccountId = _selectedCreditAccountId;
+
+    switch (widget.config.transactionType) {
+      case TransactionType.receipt:
+        debitAccountId = _selectedCashBoxAccountId ?? _selectedBankAccountId;
+        creditAccountId =
+            _selectedCreditAccountId ?? _selectedCustomerAccountId;
+        break;
+
+      case TransactionType.payment:
+        debitAccountId = _selectedDebitAccountId ?? _selectedSupplierAccountId;
+        creditAccountId = _selectedCashBoxAccountId ?? _selectedBankAccountId;
+        break;
+
+      default:
+        break;
+    }
+
+    if (debitAccountId == null || creditAccountId == null) {
+      return [];
+    }
+
+    return [
+      JournalItem(
+        accountId: debitAccountId,
+        debit: amount,
+        description: widget.config.title,
+      ),
+      JournalItem(
+        accountId: creditAccountId,
+        credit: amount,
+        description: widget.config.title,
+      ),
+    ];
+  }
+
+  Future<void> _submit() async {
+    if (_totalAmount <= 0 &&
+        _items.isEmpty &&
+        double.tryParse(_amountCtrl.text) == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أدخل المبلغ أو أضف أصنافاً')),
+      );
+      return;
+    }
+
+    final items = await _buildJournalItems();
+
+    if (items.any((i) => i.accountId <= 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ اختر جميع الحسابات المطلوبة')),
+      );
+      return;
+    }
+
+    final result = await _opService.execute(
+      type: widget.config.transactionType,
+      date: _selectedDate,
+      items: items,
+      reference: _operationNumber ?? widget.config.title,
+      currencyCode: _currencyCode,
+      exchangeRate: _exchangeRate,
+      metadata: {
+        'items': _items
+            .map(
+              (e) => {
+                'id': e.itemId,
+                'name': e.itemName,
+                'quantity': e.quantity,
+                'price': e.price,
+              },
+            )
+            .toList(),
+        'reference': _operationNumber,
+        'isReturn': widget.config.isReturn,
+        'isInventoryIn': widget.config.isInventoryIn,
+        'isInventoryOut': widget.config.isInventoryOut,
+      },
+    );
+
+    if (!mounted) return;
+    switch (result) {
+      case Success(data: final res):
+        setState(() {
+          _operationNumber = res.entryNumber;
+          _statusText = '✅ ${res.message} - ${res.entryNumber}';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${res.entryNumber}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      case Failure(exception: final e):
+        setState(() => _statusText = '❌ ${e.message}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${e.message}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.config.title),
+        actions: [
+          if (_operationNumber != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Text(
+                  _operationNumber!,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (_operationNumber != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.teal.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'رقم العملية: $_operationNumber',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal,
+                ),
+              ),
+            ),
+          ListTile(
+            title: Text('التاريخ: ${_selectedDate.toLocal()}'.split(' ')[0]),
+            trailing: const Icon(Icons.calendar_today),
+            onTap: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+              );
+              if (date != null && mounted) setState(() => _selectedDate = date);
+            },
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(labelText: 'العملة'),
+            initialValue: _currencyCode,
+            items: _currencies
+                .map(
+                  (c) => DropdownMenuItem<String>(
+                    value: c['code'] as String?,
+                    child: Text('${c['name']} (${c['code']})'),
+                  ),
+                )
+                .toList(),
+            onChanged: (v) => setState(() => _currencyCode = v!),
+          ),
+          const SizedBox(height: 8),
+          if (widget.config.showPaymentMode)
+            Row(
+              children: [
+                if (widget.config.showCashSource)
+                  Expanded(
+                    child: _modeBtn(
+                      'نقدي',
+                      PaymentMode.cash,
+                      Icons.money,
+                      Colors.green,
+                    ),
+                  ),
+                if (widget.config.showBankSource) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _modeBtn(
+                      'بنكي',
+                      PaymentMode.bank,
+                      Icons.account_balance,
+                      Colors.blue,
+                    ),
+                  ),
+                ],
+                if (widget.config.showCustomer ||
+                    widget.config.showSupplier) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _modeBtn(
+                      'آجل',
+                      PaymentMode.credit,
+                      Icons.schedule,
+                      Colors.orange,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          const SizedBox(height: 12),
+
+          // نقدي - صندوق
+          if (_paymentMode == PaymentMode.cash && widget.config.showCashSource)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'اختر الصندوق'),
+              initialValue: _selectedCashBoxId?.toString(),
+              items: _cashBoxes
+                  .map(
+                    (c) => DropdownMenuItem<String>(
+                      value: c['id'].toString(),
+                      child: Text(c['name'] ?? ''),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) async {
+                final cashBox = _cashBoxes.firstWhere(
+                  (c) => c['id'].toString() == v,
+                );
+                final accountId = await _dataService.getLinkedAccountId(
+                  'cash_boxes',
+                  'CashBox',
+                  v!,
+                );
+                setState(() {
+                  _selectedCashBoxId = int.parse(v);
+                  _selectedCashBoxAccountId = accountId;
+                });
+              },
+            ),
+
+          // بنكي - بنك/محفظة/صرافة
+          if (_paymentMode == PaymentMode.bank && widget.config.showBankSource)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'نوع الحساب'),
+              initialValue: _selectedBankSourceType,
+              items: const [
+                DropdownMenuItem(value: 'bank', child: Text('بنك')),
+                DropdownMenuItem(value: 'wallet', child: Text('محفظة')),
+                DropdownMenuItem(value: 'exchange', child: Text('شركة صرافة')),
+              ],
+              onChanged: (v) => setState(() {
+                _selectedBankSourceType = v;
+                _selectedBankAccountId = null;
+              }),
+            ),
+
+          if (_selectedBankSourceType == 'bank')
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'اختر البنك'),
+              initialValue: _selectedBankSourceId?.toString(),
+              items: _banks
+                  .map(
+                    (b) => DropdownMenuItem<String>(
+                      value: b['id'].toString(),
+                      child: Text(b['name'] ?? ''),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) async {
+                final accountId = await _dataService.getLinkedAccountId(
+                  'banks',
+                  'Bank',
+                  v!,
+                );
+                setState(() {
+                  _selectedBankSourceId = int.parse(v);
+                  _selectedBankAccountId = accountId;
+                });
+              },
+            ),
+
+          // آجل - عميل/مورد
+          if (_paymentMode == PaymentMode.credit && widget.config.showCustomer)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'اختر العميل'),
+              initialValue: _selectedCustomerId?.toString(),
+              items: _customers
+                  .map(
+                    (c) => DropdownMenuItem<String>(
+                      value: c['id'].toString(),
+                      child: Text(c['name'] ?? ''),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) async {
+                final accountId = await _dataService.getLinkedAccountId(
+                  'customers',
+                  'Customer',
+                  v!,
+                );
+                setState(() {
+                  _selectedCustomerId = int.parse(v);
+                  _selectedCustomerAccountId = accountId;
+                });
+              },
+            ),
+          if (_paymentMode == PaymentMode.credit && widget.config.showSupplier)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'اختر المورد'),
+              initialValue: _selectedSupplierId?.toString(),
+              items: _suppliers
+                  .map(
+                    (s) => DropdownMenuItem<String>(
+                      value: s['id'].toString(),
+                      child: Text(s['name'] ?? ''),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) async {
+                final accountId = await _dataService.getLinkedAccountId(
+                  'suppliers',
+                  'Supplier',
+                  v!,
+                );
+                setState(() {
+                  _selectedSupplierId = int.parse(v);
+                  _selectedSupplierAccountId = accountId;
+                });
+              },
+            ),
+
+          // الحساب المدين
+          if (widget.config.showDebitAccount)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'الحساب المدين'),
+              initialValue: _selectedDebitAccountId?.toString(),
+              items: _postingAccounts
+                  .map(
+                    (a) => DropdownMenuItem<String>(
+                      value: a['id'].toString(),
+                      child: Text(
+                        '${a['number']} - ${a['name_ar'] ?? a['name_en']}',
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) =>
+                  setState(() => _selectedDebitAccountId = int.parse(v!)),
+            ),
+
+          // الحساب الدائن
+          if (widget.config.showCreditAccount)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'الحساب الدائن'),
+              initialValue: _selectedCreditAccountId?.toString(),
+              items: _postingAccounts
+                  .map(
+                    (a) => DropdownMenuItem<String>(
+                      value: a['id'].toString(),
+                      child: Text(
+                        '${a['number']} - ${a['name_ar'] ?? a['name_en']}',
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) =>
+                  setState(() => _selectedCreditAccountId = int.parse(v!)),
+            ),
+
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _descriptionCtrl,
+            decoration: const InputDecoration(labelText: 'البيان'),
+            maxLines: 2,
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _referenceCtrl,
+            decoration: const InputDecoration(labelText: 'رقم المرجع'),
+          ),
+          if (!widget.config.showItems)
+            TextFormField(
+              controller: _amountCtrl,
+              decoration: const InputDecoration(labelText: 'المبلغ'),
+              keyboardType: TextInputType.number,
+            ),
+
+          if (widget.config.showItems) ...[
+            const SizedBox(height: 12),
+            ItemCardWidget(
+              items: _items,
+              availableItems: _allItems,
+              showPriceColumn: widget.config.showPrice,
+              sho

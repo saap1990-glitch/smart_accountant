@@ -2,8 +2,8 @@ import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 
 class MasterDataRepository {
-  final AppDatabase db;
   MasterDataRepository(this.db);
+  final AppDatabase db;
 
   // العملات
   Future<int> insertCurrency(Map<String, dynamic> data) => db
@@ -66,13 +66,14 @@ class MasterDataRepository {
     final row = await (db.select(
       db.currencies,
     )..where((t) => t.isDefault.equals(true))).getSingleOrNull();
-    if (row != null)
+    if (row != null) {
       return {
         'id': row.id,
         'code': row.code,
         'name': row.name,
         'exchange_rate': row.exchangeRate,
       };
+    }
     return null;
   }
 
